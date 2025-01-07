@@ -74,7 +74,7 @@ pyproject_hooks==1.2.0
 pytest==8.3.4
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
-python-jose==3.3.0
+PyJWT==2.10.1
 python-multipart==0.0.19
 PyYAML==6.0.2
 requests==2.32.3

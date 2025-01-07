@@ -1,7 +1,8 @@
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from typing import Optional
-from jose import jwt, JWTError
+import jwt
+
 import logging
 import os
 from pathlib import Path
@@ -32,6 +33,6 @@ async def api_key_auth(token: Optional[str] = Depends(get_optional_token)):
         if user_id is None:
             return None
         return user_id
-    except JWTError:
+    except jwt.exceptions.InvalidTokenError:
         logger.error("Invalid token")
         return None
