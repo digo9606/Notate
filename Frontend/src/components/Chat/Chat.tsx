@@ -16,10 +16,9 @@ import { NewConvoWelcome } from "./ChatComponents/NewConvoWelcome";
 
 export default function Chat() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-
-  const [isAtBottom, setIsAtBottom] = useState(true);
   const [resetCounter, setResetCounter] = useState(0);
-
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const {
     handleResetChat: originalHandleResetChat,
     isLoading,
@@ -35,52 +34,61 @@ export default function Chat() {
 
   const { localModalLoading } = useSysSettings();
 
+  // This handles the auto scroll behavior using IntersectionObserver
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setShouldAutoScroll(entry.isIntersecting);
+      },
+      { threshold: 0.5 }
+    );
+
+    const bottom = bottomRef.current;
+    if (bottom) {
+      observer.observe(bottom);
+    }
+
+    return () => {
+      if (bottom) {
+        observer.unobserve(bottom);
+      }
+    };
+  }, []);
+
+  // Modified scroll effect to be more reliable
+  useEffect(() => {
+    if (shouldAutoScroll && scrollAreaRef.current) {
+      const scrollElement = scrollAreaRef.current.querySelector(
+        "[data-radix-scroll-area-viewport]"
+      );
+
+      const scrollToBottom = () => {
+        if (scrollElement) {
+          scrollElement.scrollTop = scrollElement.scrollHeight;
+        }
+      };
+
+      // Add multiple scroll attempts with delays to ensure content is rendered
+      if (messages.length <= 2) {
+        // For first two messages, use multiple delayed scrolls
+        const delays = [50, 100, 200, 500];
+        delays.forEach(delay => {
+          setTimeout(scrollToBottom, delay);
+        });
+      } else {
+        // For subsequent messages, immediate scroll is usually sufficient
+        scrollToBottom();
+        // Add one backup scroll for safety
+        setTimeout(scrollToBottom, 100);
+      }
+    }
+  }, [messages, streamingMessage, isLoading, shouldAutoScroll]);
+
   const handleResetChat = async () => {
     await originalHandleResetChat();
     setResetCounter((c) => c + 1);
+    setShouldAutoScroll(true);
   };
-
-  // This aids in the auto scroll to the bottom of the chat when a new message is sent
-  useEffect(() => {
-    const scrollToBottom = () => {
-      if (scrollAreaRef.current) {
-        const scrollElement = scrollAreaRef.current.querySelector(
-          "[data-radix-scroll-area-viewport]"
-        );
-        if (scrollElement && isAtBottom) {
-          scrollElement.scrollTop = scrollElement.scrollHeight;
-        }
-      }
-    };
-
-    if (isAtBottom) {
-      scrollToBottom();
-      const timeoutId = setTimeout(scrollToBottom, 0);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [messages, isAtBottom]);
-
-  // This aids in the breaking of the auto scroll when the user is scrolling up
-  useEffect(() => {
-    const scrollElement = scrollAreaRef.current?.querySelector(
-      "[data-radix-scroll-area-viewport]"
-    );
-
-    const handleScroll = () => {
-      if (scrollElement) {
-        const isBottom =
-          Math.abs(
-            scrollElement.scrollHeight -
-              scrollElement.clientHeight -
-              scrollElement.scrollTop
-          ) < 10;
-        setIsAtBottom(isBottom);
-      }
-    };
-
-    scrollElement?.addEventListener("scroll", handleScroll);
-    return () => scrollElement?.removeEventListener("scroll", handleScroll);
-  }, []);
 
   // This signals to the backend that the user is streaming a message and updates the UI
   useEffect(() => {
@@ -176,6 +184,7 @@ export default function Chat() {
               Error: {error}
             </div>
           )}
+          <div ref={bottomRef} />
         </ScrollArea>
         {isLoading && (
           <div className="flex justify-center">

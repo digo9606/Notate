@@ -7,6 +7,13 @@ Notate is a powerful desktop research assistant that combines AI-driven analysis
 Join our Discord community to get help, share feedback, and connect with other users and developers:
 [Discord Server](https://discord.gg/vEFAwB8wFC)
 
+## Support the Project
+
+If you find this project helpful, consider supporting its development:
+
+Donations are used to cover the costs of running the project, including server costs, domain registration, signed certificates, and other expenses.
+
+[![PayPal](https://img.shields.io/badge/PayPal-donate-blue.svg)](https://www.paypal.com/donate/?hosted_button_id=W96TCRJ5Q3RJG)
 
 ## Project Structure
 
