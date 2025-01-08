@@ -3,9 +3,9 @@
   "description": "Notate is a cross-platform chatbot that can help assist in your research",
   "author": "Hairetsu <Hairetsu@hairetsu.com>",
   "license": "MIT",
-  "homepage": "https://github.com/hairetsucodes/notate",
+  "homepage": "https://github.com/CNTRLAI/notate",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {

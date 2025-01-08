@@ -16,38 +16,42 @@ log.transports.file.resolvePathFn = () =>
 let pythonProcess: ChildProcess | null = null;
 
 async function runWithPrivileges(commands: string | string[]): Promise<void> {
-  if (process.platform !== 'linux') return;
-  
+  if (process.platform !== "linux") return;
+
   const commandArray = Array.isArray(commands) ? commands : [commands];
-  
+
   try {
     // Try without privileges first
     for (const cmd of commandArray) {
       execSync(cmd);
     }
-  } catch (error) {
-    log.info("Failed to run commands, requesting privileges...");
-    
+  } catch {
+    log.info("Failed to run commands, requesting privileges..., ");
+
     const response = await dialog.showMessageBox({
       type: "question",
       buttons: ["Grant Privileges", "Cancel"],
       defaultId: 0,
       title: "Administrator Privileges Required",
-      message: "Creating the Python environment requires administrator privileges.",
-      detail: "This is needed to install required system dependencies and create the virtual environment. This will only be needed once."
+      message:
+        "Creating the Python environment requires administrator privileges.",
+      detail:
+        "This is needed to install required system dependencies and create the virtual environment. This will only be needed once.",
     });
 
     if (response.response === 0) {
       try {
         // Combine all commands with && to run them in sequence
-        const combinedCommand = commandArray.join(' && ');
+        const combinedCommand = commandArray.join(" && ");
         execSync(`pkexec sh -c '${combinedCommand}'`);
       } catch (error) {
         log.error("Failed to run commands with privileges", error);
         throw new Error("Failed to run commands with elevated privileges");
       }
     } else {
-      throw new Error("User declined to grant administrator privileges. Cannot continue.");
+      throw new Error(
+        "User declined to grant administrator privileges. Cannot continue."
+      );
     }
   }
 }
@@ -119,16 +123,16 @@ async function ensurePythonAndVenv(backendPath: string) {
 
   if (!fs.existsSync(venvPath)) {
     log.info("Creating virtual environment with Python 3.10...");
-    
-    if (process.platform === 'linux') {
+
+    if (process.platform === "linux") {
       try {
         // Run all commands with a single privilege prompt
         await runWithPrivileges([
-          'apt-get update && apt-get install -y python3-venv python3-dev build-essential',
+          "apt-get update && apt-get install -y python3-venv python3-dev build-essential",
           `${pythonCommand} -m venv "${venvPath}"`,
-          `chown -R ${process.env.USER}:${process.env.USER} "${venvPath}"`
+          `chown -R ${process.env.USER}:${process.env.USER} "${venvPath}"`,
         ]);
-        
+
         log.info("Virtual environment created successfully");
       } catch (error: unknown) {
         if (error instanceof Error) {
