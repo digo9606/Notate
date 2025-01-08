@@ -64,23 +64,33 @@ export default function Chat() {
 
       const scrollToBottom = () => {
         if (scrollElement) {
-          scrollElement.scrollTop = scrollElement.scrollHeight;
+          const smoothScroll = () => {
+            scrollElement.scrollTo({
+              top: scrollElement.scrollHeight,
+              behavior: 'smooth'
+            });
+          };
+          
+          // For immediate scroll without animation (for user-initiated actions)
+          const instantScroll = () => {
+            scrollElement.scrollTop = scrollElement.scrollHeight;
+          };
+
+          // Use smooth scrolling for AI responses, instant for user messages
+          const lastMessage = messages[messages.length - 1];
+          if (lastMessage?.role === 'user') {
+            instantScroll();
+          } else {
+            smoothScroll();
+          }
         }
       };
 
-      // Add multiple scroll attempts with delays to ensure content is rendered
-      if (messages.length <= 2) {
-        // For first two messages, use multiple delayed scrolls
-        const delays = [50, 100, 200, 500];
-        delays.forEach(delay => {
-          setTimeout(scrollToBottom, delay);
-        });
-      } else {
-        // For subsequent messages, immediate scroll is usually sufficient
-        scrollToBottom();
-        // Add one backup scroll for safety
-        setTimeout(scrollToBottom, 100);
-      }
+      // Reduced number of scroll attempts and added more reasonable delays
+      const delays = [10, 100];
+      delays.forEach((delay) => {
+        setTimeout(scrollToBottom, delay);
+      });
     }
   }, [messages, streamingMessage, isLoading, shouldAutoScroll]);
 
