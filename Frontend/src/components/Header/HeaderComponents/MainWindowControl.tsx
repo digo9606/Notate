@@ -61,7 +61,10 @@ const MainWindowControl = ({
               {isMaximized ? (
                 <Minimize className="m-auto text-black font-bold" size={8} />
               ) : (
-                <Maximize2Icon className="m-auto text-black font-bold" size={8} />
+                <Maximize2Icon
+                  className="m-auto text-black font-bold"
+                  size={8}
+                />
               )}
             </span>
           </button>
@@ -75,11 +78,9 @@ const MainWindowControl = ({
           className="win-header-button group"
           onClick={() => window.electron.sendFrameAction("minimize")}
         >
-          <span className="hidden group-hover:block">
-            <svg width="10" height="10" viewBox="0 0 10 1">
-              <path d="M0 0h10v1H0z" fill="currentColor" />
-            </svg>
-          </span>
+          <svg width="10" height="10" viewBox="0 0 10 1">
+            <path d="M0 0h10v1H0z" fill="currentColor" />
+          </svg>
         </button>
         <button
           className={`win-header-button group`}
