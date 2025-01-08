@@ -6,8 +6,8 @@
 
 
 .env.local
-Database
 
+database.sqlite
 
 Backend/__pycache__
 Backend/.pytest_cache
