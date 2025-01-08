@@ -2,6 +2,28 @@
 
 Notate is a powerful desktop research assistant that combines AI-driven analysis with advanced vector search technology. It streamlines your research workflow by intelligently processing, organizing, and retrieving information from documents, audio, and text across multiple formats. With support for various LLM providers and local models, Notate offers flexible AI capabilities while maintaining data privacy. Built for researchers, academics, and knowledge workers, it features real-time collaboration, accessible UI, and cross-platform compatibility.
 
+## Quick Start
+
+Download the latest version of Notate for your platform:
+
+- [Windows Installer](https://notate.hairetsu.com/download)
+- [macOS Installer](https://notate.hairetsu.com/download)
+- [Linux Deb](https://notate.hairetsu.com/download)
+
+For detailed installation instructions, see our [Installation Guide](https://notate.hairetsu.com/docs/getting-started).
+
+## Documentation
+
+- [Getting Started](https://notate.hairetsu.com/introduction): A quick overview of Notate
+- [Installation Guide](https://notate.hairetsu.com/docs/getting-started): Detailed setup instructions
+- [Model Configuration](https://notate.hairetsu.com/docs/settings): Configure AI models and embeddings
+- [File Collections](https://notate.hairetsu.com/docs/collections): How to use File Collections
+- [File Collection Tools](https://notate.hairetsu.com/docs/collection-tools): Tools to ingest content from outside sources
+- [API Reference](https://notate.hairetsu.com/docs/developer-integration): Technical documentation for developers
+- [Troubleshooting](https://notate.hairetsu.com/docs): Coming Soon
+
+Visit our complete documentation at [https://notate.hairetsu.com/docs](https://notate.hairetsu.com/docs)
+
 ## Community
 
 Join our Discord community to get help, share feedback, and connect with other users and developers:
@@ -15,27 +37,7 @@ Donations are used to cover the costs of running the project, including server c
 
 [![PayPal](https://img.shields.io/badge/PayPal-donate-blue.svg)](https://www.paypal.com/donate/?hosted_button_id=W96TCRJ5Q3RJG)
 
-## Project Structure
-
-- `Backend/`: FastAPI-based server application
-  - `src/`
-    - `authentication/`: Auth system and middleware
-    - `data/`: Data retrieval, fetching, database operations
-    - `endpoint/`: API schemas and route models
-    - `vectorstorage/`: Vector database operations
-    - `voice/`: Audio processing and transcription
-- `Frontend/`: Electron + React-based desktop application
-  - `src/`
-    - `app/`: Main UI components and styles
-    - `assets/`: Images, icons, and static resources
-    - `components/`: Core UI components and layouts
-    - `context/`: Global state management and providers
-    - `electron/`: Main and renderer process code
-    - `hooks/`: Custom React hooks for shared logic
-    - `lib/`: Core functionality and shared libraries
-    - `utils/`: Helper functions and utilities
-- `Database/`: Development SQLite Database
-- `FileCollections/`: Development User File Collections
+![Notate Screenshot](https://www.hairetsu.com/notate-ss1.png)
 
 ## Prerequisites
 
