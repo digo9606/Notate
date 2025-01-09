@@ -43,7 +43,7 @@ def get_venv_python(venv_path):
 def install_package(python_path, package):
     try:
         subprocess.check_call(
-            [python_path, '-m', 'pip', 'install', '--no-deps',
+            [python_path, '-m', 'pip', 'install',
                 '--upgrade-strategy', 'only-if-needed', package],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
