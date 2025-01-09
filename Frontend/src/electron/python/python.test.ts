@@ -2,7 +2,7 @@ import { test, expect, vi, beforeEach } from "vitest";
 import { dialog, shell } from "electron";
 import { spawn, execSync } from "child_process";
 import fs from "fs";
-import { startPythonServer } from "./python/startAndStopPython.js";
+import { startPythonServer } from "./startAndStopPython.js";
 import type { Mock } from "vitest";
 
 // Mock all external dependencies
@@ -65,7 +65,7 @@ beforeEach(() => {
 });
 
 test("successfully starts python server in dev mode", async () => {
-  const isDev = await import("./util.js");
+  const isDev = await import("../util.js");
   (isDev.isDev as Mock).mockReturnValue(true);
   (spawn as unknown as Mock).mockReturnValue(mockEventEmitter);
   (fs.existsSync as Mock).mockReturnValue(true);
@@ -92,7 +92,7 @@ test("handles missing Python 3.10 installation", async () => {
 });
 
 test("handles dependency installation failure", async () => {
-  const isDev = await import("./util.js");
+  const isDev = await import("../util.js");
   (isDev.isDev as Mock).mockReturnValue(true);
   (execSync as Mock).mockReturnValue(Buffer.from("Python 3.10.0")); // Mock successful Python check
   const failingEventEmitter = {
@@ -107,7 +107,7 @@ test("handles dependency installation failure", async () => {
 });
 
 test("extracts backend in production mode when needed", async () => {
-  const isDev = await import("./util.js");
+  const isDev = await import("../util.js");
   (isDev.isDev as Mock).mockReturnValue(false);
   (execSync as Mock).mockReturnValue(Buffer.from("Python 3.10.0")); // Mock successful Python check
   

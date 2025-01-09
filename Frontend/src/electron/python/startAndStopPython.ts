@@ -28,19 +28,19 @@ export async function startPythonServer() {
 
   let backendPath;
   if (isDev()) {
+    // In dev mode, Backend is one level up from the Frontend directory
     backendPath = path.join(appPath, "..", "Backend");
     log.info(`Dev mode: Backend path set to ${backendPath}`);
   } else {
-    const unpackedBackendPath = path.join(appPath, "..", "Backend");
-    log.info(`Prod mode: Unpacked Backend path set to ${unpackedBackendPath}`);
+    // In production, Backend should be in the resources directory
+    backendPath = path.join(process.resourcesPath, "backend");
+    log.info(`Prod mode: Backend path set to ${backendPath}`);
 
-    if (fs.existsSync(unpackedBackendPath)) {
-      backendPath = unpackedBackendPath;
-      log.info(`Using unpacked Backend folder`);
-    } else {
+    if (!fs.existsSync(backendPath)) {
       const tempPath = path.join(app.getPath("temp"), "notate-backend");
       log.info(`Prod mode: Temp path set to ${tempPath}`);
-      const asarBackendPath = path.join(appPath, "Backend");
+      // Use relative path from the app's root
+      const asarBackendPath = path.join(appPath, "backend");
       log.info(`Prod mode: ASAR Backend path set to ${asarBackendPath}`);
       try {
         extractFromAsar(asarBackendPath, tempPath);
@@ -53,11 +53,9 @@ export async function startPythonServer() {
     }
   }
 
-  log.info(`Final Backend path: ${backendPath}`);
+  // Use path.join for constructing paths to scripts
   const dependencyScript = path.join(backendPath, "ensure_dependencies.py");
-  log.info(`Dependency script: ${dependencyScript}`);
   const mainScript = path.join(backendPath, "main.py");
-  log.info(`Main script: ${mainScript}`);
 
   return new Promise((resolve, reject) => {
     let totalPackages = 0;
