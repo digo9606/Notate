@@ -56,7 +56,7 @@ export async function startPythonServer() {
   // Use path.join for constructing paths to scripts
   const dependencyScript = path.join(backendPath, "ensure_dependencies.py");
   const mainScript = path.join(backendPath, "main.py");
-
+  
   return new Promise((resolve, reject) => {
     let totalPackages = 0;
     let installedPackages = 0;

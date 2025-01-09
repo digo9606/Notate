@@ -11,7 +11,7 @@ def find_python310():
     for cmd in python_commands:
         try:
             result = subprocess.run(
-                [cmd, "--version"], capture_output=True, text=True)
+                [cmd, "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             if "Python 3.10" in result.stdout:
                 return cmd
         except:
@@ -43,7 +43,7 @@ def get_venv_python(venv_path):
 def install_package(python_path, package):
     try:
         subprocess.check_call(
-            [python_path, '-m', 'pip', 'install',
+            [python_path, '-m', 'pip', 'install', '--no-deps',
                 '--upgrade-strategy', 'only-if-needed', package],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
@@ -54,8 +54,12 @@ def install_package(python_path, package):
 
 
 def get_installed_packages(python_path):
-    result = subprocess.run([python_path, '-m', 'pip', 'list',
-                            '--format=freeze'], capture_output=True, text=True)
+    result = subprocess.run(
+        [python_path, '-m', 'pip', 'list', '--format=freeze'],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
     return {line.split('==')[0].lower(): line.split('==')[1] for line in result.stdout.splitlines()}
 
 
@@ -74,24 +78,32 @@ def install_requirements(custom_venv_path=None):
         # Install torch and torchaudio first with appropriate backend
         if use_cuda:
             subprocess.check_call(
-                [python_path, '-m', 'pip', 'install', 'torch', 'torchaudio'])
+                [python_path, '-m', 'pip', 'install', 'torch', 'torchaudio'],
+                stderr=subprocess.DEVNULL
+            )
             subprocess.check_call(
-                [python_path, '-m', 'pip', 'install', 'openai-whisper'])
+                [python_path, '-m', 'pip', 'install', 'openai-whisper'],
+                stderr=subprocess.DEVNULL
+            )
             sys.stdout.write("Installed CUDA-enabled PyTorch and Whisper|5\n")
         else:
-            subprocess.check_call([python_path, '-m', 'pip', 'install',
-                                   'torch', 'torchaudio',
-                                   '--index-url', 'https://download.pytorch.org/whl/cpu'])
-            # Install CPU version of whisper
-            subprocess.check_call([python_path, '-m', 'pip', 'install',
-                                   'openai-whisper',
-                                   '--no-deps'])  # Don't reinstall torch
+            subprocess.check_call(
+                [python_path, '-m', 'pip', 'install', 'torch', 'torchaudio',
+                '--index-url', 'https://download.pytorch.org/whl/cpu'],
+                stderr=subprocess.DEVNULL
+            )
+            subprocess.check_call(
+                [python_path, '-m', 'pip', 'install', 'openai-whisper', '--no-deps'],
+                stderr=subprocess.DEVNULL
+            )
             sys.stdout.write("Installed CPU-only PyTorch and Whisper|5\n")
         sys.stdout.flush()
 
         # Install typing_extensions first to ensure we have the latest version
         subprocess.check_call(
-            [python_path, '-m', 'pip', 'install', '--upgrade', 'typing_extensions>=4.7.0'])
+            [python_path, '-m', 'pip', 'install', '--upgrade', 'typing_extensions>=4.7.0'],
+            stderr=subprocess.DEVNULL
+        )
         sys.stdout.write("Installed typing_extensions|10\n")
         sys.stdout.flush()
 
