@@ -2,7 +2,7 @@ import { test, expect, vi, beforeEach } from "vitest";
 import { dialog, shell } from "electron";
 import { spawn, execSync } from "child_process";
 import fs from "fs";
-import { startPythonServer } from "./python.js";
+import { startPythonServer } from "./python/startAndStopPython.js";
 import type { Mock } from "vitest";
 
 // Mock all external dependencies
