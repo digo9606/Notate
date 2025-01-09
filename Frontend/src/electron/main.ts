@@ -15,7 +15,7 @@ import { setupDbHandlers } from "./handlers/dbHandlers.js";
 import { createMainWindow } from "./mainWindow.js";
 import { handleCloseEvents } from "./handlers/closeEventHandler.js";
 import { setupChatHandlers } from "./handlers/chatHandlers.js";
-import { startPythonServer, stopPythonServer } from "./python.js";
+import { startPythonServer, stopPythonServer } from "./python/startAndStopPython.js";
 import { setupMenuHandlers } from "./handlers/menuHandlers.js";
 import { setupOllamaHandlers } from "./handlers/ollamaHandlers.js";
 import { nativeImage } from "electron";

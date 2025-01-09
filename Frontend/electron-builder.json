@@ -19,11 +19,16 @@
         {
             "from": "node_modules/ffmpeg-static/ffmpeg",
             "to": "ffmpeg"
+        },
+        {
+            "from": "node_modules/ffmpeg-static/ffmpeg.exe",
+            "to": "ffmpeg.exe"
         }
     ],
     "asarUnpack": [
         "Backend",
-        "ffmpeg"
+        "ffmpeg",
+        "ffmpeg.exe"
     ],
     "files": [
         "dist-electron",
