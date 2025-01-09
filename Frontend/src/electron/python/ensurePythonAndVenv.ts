@@ -23,9 +23,27 @@ function removeVenvDirectory(venvPath: string) {
 
 export async function ensurePythonAndVenv(backendPath: string) {
     // Ensure we're using the correct path in production
-    const resolvedBackendPath = app.isPackaged 
-        ? path.join(process.resourcesPath, "backend")
-        : backendPath;
+    let resolvedBackendPath;
+    if (app.isPackaged) {
+        // Try both capitalization variants
+        const backendPaths = [
+            path.join(process.resourcesPath, "Backend"),
+            path.join(process.resourcesPath, "backend")
+        ];
+        
+        for (const testPath of backendPaths) {
+            if (fs.existsSync(testPath)) {
+                resolvedBackendPath = testPath;
+                break;
+            }
+        }
+        
+        if (!resolvedBackendPath) {
+            resolvedBackendPath = path.join(process.resourcesPath, "backend");
+        }
+    } else {
+        resolvedBackendPath = backendPath;
+    }
     
     const venvPath = path.join(resolvedBackendPath, "venv");
     log.info(`Backend path: ${resolvedBackendPath}`);
