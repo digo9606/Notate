@@ -2,7 +2,7 @@ import { OpenAIProviderAPIKeyCheck } from "./apiCheckProviders/openai.js";
 import { AnthropicProviderAPIKeyCheck } from "./apiCheckProviders/anthropic.js";
 import { GeminiProviderAPIKeyCheck } from "./apiCheckProviders/gemini.js";
 import { XAIProviderAPIKeyCheck } from "./apiCheckProviders/xai.js";
-
+import log from "electron-log";
 export async function keyValidation({
   apiKey,
   inputProvider,
@@ -35,12 +35,13 @@ export async function keyValidation({
     }
 
     const result = await provider(apiKey);
-
+    log.info(`Result: ${JSON.stringify(result)}`);
     return {
       ...result,
     };
   } catch (error) {
-    console.error("Error in chat request:", error);
+
+    log.error("Error in chat request:", error);
     return {
       error: "Error in chat request",
     };

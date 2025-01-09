@@ -7,7 +7,7 @@ import { XAIProvider } from "./providers/xai.js";
 import { generateTitle } from "./generateTitle.js";
 import { vectorstoreQuery } from "../embedding/vectorstoreQuery.js";
 import { LocalProvider } from "./providers/local.js";
-
+import log from "electron-log";
 interface ProviderResponse {
   id: bigint | number;
   messages: Message[];
@@ -45,6 +45,7 @@ export async function chatRequest(
         userSettings.model
       );
     }
+
     let data: {
       top_k: number;
       results: {
@@ -54,6 +55,7 @@ export async function chatRequest(
     } | null = null;
     if (collectionId) {
       const collectionName = await db.getCollectionName(Number(collectionId));
+      log.info(`Collection name: ${collectionName}`);
       const vectorstoreData = await vectorstoreQuery({
         query: messages[messages.length - 1].content,
         userId: activeUser.id,
@@ -61,6 +63,7 @@ export async function chatRequest(
         collectionId: Number(collectionId),
         collectionName: collectionName.name,
       });
+      log.info(`Vectorstore data: ${vectorstoreData}`);
       if (vectorstoreData) {
         data = {
           top_k: vectorstoreData.results.length,
@@ -71,6 +74,7 @@ export async function chatRequest(
     if (!currentTitle) {
       currentTitle = messages[messages.length - 1].content.substring(0, 20);
     }
+    log.info(`Current title: ${currentTitle}`);
     if (!conversationId) {
       const addConversation = await db.addUserConversation(
         activeUser.id,
@@ -84,13 +88,14 @@ export async function chatRequest(
       activeUser.id,
       Number(userSettings.prompt)
     );
+    log.info(`Get prompt: ${getPrompt}`);
     if (getPrompt) {
       prompt = getPrompt.prompt;
     } else {
       prompt = "You are a helpful assistant.";
     }
     let provider;
-
+    log.info(`User settings: ${JSON.stringify(userSettings)}`);
     switch (userSettings.provider) {
       case "openai":
         provider = OpenAIProvider;
@@ -115,7 +120,7 @@ export async function chatRequest(
     if (!currentTitle) {
       currentTitle = messages[messages.length - 1].content.substring(0, 20);
     }
-    const result = await provider(
+    const result = (await provider(
       messages,
       activeUser,
       userSettings,
@@ -126,8 +131,8 @@ export async function chatRequest(
       Number(collectionId),
       data ? data : undefined,
       signal
-    ) as ProviderResponse;
-
+    )) as ProviderResponse;
+    log.info(`Result: ${JSON.stringify(result)}`);
     try {
       // Add the user's message first
       db.addUserMessage(
@@ -136,7 +141,7 @@ export async function chatRequest(
         "user",
         messages[messages.length - 1].content
       );
-
+      log.info(`Added user message`);
       // Add the assistant's message
       const assistantMessageId = db.addUserMessage(
         activeUser.id,
@@ -145,26 +150,34 @@ export async function chatRequest(
         result.content,
         collectionId ? Number(collectionId) : undefined
       ).lastInsertRowid;
-
+      log.info(`Added assistant message`);
       // If we have data from retrieval, add it
       if (data !== null) {
         db.addRetrievedData(Number(assistantMessageId), JSON.stringify(data));
+        log.info(`Added retrieved data`);
       }
     } catch (error) {
       // If we get a foreign key constraint error, it likely means the message was already added
       // We can safely ignore this and continue
-      if (!(error instanceof Error && 'code' in error && error.code === 'SQLITE_CONSTRAINT_FOREIGNKEY')) {
+      if (
+        !(
+          error instanceof Error &&
+          "code" in error &&
+          error.code === "SQLITE_CONSTRAINT_FOREIGNKEY"
+        )
+      ) {
         throw error;
       }
     }
 
+    log.info(`Returning result`);
     return {
       ...result,
       title:
         currentTitle || messages[messages.length - 1].content.substring(0, 20),
     };
   } catch (error) {
-    console.error("Error in chat request:", error);
+    log.error("Error in chat request:", error);
 
     const newMessage = {
       role: "assistant",
@@ -172,6 +185,7 @@ export async function chatRequest(
       timestamp: new Date(),
       data_content: undefined,
     } as Message;
+    log.info(`New message: ${newMessage}`);
     return {
       id: -1,
       messages: [...messages, newMessage],
