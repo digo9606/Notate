@@ -17,8 +17,12 @@
             ]
         },
         {
-            "from": "node_modules/ffmpeg-static/${platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'}",
-            "to": "${platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'}"
+            "from": "node_modules/ffmpeg-static/ffmpeg",
+            "to": "ffmpeg"
+        },
+        {
+            "from": "node_modules/ffmpeg-static/ffmpeg.exe",
+            "to": "ffmpeg.exe"
         }
     ],
     "asarUnpack": [
