@@ -16,7 +16,6 @@ log.transports.file.resolvePathFn = () =>
 
 let pythonProcess: ChildProcess | null = null;
 
-
 export async function startPythonServer() {
   log.info("Application starting...");
   log.info("Creating window...");
@@ -32,16 +31,45 @@ export async function startPythonServer() {
     backendPath = path.join(appPath, "..", "Backend");
     log.info(`Dev mode: Backend path set to ${backendPath}`);
   } else {
-    // In production, Backend should be in the resources directory
-    backendPath = path.join(process.resourcesPath, "backend");
-    log.info(`Prod mode: Backend path set to ${backendPath}`);
+    // In production, try both "Backend" and "backend" paths
+    const backendPaths = [
+      path.join(process.resourcesPath, "Backend"),
+      path.join(process.resourcesPath, "backend")
+    ];
+    
+    for (const testPath of backendPaths) {
+      if (fs.existsSync(testPath)) {
+        backendPath = testPath;
+        log.info(`Prod mode: Found backend at ${backendPath}`);
+        break;
+      }
+    }
 
-    if (!fs.existsSync(backendPath)) {
+    if (!backendPath) {
       const tempPath = path.join(app.getPath("temp"), "notate-backend");
       log.info(`Prod mode: Temp path set to ${tempPath}`);
-      // Use relative path from the app's root
-      const asarBackendPath = path.join(appPath, "backend");
-      log.info(`Prod mode: ASAR Backend path set to ${asarBackendPath}`);
+      
+      // Try both capitalization variants in ASAR
+      const asarBackendPaths = [
+        path.join(appPath, "Backend"),
+        path.join(appPath, "backend")
+      ];
+      
+      let asarBackendPath;
+      for (const testPath of asarBackendPaths) {
+        if (fs.existsSync(testPath)) {
+          asarBackendPath = testPath;
+          log.info(`Found ASAR backend at ${asarBackendPath}`);
+          break;
+        }
+      }
+      
+      if (!asarBackendPath) {
+        const error = new Error("Backend not found in any expected location");
+        log.error(error);
+        throw error;
+      }
+
       try {
         extractFromAsar(asarBackendPath, tempPath);
         log.info(`Successfully extracted from ASAR to ${tempPath}`);
@@ -56,7 +84,7 @@ export async function startPythonServer() {
   // Use path.join for constructing paths to scripts
   const dependencyScript = path.join(backendPath, "ensure_dependencies.py");
   const mainScript = path.join(backendPath, "main.py");
-
+  
   return new Promise((resolve, reject) => {
     let totalPackages = 0;
     let installedPackages = 0;
