@@ -14,13 +14,13 @@ For detailed installation instructions, see our [Installation Guide](https://not
 
 ## Documentation
 
-- [Getting Started](https://notate.hairetsu.com/introduction): A quick overview of Notate
+- [Getting Started](https://notate.hairetsu.com/docs/overview): A quick overview of Notate
 - [Installation Guide](https://notate.hairetsu.com/docs/getting-started): Detailed setup instructions
 - [Model Configuration](https://notate.hairetsu.com/docs/settings): Configure AI models and embeddings
 - [File Collections](https://notate.hairetsu.com/docs/collections): How to use File Collections
 - [File Collection Tools](https://notate.hairetsu.com/docs/collection-tools): Tools to ingest content from outside sources
 - [API Reference](https://notate.hairetsu.com/docs/developer-integration): Technical documentation for developers
-- [Troubleshooting](https://notate.hairetsu.com/docs): Coming Soon
+- [Troubleshooting](): Coming Soon
 
 Visit our complete documentation at [https://notate.hairetsu.com/docs](https://notate.hairetsu.com/docs)
 
