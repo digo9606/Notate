@@ -2,13 +2,14 @@ import { spawn } from "child_process";
 import { ChildProcess } from "child_process";
 import { BrowserWindow } from "electron";
 import { platform } from "os";
-
+import log from "electron-log";
 declare global {
   // eslint-disable-next-line no-var
   var mainWindow: BrowserWindow | null;
 }
 
-const getOllamaPath = () => platform() === "darwin" ? "/usr/local/bin/ollama" : "ollama";
+const getOllamaPath = () =>
+  platform() === "darwin" ? "/usr/local/bin/ollama" : "ollama";
 
 async function isOllamaServerRunning(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -23,7 +24,7 @@ async function isOllamaServerRunning(): Promise<boolean> {
 }
 
 async function startOllamaServer(): Promise<void> {
-  console.log("Starting Ollama server...");
+  log.info("Starting Ollama server...");
   const server = spawn(getOllamaPath(), ["serve"], {
     detached: true,
     stdio: ["ignore", "pipe", "pipe"],
@@ -34,15 +35,15 @@ async function startOllamaServer(): Promise<void> {
     let output = "";
     server.stdout?.on("data", (data) => {
       output += data.toString();
-      console.log("Server output:", output);
       if (output.includes("Starting Ollama")) {
+        log.info("Ollama server started successfully");
         resolve();
       }
     });
 
     server.stderr?.on("data", (data) => {
       const error = data.toString();
-      console.log("Server error:", error);
+      log.error("Server error:", error);
       if (error.includes("address already in use")) {
         resolve(); // Server is already running
       }
@@ -56,7 +57,7 @@ async function startOllamaServer(): Promise<void> {
 }
 
 export async function pullModel(model: string): Promise<void> {
-  console.log(`Pulling model ${model}...`);
+  log.info(`Pulling model ${model}...`);
   return new Promise((resolve, reject) => {
     const pull = spawn(
       "curl",
@@ -74,7 +75,7 @@ export async function pullModel(model: string): Promise<void> {
 
     pull.stdout.on("data", (data) => {
       const output = data.toString();
-      console.log(`Pull output: ${output}`);
+      log.info(`Pull output: ${output}`);
       // Emit progress event
       if (global.mainWindow) {
         global.mainWindow.webContents.send("ollama-progress", {
@@ -86,7 +87,7 @@ export async function pullModel(model: string): Promise<void> {
 
     pull.stderr.on("data", (data) => {
       const error = data.toString();
-      console.log(`Pull progress: ${error}`);
+      log.info(`Pull progress: ${error}`);
       // Emit progress event for stderr as well
       if (global.mainWindow) {
         global.mainWindow.webContents.send("ollama-progress", {
@@ -97,16 +98,16 @@ export async function pullModel(model: string): Promise<void> {
     });
 
     pull.on("error", (error) => {
-      console.error(`Pull error: ${error.message}`);
+      log.error(`Pull error: ${error.message}`);
       reject(error);
     });
 
     pull.on("close", (code) => {
       if (code === 0) {
-        console.log("Model pull completed successfully");
+        log.info("Model pull completed successfully");
         resolve();
       } else {
-        console.error(`Pull failed with code ${code}`);
+        log.error(`Pull failed with code ${code}`);
         reject(new Error(`Failed to pull model ${model} (exit code ${code})`));
       }
     });
@@ -305,7 +306,11 @@ export async function runOllama({
   }
 
   return new Promise((resolve, reject) => {
-    if (!ollamaProcess.stdout || !ollamaProcess.stderr || !ollamaProcess.stdin) {
+    if (
+      !ollamaProcess.stdout ||
+      !ollamaProcess.stderr ||
+      !ollamaProcess.stdin
+    ) {
       reject(new Error("Failed to create process streams"));
       return;
     }
@@ -353,7 +358,9 @@ export async function runOllama({
           error.includes("⠸"))
       ) {
         isModelLoaded = true;
-        console.log("Model loaded successfully (detected from loading animation)");
+        console.log(
+          "Model loaded successfully (detected from loading animation)"
+        );
         resolve(ollamaProcess);
       }
     });
