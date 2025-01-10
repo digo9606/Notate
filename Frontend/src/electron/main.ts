@@ -215,8 +215,8 @@ app.on("ready", async () => {
     if (error instanceof Error) {
       log.error("Error stack:", error.stack);
     }
-    updateLoadingStatus(`Failed to start: ${error}`, 100);
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    updateLoadingStatus(`Failed to start: ${error}`, 100, true);
+    await new Promise((resolve) => setTimeout(resolve, 10000)); // Give user time to see error
     app.quit();
   }
 });
