@@ -24,11 +24,11 @@ export function SyntaxHighlightedCode({
   };
 
   return (
-    <div className="rounded-md overflow-hidden bg-[#22272e] relative">
+    <div className="rounded-[4px] overflow-hidden bg-[#22272e] relative">
       <div className="absolute top-2 right-2">
         <button
           onClick={handleCopy}
-          className="p-2 bg-gray-700 rounded-md text-gray-300 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+          className="p-2 bg-gray-700 rounded-[4px] text-gray-300 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
           aria-label="Copy code"
         >
           {isCopied ? (

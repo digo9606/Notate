@@ -22,7 +22,7 @@ export function FilesInCollection() {
   const { files, fileExpanded, setFileExpanded } = useLibrary();
   const filesList = processFiles(files);
   return (
-    <div className="bg-secondary/50 rounded-md p-4">
+    <div className="bg-secondary/50 rounded-[6px] p-4">
       <div className="flex justify-between items-center">
         <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
           <Library className="h-4 w-4" />
@@ -78,7 +78,7 @@ export function FilesInCollection() {
               return (
                 <li
                   key={index}
-                  className="flex items-center text-sm text-muted-foreground py-1.5 px-2 rounded-sm hover:bg-secondary/80 group"
+                  className="flex items-center text-sm text-muted-foreground py-1.5 px-2 rounded-[4px] hover:bg-secondary/80 group"
                 >
                   {icon}
                   <span className="truncate group-hover:text-clip">

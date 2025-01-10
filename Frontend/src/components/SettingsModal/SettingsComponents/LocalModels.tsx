@@ -67,7 +67,7 @@ export default function LocalModels() {
       {progressLocalOutput.length > 0 && (
         <div
           ref={progressRef}
-          className="mt-4 bg-secondary/50 rounded-md p-4 h-48 overflow-y-auto font-mono text-xs"
+          className="mt-4 bg-secondary/50 rounded-[6px] p-4 h-48 overflow-y-auto font-mono text-xs"
         >
           {progressLocalOutput.map((line, i) => (
             <div key={i} className="whitespace-pre-wrap">

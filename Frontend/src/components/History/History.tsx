@@ -112,7 +112,7 @@ export default function History() {
                 <input
                   type="text"
                   placeholder="Search conversations..."
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-input bg-background 
+                  className="w-full pl-10 pr-4 py-2 rounded-[8px] border border-input bg-background 
                            focus-visible:ring-1 focus-visible:ring-ring"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -129,7 +129,7 @@ export default function History() {
                   <div
                     key={conversation.id}
                     onClick={() => handleSelectConversation(conversation.id)}
-                    className="bg-card rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer
+                    className="bg-card rounded-[8px] p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer
                              border border-border"
                   >
                     <div className="flex justify-between items-start">
