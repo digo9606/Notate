@@ -7,34 +7,39 @@ import fs from "fs";
 
 function getLinuxPackageManager(): { command: string; installCommand: string } {
   try {
-    // Check for DNF (Fedora/RHEL)
-    execSync("which dnf");
+    // Check for apt-get first (Debian/Ubuntu/Mint)
+    execSync("which apt-get");
     return {
-      command: "dnf",
-      installCommand: "dnf install -y python3-venv python3-devel gcc gcc-c++",
+      command: "apt-get",
+      installCommand: "apt-get update && apt-get install -y python3-venv python3-dev build-essential",
     };
   } catch {
     try {
-      // Check for zypper (openSUSE)
-      execSync("which zypper");
+      // Check for DNF (Fedora/RHEL)
+      execSync("which dnf");
       return {
-        command: "zypper",
-        installCommand: "zypper install -y python3-venv python3-devel gcc gcc-c++",
+        command: "dnf",
+        installCommand: "dnf install -y python3-venv python3-devel gcc gcc-c++",
       };
     } catch {
       try {
-        // Check for pacman (Arch Linux)
-        execSync("which pacman");
+        // Check for zypper (openSUSE)
+        execSync("which zypper");
         return {
-          command: "pacman",
-          installCommand: "pacman -S --noconfirm python-virtualenv python gcc",
+          command: "zypper",
+          installCommand: "zypper install -y python3-venv python3-devel gcc gcc-c++",
         };
       } catch {
-        // Default to apt-get (Debian/Ubuntu)
-        return {
-          command: "apt-get",
-          installCommand: "apt-get update && apt-get install -y python3-venv python3-dev build-essential",
-        };
+        // Check for pacman (Arch Linux)
+        try {
+          execSync("which pacman");
+          return {
+            command: "pacman",
+            installCommand: "pacman -S --noconfirm python-virtualenv python gcc",
+          };
+        } catch {
+          throw new Error("No supported package manager found");
+        }
       }
     }
   }
