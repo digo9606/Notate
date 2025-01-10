@@ -2,14 +2,20 @@ import { ipcMainHandle } from "../util.js";
 import { fetchOllamaModels } from "../ollama/fetchLocalModels.js";
 import { systemSpecs } from "../specs/systemSpecs.js";
 import { runOllama } from "../ollama/runOllama.js";
-import { pullModel } from "../ollama/runOllama.js";
+import { pullModel } from "../ollama/pullModel.js";
 import { checkOllama } from "../ollama/checkOllama.js";
 import db from "../db.js";
+import log from "electron-log";
 
 export async function setupOllamaHandlers() {
   const isOllamaRunning = await checkOllama();
   if (isOllamaRunning) {
-    pullModel("granite-embedding:278m");
+    log.info("Ollama is running, pulling model...");
+    try {
+      pullModel("granite-embedding:278m");
+    } catch (error) {
+      log.info("Error pulling model (You probably arent running ollama) :", error);
+    }
   }
   ipcMainHandle("pullModel", async (_, { model }: { model: string }) => {
     await pullModel(model);
