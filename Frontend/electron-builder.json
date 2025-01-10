@@ -1,5 +1,5 @@
 {
-    "appId": "com.notate.app",
+    "appId": "com.electron.notate",
     "productName": "Notate",
     "extraResources": [
         "dist-electron/preload.cjs",
@@ -45,7 +45,10 @@
         "icon": "./build/icons/icon.ico",
         "target": [
             "portable",
-            "msi"
+            {
+                "target": "nsis",
+                "arch": ["x64"]
+            }
         ]
     },
     "linux": {
