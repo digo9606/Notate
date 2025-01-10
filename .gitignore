@@ -14,6 +14,10 @@ Backend/.pytest_cache
 Backend/venv
 
 
+.DS_Store
+
+*.tsbuildinfo
+
 Collections/*
 
 FileCollections
