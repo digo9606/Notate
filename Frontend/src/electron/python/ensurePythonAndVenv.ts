@@ -32,7 +32,7 @@ function getLinuxPackageManager(): { command: string; installCommand: string } {
       execSync("which dnf");
       return {
         command: "dnf",
-        installCommand: "dnf install -y python3-venv python3-devel gcc gcc-c++",
+        installCommand: "dnf install -y python3-devel gcc gcc-c++",
       };
     } catch {
       try {
