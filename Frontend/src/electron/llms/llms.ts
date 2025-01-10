@@ -179,7 +179,6 @@ export async function chatRequest(
       data ? data : undefined,
       signal
     )) as ProviderResponse;
-    log.info(`Result: ${JSON.stringify(result)}`);
     try {
       // Add the user's message first
       db.addUserMessage(
