@@ -6,8 +6,21 @@ import { runWithPrivileges } from "./runWithPrivileges.js";
 import fs from "fs";
 
 function getLinuxPackageManager(): { command: string; installCommand: string } {
+  // Check for Fedora-based system first
+  if (fs.existsSync('/etc/fedora-release')) {
+    try {
+      execSync("which dnf");
+      return {
+        command: "dnf",
+        installCommand: "dnf install -y python3-venv python3-devel gcc gcc-c++",
+      };
+    } catch {
+      log.info("Fedora-based system detected but dnf not found");
+    }
+  }
+
   try {
-    // Check for apt-get first (Debian/Ubuntu/Mint)
+    // Check for apt-get (Debian/Ubuntu/Mint)
     execSync("which apt-get");
     return {
       command: "apt-get",
@@ -15,7 +28,7 @@ function getLinuxPackageManager(): { command: string; installCommand: string } {
     };
   } catch {
     try {
-      // Check for DNF (Fedora/RHEL)
+      // Check for DNF (other RHEL-based systems)
       execSync("which dnf");
       return {
         command: "dnf",
