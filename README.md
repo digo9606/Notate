@@ -20,7 +20,7 @@ For detailed installation instructions, see our [Installation Guide](https://not
 - [File Collections](https://notate.hairetsu.com/docs/collections): How to use File Collections
 - [File Collection Tools](https://notate.hairetsu.com/docs/collection-tools): Tools to ingest content from outside sources
 - [API Reference](https://notate.hairetsu.com/docs/developer-integration): Technical documentation for developers
-- [Troubleshooting](https://notate.hairetsu.com/docs/troubleshooting): Coming Soon
+- [Troubleshooting](https://notate.hairetsu.com/docs/troubleshooting): Troubleshooting guide
 
 Visit our complete documentation at [https://notate.hairetsu.com/docs](https://notate.hairetsu.com/docs)
 
