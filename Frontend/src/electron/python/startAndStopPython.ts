@@ -200,12 +200,14 @@ export async function startPythonServer() {
 
               pythonProcess.stderr.on("data", async (data: Buffer) => {
                 const errorMessage = data.toString().trim();
-                if (errorMessage.includes("address already in use")) {
+                if (errorMessage.includes("address already in use") || errorMessage.includes("[Errno 10048]")) {
                   log.info(
                     "Port 47372 is in use, attempting to kill existing process"
                   );
                   await killProcessOnPort(47372);
-                  // Retry starting the server after a brief delay
+                  // Wait for the port to be fully released
+                  await new Promise(resolve => setTimeout(resolve, 5000));
+                  // Retry starting the server after a delay
                   if (retryCount < MAX_RETRIES) {
                     retryCount++;
                     log.info(`Retry attempt ${retryCount} of ${MAX_RETRIES}`);
