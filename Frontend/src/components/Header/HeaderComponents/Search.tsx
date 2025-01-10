@@ -1,6 +1,7 @@
 import { SearchIcon, Search } from "lucide-react";
 import { useUser } from "@/context/useUser";
 import { useEffect, useState } from "react";
+import { useView } from "@/context/useView";
 
 type ConversationWithTimestamp = Conversation & {
   latestMessageTime: number;
@@ -20,20 +21,23 @@ export default function SearchComponent() {
     setMessages,
   } = useUser();
 
-  const [sortedConversations, setSortedConversations] = useState<ConversationWithTimestamp[]>([]);
+  const { activeView, setActiveView } = useView();
+  const [sortedConversations, setSortedConversations] = useState<
+    ConversationWithTimestamp[]
+  >([]);
 
   useEffect(() => {
     const sortConversationsByLatestMessage = async () => {
       if (!activeUser?.id) return;
-      
+
       // Get messages for each conversation and find the latest timestamp
       const conversationsWithTimestamp = await Promise.all(
         conversations.map(async (conv) => {
           // If we already have latestMessageTime, use it
-          if ('latestMessageTime' in conv) {
+          if ("latestMessageTime" in conv) {
             return conv as ConversationWithTimestamp;
           }
-          
+
           const result = await window.electron.getConversationMessagesWithData(
             activeUser.id,
             conv.id,
@@ -47,18 +51,20 @@ export default function SearchComponent() {
             const latestTime = new Date(latest.timestamp).getTime();
             return currentTime > latestTime ? current : latest;
           }, messages[0]);
-          
+
           return {
             ...conv,
-            latestMessageTime: latestMessage?.timestamp 
-              ? new Date(latestMessage.timestamp).getTime() 
-              : new Date(conv.created_at).getTime()
+            latestMessageTime: latestMessage?.timestamp
+              ? new Date(latestMessage.timestamp).getTime()
+              : new Date(conv.created_at).getTime(),
           };
         })
       );
 
       // Sort conversations by latest message timestamp
-      const sorted = conversationsWithTimestamp.sort((a, b) => b.latestMessageTime - a.latestMessageTime);
+      const sorted = conversationsWithTimestamp.sort(
+        (a, b) => b.latestMessageTime - a.latestMessageTime
+      );
       setSortedConversations(sorted);
     };
 
@@ -72,26 +78,30 @@ export default function SearchComponent() {
 
   const handleConversationClick = (conversationId: number) => {
     setActiveConversation(conversationId);
+    if (activeView !== "Chat") {
+      setActiveView("Chat");
+    }
     setIsSearchOpen(false);
     setSearchTerm("");
     const conversation = conversations.find(
       (conv) => conv.id === conversationId
     );
     if (conversation && activeUser?.id) {
-      window.electron.getConversationMessagesWithData(
-        activeUser.id,
-        conversationId,
-        undefined
-      ).then((result) => {
-        setMessages(result.messages);
-      });
+      window.electron
+        .getConversationMessagesWithData(
+          activeUser.id,
+          conversationId,
+          undefined
+        )
+        .then((result) => {
+          setMessages(result.messages);
+        });
     }
   };
 
   // Use sorted conversations when no search term, otherwise use filtered
-  const displayedConversations = searchTerm.trim() === "" 
-    ? sortedConversations
-    : filteredConversations;
+  const displayedConversations =
+    searchTerm.trim() === "" ? sortedConversations : filteredConversations;
 
   return (
     <div className="flex justify-center items-center">
