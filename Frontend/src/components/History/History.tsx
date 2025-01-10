@@ -68,7 +68,7 @@ export default function History() {
       console.error("Error loading conversation:", error);
     }
   };
-  
+
   return (
     <div
       className="pt-5 h-[calc(100vh-1rem)] flex flex-col history-view"
@@ -112,7 +112,7 @@ export default function History() {
                 <input
                   type="text"
                   placeholder="Search conversations..."
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-input bg-background 
+                  className="w-full pl-10 pr-4 py-2 rounded-[8px] border border-input bg-background 
                            focus-visible:ring-1 focus-visible:ring-ring"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -129,17 +129,17 @@ export default function History() {
                   <div
                     key={conversation.id}
                     onClick={() => handleSelectConversation(conversation.id)}
-                    className="bg-card rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer
+                    className="bg-card rounded-[8px] p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer
                              border border-border"
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex flex-col m-">
                         <h3 className="font-medium text-lg text-foreground">
                           {conversation.title || "Untitled Conversation"}
                         </h3>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground flex items-center gap-1">
+                        <span className="text-sm text-muted-foreground flex items-center gap-1 whitespace-nowrap">
                           <Calendar className="w-4 h-4" />
                           {format(
                             new Date(conversation.created_at || Date.now()),

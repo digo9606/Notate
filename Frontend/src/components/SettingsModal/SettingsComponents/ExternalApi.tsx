@@ -140,7 +140,7 @@ export default function ExternalApi() {
           {apiKeys.map((apiKey) => (
             <div
               key={apiKey.id}
-              className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-secondary border shadow-sm"
+              className="inline-flex items-center px-2.5 py-1 rounded-[4px] text-xs font-medium bg-secondary border shadow-sm"
             >
               {providerIcons[apiKey.provider as keyof typeof providerIcons]}
               <span className="ml-1.5">

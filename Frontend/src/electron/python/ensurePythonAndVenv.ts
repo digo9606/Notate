@@ -4,6 +4,42 @@ import path from "path";
 import log from "electron-log";
 import { runWithPrivileges } from "./runWithPrivileges.js";
 import fs from "fs";
+
+function getLinuxPackageManager(): { command: string; installCommand: string } {
+  try {
+    // Check for DNF (Fedora/RHEL)
+    execSync("which dnf");
+    return {
+      command: "dnf",
+      installCommand: "dnf install -y python3-venv python3-devel gcc gcc-c++",
+    };
+  } catch {
+    try {
+      // Check for zypper (openSUSE)
+      execSync("which zypper");
+      return {
+        command: "zypper",
+        installCommand: "zypper install -y python3-venv python3-devel gcc gcc-c++",
+      };
+    } catch {
+      try {
+        // Check for pacman (Arch Linux)
+        execSync("which pacman");
+        return {
+          command: "pacman",
+          installCommand: "pacman -S --noconfirm python-virtualenv python gcc",
+        };
+      } catch {
+        // Default to apt-get (Debian/Ubuntu)
+        return {
+          command: "apt-get",
+          installCommand: "apt-get update && apt-get install -y python3-venv python3-dev build-essential",
+        };
+      }
+    }
+  }
+}
+
 export async function ensurePythonAndVenv(backendPath: string) {
   const venvPath = path.join(backendPath, "venv");
   const pythonCommands =
@@ -74,9 +110,12 @@ export async function ensurePythonAndVenv(backendPath: string) {
 
     if (process.platform === "linux") {
       try {
+        const packageManager = getLinuxPackageManager();
+        log.info(`Using package manager: ${packageManager.command}`);
+        
         // Run all commands with a single privilege prompt
         await runWithPrivileges([
-          "apt-get update && apt-get install -y python3-venv python3-dev build-essential",
+          packageManager.installCommand,
           `${pythonCommand} -m venv "${venvPath}"`,
           `chown -R ${process.env.USER}:${process.env.USER} "${venvPath}"`,
         ]);

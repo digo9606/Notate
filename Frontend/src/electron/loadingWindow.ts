@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, ipcMain, shell } from "electron";
 import path from "path";
 import { isDev } from "./util.js";
 import fs from "fs";
@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
 log.transports.file.level = "info";
 log.transports.file.resolvePathFn = () =>
   path.join(app.getPath("userData"), "logs/main.log");
@@ -53,7 +54,26 @@ export function createLoadingWindow(icon?: Electron.NativeImage) {
   loadingWindow.loadURL(loadingPath);
 
   loadingWindow.once("ready-to-show", () => {
-    if (loadingWindow) loadingWindow.show();
+    if (loadingWindow) {
+      loadingWindow.show();
+    }
+  });
+
+  // Add IPC handlers for the loading window
+  ipcMain.on("open-logs", () => {
+    const logPath = log.transports.file.getFile().path;
+    shell.showItemInFolder(logPath);
+  });
+
+  ipcMain.on("open-github-issue", () => {
+    shell.openExternal(
+      "https://github.com/CNTRLAI/Notate/issues/new?template=bug_report.md"
+    );
+  });
+
+  // Add test failure handler
+  ipcMain.on("test-failure", () => {
+    updateLoadingStatus("Test failure message", 100, true);
   });
 
   return loadingWindow;
@@ -61,13 +81,17 @@ export function createLoadingWindow(icon?: Electron.NativeImage) {
 
 export function updateLoadingText(text: string) {
   if (loadingWindow) {
-    loadingWindow.webContents.send("update-status", text);
+    loadingWindow.webContents.send("update-status", { text, progress: 0 });
   }
 }
 
-export function updateLoadingStatus(text: string, progress: number) {
+export function updateLoadingStatus(
+  text: string,
+  progress: number,
+  failed: boolean = false
+) {
   if (loadingWindow && !loadingWindow.isDestroyed()) {
-    loadingWindow.webContents.send("update-status", { text, progress });
+    loadingWindow.webContents.send("update-status", { text, progress, failed });
   }
 }
 

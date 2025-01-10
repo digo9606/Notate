@@ -86,7 +86,7 @@ export function DevIntegration() {
                 : `Viewing API key: ${selectedKey?.name}`}
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-4 p-4 bg-muted rounded-lg relative">
+          <div className="mt-4 p-4 bg-muted rounded-[8px] relative">
             <p className="text-sm break-all font-mono pr-12">
               {selectedKey?.key}
             </p>
@@ -184,14 +184,14 @@ export function DevIntegration() {
                         </div>
                         <div className="flex gap-2">
                           <button
-                            className="p-2 hover:bg-secondary/50 transition-colors rounded-md"
+                            className="p-2 hover:bg-secondary/50 transition-colors rounded-[4px]"
                             onClick={() => handleViewKey(key)}
                             aria-label="View API key"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
                           <button
-                            className="p-2 hover:bg-destructive/10 hover:text-destructive transition-colors rounded-md"
+                            className="p-2 hover:bg-destructive/10 hover:text-destructive transition-colors rounded-[4px]"
                             aria-label="Delete API key"
                             onClick={() => handleDeleteKey(key.id)}
                           >
