@@ -63,13 +63,7 @@
 
     <script>
         const { ipcRenderer } = require('electron');
-        
-        // Add keyboard shortcut for testing failure
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'f' && event.ctrlKey) {  // Ctrl+F to trigger failure
-                ipcRenderer.send('test-failure');
-            }
-        });
+    
 
         ipcRenderer.on('update-status', (event, { text, progress, failed }) => {
             document.getElementById('status').textContent = text;
