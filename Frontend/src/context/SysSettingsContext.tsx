@@ -1,6 +1,13 @@
 import React, { createContext, useRef, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 
+interface OllamaModel {
+  name: string;
+  modified_at: string;
+  size: number;
+  digest: string;
+}
+
 interface SysSettingsContextType {
   isOllamaRunning: boolean;
   setIsOllamaRunning: (isOllamaRunning: boolean) => void;

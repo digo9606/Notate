@@ -4,59 +4,7 @@ import path from "path";
 import log from "electron-log";
 import { runWithPrivileges } from "./runWithPrivileges.js";
 import fs from "fs";
-
-function getLinuxPackageManager(): { command: string; installCommand: string } {
-  // Check for Fedora-based system first
-  if (fs.existsSync('/etc/fedora-release')) {
-    try {
-      execSync("which dnf");
-      return {
-        command: "dnf",
-        installCommand: "dnf install -y python3-devel gcc gcc-c++",
-      };
-    } catch {
-      log.info("Fedora-based system detected but dnf not found");
-    }
-  }
-
-  try {
-    // Check for apt-get (Debian/Ubuntu/Mint)
-    execSync("which apt-get");
-    return {
-      command: "apt-get",
-      installCommand: "apt-get update && apt-get install -y python3-venv python3-dev build-essential",
-    };
-  } catch {
-    try {
-      // Check for DNF (other RHEL-based systems)
-      execSync("which dnf");
-      return {
-        command: "dnf",
-        installCommand: "dnf install -y python3-devel gcc gcc-c++",
-      };
-    } catch {
-      try {
-        // Check for zypper (openSUSE)
-        execSync("which zypper");
-        return {
-          command: "zypper",
-          installCommand: "zypper install -y python3-venv python3-devel gcc gcc-c++",
-        };
-      } catch {
-        // Check for pacman (Arch Linux)
-        try {
-          execSync("which pacman");
-          return {
-            command: "pacman",
-            installCommand: "pacman -S --noconfirm python-virtualenv python gcc",
-          };
-        } catch {
-          throw new Error("No supported package manager found");
-        }
-      }
-    }
-  }
-}
+import { getLinuxPackageManager } from "./getLinuxPackageManager.js";
 
 export async function ensurePythonAndVenv(backendPath: string) {
   const venvPath = path.join(backendPath, "venv");
@@ -130,11 +78,17 @@ export async function ensurePythonAndVenv(backendPath: string) {
       try {
         const packageManager = getLinuxPackageManager();
         log.info(`Using package manager: ${packageManager.command}`);
-        
+
+        // For Linux, ensure we use the full path in privileged commands
+        const pythonFullPath = execSync(`which ${pythonCommand}`)
+          .toString()
+          .trim();
+        log.info(`Full Python path: ${pythonFullPath}`);
+
         // Run all commands with a single privilege prompt
         await runWithPrivileges([
           packageManager.installCommand,
-          `${pythonCommand} -m venv "${venvPath}"`,
+          `${pythonFullPath} -m venv "${venvPath}"`,
           `chown -R ${process.env.USER}:${process.env.USER} "${venvPath}"`,
         ]);
 

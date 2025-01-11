@@ -269,7 +269,7 @@ const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const handleProgress = (
       _: Electron.IpcRendererEvent,
-      message: string | ProgressData
+      message: string | ProgressData | OllamaProgressEvent
     ) => {
       try {
         const data =
@@ -282,7 +282,13 @@ const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({
           return;
         }
 
-        handleProgressData(data);
+        if ("type" in data && (data.type === "pull" || data.type === "verify")) {
+          // Handle Ollama progress
+          setProgressMessage(`Ollama: ${data.status || data.type}`);
+          return;
+        }
+
+        handleProgressData(data as ProgressData);
       } catch (error) {
         console.error("Error handling progress:", error);
         if (typeof message === "string") {
