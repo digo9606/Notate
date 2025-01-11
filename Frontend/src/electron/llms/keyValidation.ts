@@ -2,6 +2,7 @@ import { OpenAIProviderAPIKeyCheck } from "./apiCheckProviders/openai.js";
 import { AnthropicProviderAPIKeyCheck } from "./apiCheckProviders/anthropic.js";
 import { GeminiProviderAPIKeyCheck } from "./apiCheckProviders/gemini.js";
 import { XAIProviderAPIKeyCheck } from "./apiCheckProviders/xai.js";
+import { OpenRouterProviderAPIKeyCheck } from "./apiCheckProviders/openrouter.js";
 import log from "electron-log";
 export async function keyValidation({
   apiKey,
@@ -18,6 +19,9 @@ export async function keyValidation({
     switch (inputProvider) {
       case "openai":
         provider = OpenAIProviderAPIKeyCheck;
+        break;
+      case "openrouter":
+        provider = OpenRouterProviderAPIKeyCheck;
         break;
       case "anthropic":
         provider = AnthropicProviderAPIKeyCheck;
@@ -40,7 +44,6 @@ export async function keyValidation({
       ...result,
     };
   } catch (error) {
-
     log.error("Error in chat request:", error);
     return {
       error: "Error in chat request",

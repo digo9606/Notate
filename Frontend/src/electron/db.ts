@@ -43,7 +43,13 @@ class DatabaseService {
           value TEXT,
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
-  
+        CREATE TABLE IF NOT EXISTS openrouter_models (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER,
+          model TEXT NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
         CREATE TABLE IF NOT EXISTS api_keys (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user_id INTEGER,
@@ -135,6 +141,7 @@ class DatabaseService {
       // Expected schema for each table
       type TableName = keyof typeof expectedColumns;
       const expectedColumns = {
+        openrouter_models: ["id", "user_id", "model"],
         users: ["id", "name", "created_at"],
         settings: ["id", "user_id", "key", "value"],
         api_keys: ["id", "user_id", "key", "provider", "created_at"],
@@ -566,6 +573,38 @@ class DatabaseService {
     return this.db
       .prepare("DELETE FROM dev_api_keys WHERE id = ? AND user_id = ?")
       .run(id, userId);
+  }
+
+  getOpenRouterModel(userId: number) {
+    return this.db
+      .prepare("SELECT model FROM openrouter_models WHERE user_id = ?")
+      .get(userId) as { model: string };
+  }
+  addOpenRouterModel(userId: number, model: string) {
+    const existingModel = this.db
+      .prepare(
+        "SELECT * FROM openrouter_models WHERE user_id = ? AND model = ?"
+      )
+      .get(userId, model);
+    if (existingModel) {
+      return {
+        error: "Model already exists",
+      };
+    }
+    return this.db
+      .prepare("INSERT INTO openrouter_models (user_id, model) VALUES (?, ?)")
+      .run(userId, model);
+  }
+  deleteOpenRouterModel(userId: number, id: number) {
+    return this.db
+      .prepare("DELETE FROM openrouter_models WHERE id = ? AND user_id = ?")
+      .run(id, userId);
+  }
+  getOpenRouterModels(userId: number) {
+    const rows = this.db
+      .prepare("SELECT model FROM openrouter_models WHERE user_id = ?")
+      .all(userId) as { model: string }[];
+    return rows.map(row => row.model);
   }
 }
 

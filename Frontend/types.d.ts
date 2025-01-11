@@ -267,6 +267,10 @@ interface EventPayloadMapping {
     newName: string;
     success: boolean;
   };
+  getOpenRouterModel: { userId: number };
+  addOpenRouterModel: { userId: number; model: string };
+  deleteOpenRouterModel: { userId: number; id: number };
+  getOpenRouterModels: { userId: number };
 }
 
 interface Window {
@@ -423,7 +427,7 @@ interface Window {
     }>;
     getFilesInCollection: (
       userId: number,
-      collectionId: number,
+      collectionId: number
     ) => Promise<{
       files: string[];
     }>;
@@ -560,6 +564,10 @@ interface Window {
     ) => Promise<{
       files: string[];
     }>;
+    getOpenRouterModel: (userId: number) => Promise<{ model: string }>;
+    addOpenRouterModel: (userId: number, model: string) => Promise<void>;
+    deleteOpenRouterModel: (userId: number, id: number) => Promise<void>;
+    getOpenRouterModels: (userId: number) => Promise<{ models: string[] }>;
   };
 }
 type Keys = {
@@ -569,13 +577,30 @@ type Keys = {
   key: string;
   expiration: string | null;
 };
-type OllamaModel = {
-  name: string;
-  modified_at: string;
-  size: number;
-  digest: string;
-};
-type Provider = "openai" | "anthropic" | "gemini" | "xai" | "local";
+interface DataContent {
+  top_k: string;
+  results: {
+    content: string;
+    metadata: {
+      source: string;
+      title?: string;
+      chunk_start?: number;
+      chunk_end?: number;
+    };
+  }[];
+}
+
+type OpenRouterModel = string;
+
+interface ProgressData extends CustomProgressData, OllamaProgressEvent {}
+
+type Provider =
+  | "openai"
+  | "anthropic"
+  | "gemini"
+  | "xai"
+  | "openrouter"
+  | "local";
 
 interface OllamaProgressEvent {
   type: "pull" | "verify";
@@ -636,19 +661,4 @@ type CustomProgressData = {
     total_chunks?: number;
     percent_complete?: string;
   };
-};
-
-type ProgressData = CustomProgressData | OllamaProgressEvent;
-
-type DataContent = {
-  top_k: string;
-  results: {
-    content: string;
-    metadata: {
-      source: string;
-      title?: string;
-      chunk_start?: number;
-      chunk_end?: number;
-    };
-  }[];
 };

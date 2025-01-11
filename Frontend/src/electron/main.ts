@@ -15,13 +15,18 @@ import { setupDbHandlers } from "./handlers/dbHandlers.js";
 import { createMainWindow } from "./mainWindow.js";
 import { handleCloseEvents } from "./handlers/closeEventHandler.js";
 import { setupChatHandlers } from "./handlers/chatHandlers.js";
-import { startPythonServer, stopPythonServer } from "./python/startAndStopPython.js";
+import {
+  startPythonServer,
+  stopPythonServer,
+} from "./python/startAndStopPython.js";
 import { setupMenuHandlers } from "./handlers/menuHandlers.js";
 import { setupOllamaHandlers } from "./handlers/ollamaHandlers.js";
 import { nativeImage } from "electron";
 import { setupVttHandlers } from "./handlers/voiceHandlers.js";
 import { setupFileHandlers } from "./handlers/fileHandlers.js";
 import { getDevSecretPath } from "./authentication/devApi.js";
+import { setupOpenRouterHandlers } from "./handlers/openRouterHandlers.js";
+
 import crypto from "crypto";
 
 // Configure logging first
@@ -194,6 +199,7 @@ app.on("ready", async () => {
     setupMenuHandlers(mainWindow);
     setupOllamaHandlers();
     setupFileHandlers();
+    setupOpenRouterHandlers();
     handleCloseEvents(mainWindow);
 
     await new Promise((resolve) => setTimeout(resolve, 1000));

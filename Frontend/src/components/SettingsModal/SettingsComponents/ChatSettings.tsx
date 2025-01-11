@@ -35,7 +35,7 @@ import { toast } from "@/hooks/use-toast";
 import { useLibrary } from "@/context/useLibrary";
 
 export default function ChatSettings() {
-  const { setApiKeys, setPrompts, setConversations, setActiveUser } = useUser();
+  const { setApiKeys, setPrompts, setConversations, setActiveUser, openRouterModels } = useUser();
   const { setSelectedCollection, setFiles } = useLibrary();
   const { activeUser, apiKeys, prompts } = useUser();
   const [open, setOpen] = useState<boolean>(false);
@@ -88,6 +88,7 @@ export default function ChatSettings() {
     ],
     gemini: ["gemini-1.5-flash", "gemini-1.5-pro"],
     xai: ["grok-beta"],
+    openrouter: openRouterModels,
     local: localModels.map((model) => model.name),
   };
 

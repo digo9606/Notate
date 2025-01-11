@@ -34,11 +34,20 @@ export default function ExternalApi() {
           "provider",
           provider
         );
-        await window.electron.updateUserSettings(
-          activeUser.id,
-          "model",
-          defaultProviderModel[provider]
-        );
+
+        if (provider === "openrouter") {
+          await window.electron.addOpenRouterModel(
+            activeUser.id,
+            "openai/gpt-3.5-turbo"
+          );
+
+        } else {
+          await window.electron.updateUserSettings(
+            activeUser.id,
+            "model",
+            defaultProviderModel[provider]
+          );
+        }
       }
     } catch (error) {
       console.error("Error updating user settings:", error);
@@ -100,6 +109,7 @@ export default function ExternalApi() {
               <SelectItem value="anthropic">Anthropic</SelectItem>
               <SelectItem value="gemini">Google (Gemini)</SelectItem>
               <SelectItem value="xai">XAI</SelectItem>
+              <SelectItem value="openrouter">OpenRouter</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -116,7 +126,8 @@ export default function ExternalApi() {
               selectedProvider !== "openai" &&
               selectedProvider !== "anthropic" &&
               selectedProvider !== "gemini" &&
-              selectedProvider !== "xai"
+              selectedProvider !== "xai" &&
+              selectedProvider !== "openrouter"
             }
             type="password"
             placeholder="Enter your API key"
