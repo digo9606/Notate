@@ -131,10 +131,14 @@ export async function ensurePythonAndVenv(backendPath: string) {
         const packageManager = getLinuxPackageManager();
         log.info(`Using package manager: ${packageManager.command}`);
         
+        // For Linux, ensure we use the full path in privileged commands
+        const pythonFullPath = execSync(`which ${pythonCommand}`).toString().trim();
+        log.info(`Full Python path: ${pythonFullPath}`);
+        
         // Run all commands with a single privilege prompt
         await runWithPrivileges([
           packageManager.installCommand,
-          `${pythonCommand} -m venv "${venvPath}"`,
+          `${pythonFullPath} -m venv "${venvPath}"`,
           `chown -R ${process.env.USER}:${process.env.USER} "${venvPath}"`,
         ]);
 
