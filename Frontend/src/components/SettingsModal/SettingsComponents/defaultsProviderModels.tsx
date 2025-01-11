@@ -4,4 +4,5 @@ export const defaultProviderModel = {
   gemini: "gemini-1.5-flash",
   xai: "grok-beta",
   local: "local",
+  openrouter: "openai/gpt-3.5-turbo",
 };

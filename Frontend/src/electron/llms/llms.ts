@@ -7,6 +7,7 @@ import { XAIProvider } from "./providers/xai.js";
 import { generateTitle } from "./generateTitle.js";
 import { vectorstoreQuery } from "../embedding/vectorstoreQuery.js";
 import { LocalProvider } from "./providers/local.js";
+import { OpenRouterProvider } from "./providers/openrouter.js";
 import log from "electron-log";
 import os from "os";
 
@@ -67,7 +68,7 @@ export async function chatRequest(
           collectionId: Number(collectionId),
           collectionName: collectionName.name,
         });
-        log.info(`Vectorstore data: ${JSON.stringify(vectorstoreData)}`);
+      
         if (vectorstoreData.status === "error") {
           if (vectorstoreData.message === "Unauthorized") {
             const newMessage = {
@@ -146,6 +147,9 @@ export async function chatRequest(
     switch (userSettings.provider) {
       case "openai":
         provider = OpenAIProvider;
+        break;
+      case "openrouter":
+        provider = OpenRouterProvider;
         break;
       case "anthropic":
         provider = AnthropicProvider;

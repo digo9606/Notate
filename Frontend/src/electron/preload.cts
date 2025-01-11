@@ -145,6 +145,24 @@ electron.contextBridge.exposeInMainWorld("electron", {
       description: string;
       type: string;
     }>,
+  getOpenRouterModel: (userId: number) =>
+    ipcInvoke("getOpenRouterModel", { userId }) as unknown as Promise<{
+      model: string;
+    }>,
+  addOpenRouterModel: (userId: number, model: string) =>
+    ipcInvoke("addOpenRouterModel", {
+      userId,
+      model,
+    }) as unknown as Promise<void>,
+  deleteOpenRouterModel: (userId: number, id: number) =>
+    ipcInvoke("deleteOpenRouterModel", {
+      userId,
+      id,
+    }) as unknown as Promise<void>,
+  getOpenRouterModels: (userId: number) =>
+    ipcInvoke("getOpenRouterModels", { userId }) as unknown as Promise<{
+      models: string[];
+    }>,
   webcrawl: async (payload: {
     base_url: string;
     user_id: number;
@@ -265,10 +283,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
     }>,
   openCollectionFolder: (filepath: string) =>
     ipcInvoke("openCollectionFolder", { filepath }),
-  getConversationMessagesWithData: (
-    userId: number,
-    conversationId: number,
-  ) =>
+  getConversationMessagesWithData: (userId: number, conversationId: number) =>
     ipcInvoke("getConversationMessagesWithData", {
       userId,
       conversationId,

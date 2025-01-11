@@ -4,6 +4,7 @@ import { useUser } from "@/context/useUser";
 import { useSysSettings } from "@/context/useSysSettings";
 import { initializeShiki } from "@/lib/shikiHightlight";
 import { useLibrary } from "@/context/useLibrary";
+
 export function useAppInitialization() {
   const { setActiveView } = useView();
   const {
@@ -20,6 +21,7 @@ export function useAppInitialization() {
     getUserConversations,
     fetchApiKey,
     fetchPrompts,
+    setOpenRouterModels,
   } = useUser();
   const {
     setUserCollections,
@@ -41,6 +43,7 @@ export function useAppInitialization() {
   // Initial setup that doesn't depend on activeUser
   useEffect(() => {
     initializeShiki();
+
     const fetchUsers = async () => {
       if (window.electron && window.electron.getUsers) {
         try {
@@ -74,6 +77,14 @@ export function useAppInitialization() {
 
   // User-dependent initialization
   useEffect(() => {
+    const fetchOpenRouterModels = async () => {
+      if (activeUser) {
+        const models = await window.electron.getOpenRouterModels(activeUser.id);
+        setOpenRouterModels(models.models);
+      }
+    };
+
+    fetchOpenRouterModels();
     const fetchSettings = async () => {
       if (activeUser) {
         const settings = await window.electron.getUserSettings(activeUser.id);

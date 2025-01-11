@@ -6,6 +6,8 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
+
+
 interface UserContextType {
   title: string | null;
   setTitle: React.Dispatch<React.SetStateAction<string | null>>;
@@ -26,9 +28,7 @@ interface UserContextType {
   streamingMessage: string;
   setStreamingMessage: React.Dispatch<React.SetStateAction<string>>;
   filteredConversations: Conversation[];
-  setFilteredConversations: React.Dispatch<
-    React.SetStateAction<Conversation[]>
-  >;
+  setFilteredConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
   isSearchOpen: boolean;
   setIsSearchOpen: React.Dispatch<React.SetStateAction<boolean>>;
   searchTerm: string;
@@ -57,6 +57,8 @@ interface UserContextType {
   ) => Promise<void>;
   cancelRequest: () => void;
   fetchMessages: () => Promise<void>;
+  openRouterModels: OpenRouterModel[];
+  setOpenRouterModels: React.Dispatch<React.SetStateAction<OpenRouterModel[]>>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -65,7 +67,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [activeUser, setActiveUser] = useState<User | null>(null);
-
+  const [openRouterModels, setOpenRouterModels] = useState<OpenRouterModel[]>([]);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [activeConversation, setActiveConversation] = useState<number | null>(
     null
@@ -333,6 +335,8 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       setCurrentRequestId,
       handleChatRequest,
       cancelRequest,
+      openRouterModels,
+      setOpenRouterModels,
     }),
     [
       activeUser,
@@ -361,6 +365,8 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       currentRequestId,
       handleChatRequest,
       cancelRequest,
+      openRouterModels,
+      setOpenRouterModels,
     ]
   );
 

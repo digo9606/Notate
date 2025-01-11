@@ -3,6 +3,40 @@ import db from "../db.js";
 import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+async function generateTitleOpenRouter(input: string, userId: number) {
+  let apiKey = "";
+  try {
+    apiKey = db.getApiKey(userId, "openrouter");
+  } catch (error) {
+    console.error("Error getting API key:", error);
+  }
+  if (!apiKey) {
+    throw new Error("OpenRouter API key not found for the active user");
+  }
+  const openai = new OpenAI({
+    apiKey,
+    baseURL: "https://openrouter.ai/api/v1",
+  });
+  const llmTitleRequest = await openai.chat.completions.create({
+    model: "openai/gpt-3.5-turbo",
+    messages: [
+      {
+        role: "system",
+        content:
+          "Generate a short, concise title (5 words or less) for a conversation based on the following message: Return the Title only and nothing else example response: 'Meeting with John' Return: 'Meeting with John'",
+      },
+      {
+        role: "user",
+        content: input,
+      },
+    ],
+    max_tokens: 20,
+  });
+
+  const generatedTitle = llmTitleRequest.choices[0]?.message?.content?.trim();
+  return generatedTitle;
+}
+
 async function generateTitleOpenAI(input: string, userId: number) {
   let apiKey = "";
   try {
@@ -178,6 +212,9 @@ export async function generateTitle(
     case "openai":
       console.log("OpenAI");
       return generateTitleOpenAI(input, userId);
+    case "openrouter":
+      console.log("OpenRouter");
+      return generateTitleOpenRouter(input, userId);
     case "anthropic":
       console.log("Anthropic");
       return generateTitleAnthropic(input, userId);
