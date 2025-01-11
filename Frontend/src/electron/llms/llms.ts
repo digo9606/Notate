@@ -68,7 +68,7 @@ export async function chatRequest(
           collectionId: Number(collectionId),
           collectionName: collectionName.name,
         });
-        log.info(`Vectorstore data: ${JSON.stringify(vectorstoreData)}`);
+      
         if (vectorstoreData.status === "error") {
           if (vectorstoreData.message === "Unauthorized") {
             const newMessage = {
