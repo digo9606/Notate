@@ -1,5 +1,6 @@
 import { ipcMainDatabaseHandle } from "../util.js";
 import db from "../db.js";
+import { OpenRouterProviderAPIKeyCheck } from "../llms/apiCheckProviders/openrouter.js";
 
 export async function setupOpenRouterHandlers() {
   ipcMainDatabaseHandle("getOpenRouterModel", async (payload) => {
@@ -11,6 +12,14 @@ export async function setupOpenRouterHandlers() {
   });
 
   ipcMainDatabaseHandle("addOpenRouterModel", async (payload) => {
+    const userApiKey = await db.getApiKey(payload.userId, "openrouter");
+    const checkModel = await OpenRouterProviderAPIKeyCheck(
+      userApiKey,
+      payload.model
+    );
+    if (checkModel.error) {
+      throw new Error(checkModel.error);
+    }
     await db.addOpenRouterModel(payload.userId, payload.model);
     return {
       userId: payload.userId,

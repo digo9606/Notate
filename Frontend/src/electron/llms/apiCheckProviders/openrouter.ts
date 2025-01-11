@@ -1,6 +1,9 @@
 import OpenAI from "openai";
 import log from "electron-log";
-export async function OpenRouterProviderAPIKeyCheck(apiKey: string): Promise<{
+export async function OpenRouterProviderAPIKeyCheck(
+  apiKey: string,
+  model?: string
+): Promise<{
   error?: string;
   success?: boolean;
 }> {
@@ -14,7 +17,7 @@ export async function OpenRouterProviderAPIKeyCheck(apiKey: string): Promise<{
   });
 
   const response = await openai.chat.completions.create({
-    model: "openai/gpt-3.5-turbo",
+    model: model || "openai/gpt-3.5-turbo",
     messages: [{ role: "user", content: "Hello, world!" }],
     max_tokens: 10,
   });

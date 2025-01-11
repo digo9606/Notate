@@ -14,13 +14,22 @@ import { defaultProviderModel } from "./defaultsProviderModels";
 import { useSysSettings } from "@/context/useSysSettings";
 import { toast } from "@/hooks/use-toast";
 import { providerIcons } from "./providerIcons";
+import { Plus, X } from "lucide-react";
 
 export default function ExternalApi() {
-  const { apiKeys, activeUser, handleResetChat, setApiKeys } = useUser();
+  const {
+    apiKeys,
+    activeUser,
+    handleResetChat,
+    setApiKeys,
+    setOpenRouterModels,
+  } = useUser();
   const { setSettings } = useSysSettings();
   const [selectedProvider, setSelectedProvider] = useState<Provider>("openai");
   const [apiKeyInput, setApiKeyInput] = useState<string>("");
-
+  const [openRouterModel, setOpenRouterModel] = useState<string>("");
+  const [showOpenRouterInput, setShowOpenRouterInput] =
+    useState<boolean>(false);
   const handleProviderModelChange = async (provider: Provider) => {
     setSettings((prev) => ({
       ...prev,
@@ -40,7 +49,6 @@ export default function ExternalApi() {
             activeUser.id,
             "openai/gpt-3.5-turbo"
           );
-
         } else {
           await window.electron.updateUserSettings(
             activeUser.id,
@@ -90,6 +98,59 @@ export default function ExternalApi() {
       description: `Your ${selectedProvider.toUpperCase()} API key has been saved successfully.`,
     });
   };
+
+  const handleAddOpenRouterModel = async () => {
+    if (!openRouterModel.trim()) {
+      toast({
+        title: "Model Required",
+        description: "Please enter an OpenRouter model ID.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      if (activeUser) {
+        setSettings((prev) => ({
+          ...prev,
+          model: openRouterModel.trim(),
+          provider: "openrouter",
+        }));
+        await window.electron.addOpenRouterModel(
+          activeUser.id,
+          openRouterModel.trim()
+        );
+        setOpenRouterModels((prevModels) => [
+          ...prevModels,
+          openRouterModel.trim(),
+        ]);
+        await window.electron.updateUserSettings(
+          activeUser.id,
+          "model",
+          openRouterModel.trim()
+        );
+        await window.electron.updateUserSettings(
+          activeUser.id,
+          "provider",
+          "openrouter"
+        );
+        toast({
+          title: "Model Added",
+          description: `OpenRouter model ${openRouterModel} has been added successfully.`,
+        });
+        setOpenRouterModel("");
+        setShowOpenRouterInput(false);
+      }
+    } catch (error) {
+      console.error("Error adding OpenRouter model:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add OpenRouter model. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-4 items-center gap-4">
@@ -136,6 +197,45 @@ export default function ExternalApi() {
           />
         </div>
       </div>
+      {!showOpenRouterInput ? (
+        <Button
+          variant="outline"
+          type="button"
+          onClick={() => setShowOpenRouterInput(true)}
+          className="w-full flex items-center gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Add OpenRouter Model
+        </Button>
+      ) : (
+        <div className="space-y-4 mt-4 p-4 border rounded-lg">
+          <div className="flex justify-between items-center">
+            <Label className="text-sm font-medium">Add OpenRouter Model</Label>
+            <Button
+              variant="ghost"
+              size="icon"
+              type="button"
+              onClick={() => setShowOpenRouterInput(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Enter OpenRouter model ID (e.g. openai/gpt-3.5-turbo)"
+              value={openRouterModel}
+              onChange={(e) => setOpenRouterModel(e.target.value)}
+            />
+            <Button
+              type="button"
+              onClick={handleAddOpenRouterModel}
+              variant="secondary"
+            >
+              Add Model
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="flex justify-end">
         <Button
