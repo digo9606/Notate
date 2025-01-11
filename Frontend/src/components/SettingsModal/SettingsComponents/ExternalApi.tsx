@@ -16,7 +16,9 @@ import { toast } from "@/hooks/use-toast";
 import { providerIcons } from "./providerIcons";
 import { Plus, X } from "lucide-react";
 
+
 export default function ExternalApi() {
+
   const {
     apiKeys,
     activeUser,
@@ -24,6 +26,7 @@ export default function ExternalApi() {
     setApiKeys,
     setOpenRouterModels,
   } = useUser();
+
   const { setSettings } = useSysSettings();
   const [selectedProvider, setSelectedProvider] = useState<Provider>("openai");
   const [apiKeyInput, setApiKeyInput] = useState<string>("");
@@ -208,7 +211,7 @@ export default function ExternalApi() {
           Add OpenRouter Model
         </Button>
       ) : (
-        <div className="space-y-4 mt-4 p-4 border rounded-lg">
+        <div className="space-y-4 mt-4 p-4 border rounded-[6px]">
           <div className="flex justify-between items-center">
             <Label className="text-sm font-medium">Add OpenRouter Model</Label>
             <Button

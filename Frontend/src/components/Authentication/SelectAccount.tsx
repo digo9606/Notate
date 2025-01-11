@@ -4,6 +4,19 @@ import { useView } from "@/context/useView";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/context/useUser";
 import { useSysSettings } from "@/context/useSysSettings";
+import { motion } from "framer-motion";
+import { Plus } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.5, staggerChildren: 0.1 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
 
 export default function SelectAccount({ users }: { users: User[] }) {
   const { setActiveView } = useView();
@@ -16,7 +29,7 @@ export default function SelectAccount({ users }: { users: User[] }) {
       setSettings(userSettings);
     }
   };
-  
+
   const handleSelectAccount = (user: User) => {
     setActiveUser(user);
     fetchSettings();
@@ -24,52 +37,85 @@ export default function SelectAccount({ users }: { users: User[] }) {
   };
 
   return (
-    <div className="h-screen flex flex-col p-4 bg-gradient-to-b from-background via-muted/50 to-muted">
-      <div className="max-w-md w-full mx-auto flex flex-col h-full mt-2">
-        {activeUser ? (
-          <div className="flex-none">
-            <h2 className="text-3xl font-bold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
-              Selected Account: {activeUser.name}
-            </h2>
-          </div>
-        ) : (
-          <h2 className="text-3xl font-bold mb-6 text-center flex-none bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
-            Select an Account
-          </h2>
-        )}
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <div className="flex-1 overflow-y-auto space-y-4 p-4 min-h-0">
-            {users.map((user) => (
-              <Card
-                key={user.name}
-                className="hover:shadow-lg transition-all duration-300 cursor-pointer border border-border/50 bg-card/90 backdrop-blur-sm hover:scale-[1.02] shadow-sm"
-                onClick={() => handleSelectAccount(user)}
-              >
-                <CardContent className="flex items-center p-4">
-                  <Avatar className="h-14 w-14 mr-4 ring-2 ring-primary">
-                    <AvatarFallback className="bg-primary/20 text-primary font-semibold">
-                      {user.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-semibold text-lg text-foreground">
-                      {user.name}
-                    </h3>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <div className="mt-2 mb-2">
-            <Button
-              onClick={() => setActiveView("Signup")}
-              className="w-full h-12 text-lg shadow-lg hover:shadow-xl transition-shadow"
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/30 to-muted/50">
+      <motion.div
+        className="w-full max-w-md mx-auto pt-8 flex flex-col h-screen pb-2"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <div className="flex-none space-y-2 mb-6 px-4">
+          <div className="flex items-center justify-between mb-4">
+            <motion.h1
+              variants={itemVariants}
+              className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80"
             >
-              Add New Account
-            </Button>
+              Select Account
+            </motion.h1>
+            <motion.div variants={itemVariants}>
+              <Button
+                onClick={() => setActiveView("Signup")}
+                className="group px-4 h-10 shadow-md hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-primary to-primary/80 hover:from-primary hover:to-primary hover:scale-[1.02]"
+              >
+                <Plus className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform duration-300" />
+                New Account
+              </Button>
+            </motion.div>
           </div>
+          <motion.p
+            variants={itemVariants}
+            className="text-sm text-muted-foreground"
+          >
+            Choose your account to access your workspace
+          </motion.p>
         </div>
-      </div>
+
+        <motion.div
+          className="relative flex-1 px-4 min-h-0"
+          variants={itemVariants}
+        >
+          <div className="absolute inset-0">
+            <div className="h-full rounded-xl bg-background/50 backdrop-blur-sm border border-border/50 shadow-sm">
+              <ScrollArea className="h-full px-3 py-2">
+                <div className="flex flex-col h-full">
+                  <div className="grid auto-rows-min grid-cols-1 gap-2 py-2 px-2 grow">
+                    {users.map((user) => (
+                      <motion.div
+                        key={user.name}
+                        variants={itemVariants}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="py-1"
+                      >
+                        <Card
+                          className="group transition-all duration-300 cursor-pointer border border-border/50 bg-card/95 hover:shadow-lg hover:border-primary/20"
+                          onClick={() => handleSelectAccount(user)}
+                        >
+                          <CardContent className="flex items-center p-4">
+                            <Avatar className="h-10 w-10 ring-2 ring-primary/10 group-hover:ring-primary/30 transition-all duration-300">
+                              <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm group-hover:bg-primary/20 transition-colors duration-300">
+                                {user.name.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="ml-4 min-w-0 flex-1">
+                              <h3 className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors duration-300">
+                                {user.name}
+                              </h3>
+                              <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                Click to access workspace
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

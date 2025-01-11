@@ -125,7 +125,7 @@ export default function SearchComponent() {
               className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-300"
             />
             {isSearchOpen && (
-              <div className="absolute top-full left-0 w-full bg-secondary/90 rounded-b-[6px] max-h-60 overflow-x-hidden overflow-y-auto z-50">
+              <div className="absolute top-full left-0 w-full bg-secondary/90 rounded-b-[6px] max-h-60 overflow-x-hidden overflow-y-auto z-50 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-gray-900 [&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded">
                 {displayedConversations.map((conv) => (
                   <div
                     key={conv.id}
