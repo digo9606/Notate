@@ -70,6 +70,7 @@ export default function ChatSettings() {
     const parsedValue = parseInt(value);
     if (!isNaN(parsedValue)) {
       setMaxTokens(parsedValue);
+      handleSettingChange("maxTokens", parsedValue);
     }
   };
 
@@ -103,11 +104,11 @@ export default function ChatSettings() {
     "gpt-4o-mini": 4096,
     "claude-3-5-sonnet-20241022": 8192,
     "claude-3-5-haiku-20241022": 8192,
-    "claude-3-opus-20240229": 8192,
-    "claude-3-sonnet-20240229": 8192,
-    "claude-3-haiku-20240307": 8192,
-    "claude-2.1": 8192,
-    "claude-2.0": 8192,
+    "claude-3-opus-20240229": 4096,
+    "claude-3-sonnet-20240229": 4096,
+    "claude-3-haiku-20240307": 4096,
+    "claude-2.1": 4096,
+    "claude-2.0": 4096,
     "gemini-1.5-flash": 8192,
     "gemini-1.5-pro": 8192,
     "grok-beta": 8192,
@@ -306,16 +307,27 @@ export default function ChatSettings() {
                   modelOptions[key as keyof typeof modelOptions].includes(value)
                 ) as Provider;
 
+                console.log('Selected model:', value);
+                console.log('Detected provider:', provider);
+
                 handleSettingChange("model", value);
                 handleSettingChange("provider", provider);
-                setMaxTokens(modelTokenDefaults[value as keyof typeof modelTokenDefaults]);
+                
+                const newMaxTokens =
+                  modelTokenDefaults[value as keyof typeof modelTokenDefaults] || 
+                  modelTokenDefaults.local;
+                
+                setMaxTokens(newMaxTokens);
+                handleSettingChange("maxTokens", newMaxTokens);
+                setLocalMaxTokens(newMaxTokens.toString());
 
-                if (provider === "local" && activeUser) {
-                  handleRunOllama(value, activeUser);
+                const isLocalModel = modelOptions.local.includes(value);
+                if (isLocalModel && activeUser) {
                   toast({
                     title: "Ollama model loading",
                     description: `Loading ${value}...`,
                   });
+                  handleRunOllama(value, activeUser);
                 } else {
                   toast({
                     title: "Model set",

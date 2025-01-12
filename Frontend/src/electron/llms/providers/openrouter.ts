@@ -76,6 +76,7 @@ export async function OpenRouterProvider(
       messages: newMessages,
       stream: true,
       temperature: Number(userSettings.temperature),
+      max_tokens: userSettings.maxTokens as number || 4096,
     },
     { signal }
   );

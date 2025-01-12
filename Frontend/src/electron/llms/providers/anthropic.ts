@@ -1,7 +1,8 @@
 import db from "../../db.js";
 import Anthropic from "@anthropic-ai/sdk";
 import { BrowserWindow } from "electron";
-import { sendMessageChunk } from "../llms.js";
+import { sendMessageChunk, truncateMessages } from "../llms.js";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 export async function AnthropicProvider(
   messages: Message[],
@@ -41,28 +42,42 @@ export async function AnthropicProvider(
   };
 
   const newMessages = messages.map((msg) => ({
-    role: msg.role as "user" | "assistant",
+    role: msg.role as "user" | "assistant" | "system",
     content: msg.content,
-  }));
+  })) as ChatCompletionMessageParam[];
+
   let dataCollectionInfo;
   if (collectionId) {
     dataCollectionInfo = db.getCollection(collectionId) as Collection;
   }
+
+  const sysPrompt: ChatCompletionMessageParam = {
+    role: "system",
+    content:
+      prompt +
+      (data
+        ? "The following is the data that the user has provided via their custom data collection: " +
+          `\n\n${JSON.stringify(data)}` +
+          `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
+          `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
+          `\n\nCollection/Store Description: ${dataCollectionInfo?.description}`
+        : ""),
+  };
+
+  // Truncate messages to fit within token limits
+  const maxOutputTokens = userSettings.maxTokens as number || 4096;
+  const truncatedMessages = truncateMessages(newMessages, sysPrompt, maxOutputTokens);
+
   const stream = (await anthropic.messages.stream(
     {
       temperature: Number(userSettings.temperature),
-      system:
-        prompt +
-        (data
-          ? "The following is the data that the user has provided via their custom data collection: " +
-            `\n\n${JSON.stringify(data)}` +
-            `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
-            `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
-            `\n\nCollection/Store Description: ${dataCollectionInfo?.description}`
-          : ""),
-      messages: newMessages,
+      system: sysPrompt.content,
+      messages: truncatedMessages.map(msg => ({
+        role: msg.role === "assistant" ? "assistant" : "user",
+        content: msg.content as string,
+      })),
       model: userSettings.model as string,
-      max_tokens: 4096,
+      max_tokens: Number(maxOutputTokens),
     },
     { signal }
   )) as unknown as {

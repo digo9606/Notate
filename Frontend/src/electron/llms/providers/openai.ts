@@ -2,10 +2,73 @@ import OpenAI from "openai";
 import db from "../../db.js";
 import { BrowserWindow } from "electron";
 import { sendMessageChunk } from "../llms.js";
+import { encoding_for_model } from "@dqbd/tiktoken";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+
 let openai: OpenAI;
 
 async function initializeOpenAI(apiKey: string) {
   openai = new OpenAI({ apiKey });
+}
+
+// Helper function to count tokens in a message
+function countMessageTokens(message: ChatCompletionMessageParam): number {
+  const encoder = encoding_for_model("gpt-3.5-turbo");
+  const content = message.content as string;
+  const tokens = encoder.encode(content);
+  encoder.free(); // Free up memory
+  return tokens.length + 4; // 4 tokens for message format
+}
+
+// Helper function to truncate messages to fit within token limit
+function truncateMessages(
+  messages: ChatCompletionMessageParam[],
+  systemPrompt: ChatCompletionMessageParam,
+  maxOutputTokens: number
+): ChatCompletionMessageParam[] {
+  const maxTotalTokens = 4096; // OpenAI's max context length
+  const reservedTokens = 3; // Few tokens reserved for formatting
+
+  const systemTokens = countMessageTokens(systemPrompt);
+  const availableTokens =
+    maxTotalTokens - systemTokens - maxOutputTokens - reservedTokens;
+
+  const truncatedMessages = [...messages];
+  let totalTokens = messages.reduce(
+    (sum, msg) => sum + countMessageTokens(msg),
+    0
+  );
+
+  // If we're under the limit, return all messages
+  if (totalTokens <= availableTokens) {
+    return truncatedMessages;
+  }
+
+  // Keep the first user message for context and last few messages
+  const preserveCount = 4; // Keep last 4 messages minimum
+
+  while (
+    totalTokens > availableTokens &&
+    truncatedMessages.length > preserveCount
+  ) {
+    // Remove messages from the middle, keeping the first and last few messages
+    const removeIndex = Math.floor(truncatedMessages.length / 2);
+    const removed = truncatedMessages.splice(removeIndex, 1)[0];
+    if (removed) {
+      totalTokens -= countMessageTokens(removed);
+    }
+  }
+
+  // If we still need to remove messages and have more than minimum
+  while (totalTokens > availableTokens && truncatedMessages.length > 2) {
+    // Remove oldest messages after the first one
+    const removed = truncatedMessages.splice(1, 1)[0];
+    if (removed) {
+      totalTokens -= countMessageTokens(removed);
+    }
+  }
+
+  return truncatedMessages;
 }
 
 export async function OpenAIProvider(
@@ -38,37 +101,74 @@ export async function OpenAIProvider(
     throw new Error("OpenAI instance not initialized");
   }
 
-  const newMessages = messages.map((msg) => ({
-    role: msg.role,
-    content: msg.content,
-  }));
+  const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
+
+  // Sort messages by timestamp to ensure proper chronological order
+  const sortedMessages = [...messages].sort((a, b) => {
+    const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+    const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+    return timeA - timeB; // Oldest first
+  });
+
+  // Add timestamp context to messages
+  const newMessages: ChatCompletionMessageParam[] = sortedMessages.map(
+    (msg, index) => {
+      const isLastMessage = index === sortedMessages.length - 1;
+      const timeStr = msg.timestamp
+        ? new Date(msg.timestamp).toLocaleTimeString()
+        : "";
+      let content = msg.content;
+
+      // Only add context to user messages
+      if (msg.role === "user") {
+        content = `[${timeStr}] ${content}${
+          isLastMessage ? " (most recent message)" : ""
+        }`;
+      }
+
+      return {
+        role: msg.role as "user" | "assistant" | "system",
+        content: content,
+      };
+    }
+  );
+
   let dataCollectionInfo;
   if (collectionId) {
     dataCollectionInfo = db.getCollection(collectionId) as Collection;
   }
-  const sysPrompt: {
-    role: "system";
-    content: string;
-  } = {
+
+  const sysPrompt: ChatCompletionMessageParam = {
     role: "system",
     content:
+      " When asked about previous messages, only consider messages marked as '(most recent message)' as the last message. " +
       prompt +
       (data
         ? "The following is the data that the user has provided via their custom data collection: " +
           `\n\n${JSON.stringify(data)}` +
           `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
           `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
-          `\n\nCollection/Store Description: ${dataCollectionInfo?.description}`
+          `\n\nCollection/Store Description: ${dataCollectionInfo?.description}` +
+          `\n\n*** THIS IS THE END OF THE DATA COLLECTION ***`
         : ""),
   };
-  newMessages.unshift(sysPrompt);
 
+  // Truncate messages to fit within token limits while preserving max output tokens
+  const truncatedMessages = truncateMessages(
+    newMessages,
+    sysPrompt,
+    maxOutputTokens
+  );
+  truncatedMessages.unshift(sysPrompt);
+
+  console.log("Final messages to send:", truncatedMessages);
   const stream = await openai.chat.completions.create(
     {
       model: userSettings.model as string,
-      messages: newMessages,
+      messages: truncatedMessages,
       stream: true,
       temperature: Number(userSettings.temperature),
+      max_tokens: Number(maxOutputTokens),
     },
     { signal }
   );
@@ -99,7 +199,7 @@ export async function OpenAIProvider(
       messages: [...messages, newMessage],
       title: currentTitle,
       content: newMessage.content,
-      aborted: false
+      aborted: false,
     };
   } catch (error) {
     if (
@@ -111,7 +211,7 @@ export async function OpenAIProvider(
         messages: messages,
         title: currentTitle,
         content: "",
-        aborted: true
+        aborted: true,
       };
     }
     throw error;
