@@ -19,6 +19,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
   pullModel: async (model: string) => {
     await ipcInvoke("pullModel", { model });
   },
+  openDirectory: () => ipcInvoke("openDirectory"),
   deleteCollection: (
     collectionId: number,
     collectionName: string,
@@ -144,7 +145,9 @@ electron.contextBridge.exposeInMainWorld("electron", {
       name: string;
       description: string;
       type: string;
-    }>,
+    }>, 
+  getDirModels: (dirPath: string) =>
+    ipcInvoke("getDirModels", { dirPath }) as unknown as Promise<string[]>,
   getOpenRouterModel: (userId: number) =>
     ipcInvoke("getOpenRouterModel", { userId }) as unknown as Promise<{
       model: string;

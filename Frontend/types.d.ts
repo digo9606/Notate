@@ -112,6 +112,7 @@ interface EventPayloadMapping {
   frameWindowAction: FrameWindowAction;
   changeView: View;
   openDevTools: void;
+  openDirectory: string;
   resizeWindow: {
     width: number;
     height: number;
@@ -271,10 +272,12 @@ interface EventPayloadMapping {
   addOpenRouterModel: { userId: number; model: string };
   deleteOpenRouterModel: { userId: number; id: number };
   getOpenRouterModels: { userId: number };
+  getDirModels: { dirPath: string };
 }
 
 interface Window {
   electron: {
+    getDirModels: (dirPath: string) => Promise<string[]>;
     pullModel: (model: string) => Promise<void>;
     changeUser: () => Promise<void>;
     quit: () => Promise<void>;
@@ -288,6 +291,7 @@ interface Window {
     print: () => Promise<void>;
     chat: () => Promise<void>;
     history: () => Promise<void>;
+    openDirectory: () => Promise<string>;
     cancelEmbed: (payload: { userId: number }) => Promise<void>;
     subscribeStatistics: (
       callback: (statistics: Statistics) => void

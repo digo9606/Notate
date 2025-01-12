@@ -54,6 +54,9 @@ interface SysSettingsContextType {
   checkOllama: () => Promise<void>;
   maxTokens: number;
   setMaxTokens: React.Dispatch<React.SetStateAction<number>>;
+  localModelDir: string;
+  setLocalModelDir: React.Dispatch<React.SetStateAction<string>>;
+  loadModelsFromDirectory: (dirPath: string) => Promise<void>;
 }
 
 const SysSettingsContext = createContext<SysSettingsContextType | undefined>(
@@ -63,6 +66,7 @@ const SysSettingsContext = createContext<SysSettingsContextType | undefined>(
 const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const [localModelDir, setLocalModelDir] = useState<string>("");
   const [localModels, setLocalModels] = useState<OllamaModel[]>([]);
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
   const [isOllamaRunning, setIsOllamaRunning] = useState<boolean>(false);
@@ -193,6 +197,38 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const loadModelsFromDirectory = async (dirPath: string) => {
+    try {
+      const models = await window.electron.getDirModels(dirPath);
+      if (!Array.isArray(models)) {
+        throw new Error("Invalid response from getDirModels - expected array");
+      }
+      
+      // Convert the models array to the OllamaModel format
+      const formattedModels: OllamaModel[] = models.map((modelName: string) => ({
+        name: modelName,
+        modified_at: "", // These fields might not be available for local models
+        size: 0,
+        digest: "",
+      }));
+      
+      setLocalModels(formattedModels);
+      setLocalModelDir(dirPath);
+      
+      toast({
+        title: "Models Loaded",
+        description: `Found ${formattedModels.length} models in directory`,
+      });
+    } catch (error) {
+      console.error("Error loading models from directory:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load models from directory",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <SysSettingsContext.Provider
       value={{
@@ -231,6 +267,9 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         checkOllama,
         maxTokens,
         setMaxTokens,
+        localModelDir,
+        setLocalModelDir,
+        loadModelsFromDirectory,
       }}
     >
       {children}
