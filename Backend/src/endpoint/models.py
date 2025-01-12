@@ -41,11 +41,19 @@ class ModelLoadRequest(BaseModel):
     # llama.cpp specific settings
     n_ctx: Optional[int] = 2048
     n_batch: Optional[int] = 512
-    n_threads: Optional[int] = None
-    n_gpu_layers: Optional[int] = None  # Number of layers to offload to GPU
+    n_threads: Optional[int] = None  # Will use os.cpu_count()
+    n_threads_batch: Optional[int] = None  # Will use min(8, os.cpu_count())
+    n_gpu_layers: Optional[int] = None  # Auto-configured based on device
     tensor_split: Optional[List[float]] = None  # Split layers across multiple GPUs
     main_gpu: Optional[int] = 0  # Main GPU to use
-    mul_mat_q: Optional[bool] = True  # Use tensor cores for matrix multiplication
+    mul_mat_q: Optional[bool] = True  # Use tensor cores
+    use_mmap: Optional[bool] = True  # Enable memory mapping
+    use_mlock: Optional[bool] = True  # Lock memory to prevent swapping
+    offload_kqv: Optional[bool] = True  # Enable KQV offloading
+    split_mode: Optional[int] = 2  # Use row split mode (2) for better parallelization
+    flash_attn: Optional[bool] = True  # Enable flash attention if available
+    cache_type: Optional[str] = "f16"  # KV cache type: f16, f32, etc
+    cache_size: Optional[int] = 2 * 1024 * 1024 * 1024  # 2GB default cache size
     rope_scaling_type: Optional[str] = None  # RoPE scaling type: none, linear, yarn
     rope_freq_base: Optional[float] = None  # RoPE base frequency
     rope_freq_scale: Optional[float] = None  # RoPE frequency scaling factor

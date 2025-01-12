@@ -451,7 +451,7 @@ class ModelManager:
     def _load_llamacpp_model(self, request: ModelLoadRequest) -> Tuple[Any, Any]:
         """Load a llama.cpp model"""
         try:
-            from llama_cpp import Llama
+            from llama_cpp import Llama, LlamaCache
             import requests
             from tqdm import tqdm
             import json
@@ -536,16 +536,24 @@ class ModelManager:
             gpu_layers = request.n_gpu_layers if request.n_gpu_layers is not None else 0
             logger.info(f"Using CUDA acceleration with {gpu_layers} GPU layers")
 
-        # Build model parameters
+        # Build model parameters with optimizations
         model_params = {
             "model_path": str(model_path),
             "n_ctx": request.n_ctx,
             "n_batch": request.n_batch,
             "n_threads": request.n_threads or os.cpu_count(),
+            "n_threads_batch": request.n_threads_batch or min(8, os.cpu_count()),
             "n_gpu_layers": gpu_layers,
             "main_gpu": request.main_gpu,
             "tensor_split": request.tensor_split,
-            "mul_mat_q": request.mul_mat_q
+            "mul_mat_q": request.mul_mat_q,
+            "use_mmap": request.use_mmap,
+            "use_mlock": request.use_mlock,
+            "offload_kqv": request.offload_kqv,
+            "split_mode": request.split_mode,
+            "flash_attn": request.flash_attn,
+            "type_k": request.cache_type,
+            "type_v": request.cache_type,
         }
 
         # Add RoPE parameters if specified
@@ -563,8 +571,20 @@ class ModelManager:
             logger.info(f"  - Main GPU: {request.main_gpu}")
             logger.info(f"  - Tensor Split: {request.tensor_split}")
             logger.info(f"  - Using Tensor Cores: {request.mul_mat_q}")
+            logger.info(f"  - Flash Attention: {model_params['flash_attn']}")
+            logger.info(f"  - KQV Offloading: {model_params['offload_kqv']}")
+            logger.info(f"  - Cache Type: {request.cache_type}")
+            logger.info(f"  - Split Mode: {model_params['split_mode']}")
 
         model = Llama(**model_params)
+
+        # Set up cache with configurable size
+        if hasattr(model, 'set_cache') and request.cache_size:
+            try:
+                model.set_cache(LlamaCache(capacity_bytes=request.cache_size))
+                logger.info(f"Initialized LLM cache with {request.cache_size / (1024*1024*1024):.1f}GB capacity")
+            except Exception as e:
+                logger.warning(f"Failed to initialize cache: {e}")
 
         # llama.cpp includes its own tokenizer
         self.current_model = model
