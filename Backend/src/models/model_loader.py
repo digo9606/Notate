@@ -242,12 +242,6 @@ class ModelManager:
             # Create models directory if it doesn't exist
             model_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # If it's a HuggingFace model ID and doesn't exist locally, try to download it first
-            if '/' in request.model_name and not model_path.exists():
-                logger.info(f"Model not found locally, attempting to download: {request.model_name}")
-                # Use the Transformers loader to download the model
-                return self._load_transformers_model(request)
-            
             # Auto-detect model type if not specified or auto
             if not request.model_type or request.model_type == "auto":
                 if model_path.exists():
@@ -269,11 +263,6 @@ class ModelManager:
             self.device = self._get_device(request)
             self.model_name = request.model_name
             self.model_type = request.model_type
-
-            # Special handling for llama.cpp models
-            if request.model_type == "llama.cpp":
-                logger.info(f"Loading llama.cpp model: {request.model_name}")
-                return self._load_llamacpp_model(request)
 
             # Map model types to their loader functions
             loaders = {
