@@ -452,11 +452,15 @@ class ModelManager:
         # Create models directory if it doesn't exist
         model_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # If it's a HuggingFace model ID and doesn't exist locally, try to download it
-        if '/' in request.model_name and not model_path.exists():
+        # If it's a HuggingFace model ID and doesn't exist locally or is a directory
+        if '/' in request.model_name and (not model_path.exists() or model_path.is_dir()):
             logger.info(f"Model not found locally, attempting to download: {request.model_name}")
             
-            # Determine the GGUF file name
+            # Create the full directory path
+            model_dir = model_path if model_path.is_dir() else model_path.parent
+            model_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Determine the repository ID
             repo_id = request.model_name
             
             try:
@@ -486,8 +490,11 @@ class ModelManager:
                 file_name = file_info['path']
                 download_url = f"https://huggingface.co/{repo_id}/resolve/main/{file_name}"
                 
+                # Set the model path to include the file name
+                model_path = model_dir / file_name
+                
                 # Download the file with progress bar
-                logger.info(f"Downloading {file_name} ({file_info.get('size', 'unknown size')})...")
+                logger.info(f"Downloading {file_name} to {model_path} ({file_info.get('size', 'unknown size')})...")
                 response = requests.get(download_url, stream=True, headers=headers)
                 response.raise_for_status()
                 
@@ -528,22 +535,32 @@ class ModelManager:
         # Build model parameters with optimizations
         model_params = {
             "model_path": str(model_path),
-            "n_ctx": request.n_ctx,
-            "n_batch": request.n_batch,
-            "n_threads": request.n_threads or os.cpu_count(),
-            "n_threads_batch": request.n_threads_batch or min(8, os.cpu_count()),
-            "n_gpu_layers": gpu_layers,
-            "main_gpu": request.main_gpu,
-            "tensor_split": request.tensor_split,
-            "mul_mat_q": request.mul_mat_q,
-            "use_mmap": request.use_mmap,
-            "use_mlock": request.use_mlock,
-            "offload_kqv": request.offload_kqv,
-            "split_mode": request.split_mode,
-            "flash_attn": request.flash_attn,
-            "type_k": request.cache_type,
-            "type_v": request.cache_type,
+            "n_ctx": int(request.n_ctx) if request.n_ctx is not None else 2048,
+            "n_batch": int(request.n_batch) if request.n_batch is not None else 512,
+            "n_threads": int(request.n_threads) if request.n_threads is not None else os.cpu_count(),
+            "n_threads_batch": int(request.n_threads_batch) if request.n_threads_batch is not None else min(8, os.cpu_count()),
+            "n_gpu_layers": int(gpu_layers),
+            "main_gpu": int(request.main_gpu) if request.main_gpu is not None else 0,
         }
+
+        # Add optional parameters only if they are not None
+        if request.tensor_split is not None:
+            model_params["tensor_split"] = request.tensor_split
+        if request.mul_mat_q is not None:
+            model_params["mul_mat_q"] = request.mul_mat_q
+        if request.use_mmap is not None:
+            model_params["use_mmap"] = request.use_mmap
+        if request.use_mlock is not None:
+            model_params["use_mlock"] = request.use_mlock
+        if request.offload_kqv is not None:
+            model_params["offload_kqv"] = request.offload_kqv
+        if request.split_mode is not None:
+            model_params["split_mode"] = request.split_mode
+        if request.flash_attn is not None:
+            model_params["flash_attn"] = request.flash_attn
+        if request.cache_type is not None:
+            model_params["type_k"] = request.cache_type
+            model_params["type_v"] = request.cache_type
 
         # Add RoPE parameters if specified
         if request.rope_scaling_type:
@@ -753,7 +770,7 @@ class ModelManager:
             engine_dir=str(engine_path),
             max_batch_size=request.max_batch_size,
             max_input_len=request.max_input_len,
-            max_output_len=request.max_output_len,
+            max_output_len=int(request.max_output_len) if request.max_output_len is not None else None,
         )
 
         model = tensorrt_llm.runtime.GenerationSession(config)
