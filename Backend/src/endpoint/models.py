@@ -43,6 +43,12 @@ class ModelLoadRequest(BaseModel):
     n_batch: Optional[int] = 512
     n_threads: Optional[int] = None
     n_gpu_layers: Optional[int] = None  # Number of layers to offload to GPU
+    tensor_split: Optional[List[float]] = None  # Split layers across multiple GPUs
+    main_gpu: Optional[int] = 0  # Main GPU to use
+    mul_mat_q: Optional[bool] = True  # Use tensor cores for matrix multiplication
+    rope_scaling_type: Optional[str] = None  # RoPE scaling type: none, linear, yarn
+    rope_freq_base: Optional[float] = None  # RoPE base frequency
+    rope_freq_scale: Optional[float] = None  # RoPE frequency scaling factor
     
     # HQQ specific settings
     hqq_backend: Optional[str] = "PYTORCH_COMPILE"  # PYTORCH_COMPILE, ATEN, TENSORRT

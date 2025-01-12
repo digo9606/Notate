@@ -525,7 +525,7 @@ class ModelManager:
         if not model_path.exists():
             raise ValueError(f"Model path does not exist: {model_path}")
 
-        # Configure GPU layers
+        # Configure GPU layers and tensor cores
         gpu_layers = request.n_gpu_layers or 0
         if request.device == "mps" or (request.device == "auto" and hasattr(torch.backends, "mps") and torch.backends.mps.is_available()):
             # For M1/M2 Macs, if n_gpu_layers is not set, default to 1 layer
@@ -536,13 +536,35 @@ class ModelManager:
             gpu_layers = request.n_gpu_layers if request.n_gpu_layers is not None else 0
             logger.info(f"Using CUDA acceleration with {gpu_layers} GPU layers")
 
-        model = Llama(
-            model_path=str(model_path),
-            n_ctx=request.n_ctx,
-            n_batch=request.n_batch,
-            n_threads=request.n_threads or os.cpu_count(),
-            n_gpu_layers=gpu_layers
-        )
+        # Build model parameters
+        model_params = {
+            "model_path": str(model_path),
+            "n_ctx": request.n_ctx,
+            "n_batch": request.n_batch,
+            "n_threads": request.n_threads or os.cpu_count(),
+            "n_gpu_layers": gpu_layers,
+            "main_gpu": request.main_gpu,
+            "tensor_split": request.tensor_split,
+            "mul_mat_q": request.mul_mat_q
+        }
+
+        # Add RoPE parameters if specified
+        if request.rope_scaling_type:
+            model_params["rope_scaling_type"] = request.rope_scaling_type
+        if request.rope_freq_base is not None:
+            model_params["rope_freq_base"] = request.rope_freq_base
+        if request.rope_freq_scale is not None:
+            model_params["rope_freq_scale"] = request.rope_freq_scale
+
+        # Log GPU configuration
+        if gpu_layers > 0:
+            logger.info(f"GPU Configuration:")
+            logger.info(f"  - GPU Layers: {gpu_layers}")
+            logger.info(f"  - Main GPU: {request.main_gpu}")
+            logger.info(f"  - Tensor Split: {request.tensor_split}")
+            logger.info(f"  - Using Tensor Cores: {request.mul_mat_q}")
+
+        model = Llama(**model_params)
 
         # llama.cpp includes its own tokenizer
         self.current_model = model
