@@ -74,7 +74,7 @@ export default function SelectAccount({ users }: { users: User[] }) {
           className="relative flex-1 px-4 min-h-0"
           variants={itemVariants}
         >
-          <div className="absolute inset-0">
+          <div className="absolute inset-0 pb-10">
             <div className="h-full rounded-xl bg-background/50 backdrop-blur-sm border border-border/50 shadow-sm">
               <ScrollArea className="h-full px-3 py-2">
                 <div className="flex flex-col h-full">

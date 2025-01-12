@@ -6,7 +6,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-
+import { ChatInputContext, ChatInputContextType } from "./ChatInputContext";
 
 interface UserContextType {
   title: string | null;
@@ -21,10 +21,6 @@ interface UserContextType {
   setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
   prompts: Prompt[];
   setPrompts: React.Dispatch<React.SetStateAction<Prompt[]>>;
-  input: string;
-  setInput: React.Dispatch<React.SetStateAction<string>>;
-  isLoading: boolean;
-  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
   streamingMessage: string;
   setStreamingMessage: React.Dispatch<React.SetStateAction<string>>;
   filteredConversations: Conversation[];
@@ -51,11 +47,6 @@ interface UserContextType {
   setError: React.Dispatch<React.SetStateAction<string | null>>;
   currentRequestId: number | null;
   setCurrentRequestId: React.Dispatch<React.SetStateAction<number | null>>;
-  handleChatRequest: (
-    collectionId: number | undefined,
-    suggestion?: string
-  ) => Promise<void>;
-  cancelRequest: () => void;
   fetchMessages: () => Promise<void>;
   openRouterModels: OpenRouterModel[];
   setOpenRouterModels: React.Dispatch<React.SetStateAction<OpenRouterModel[]>>;
@@ -108,11 +99,26 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
+  const fetchMessages = useCallback(async () => {
+    if (activeConversation) {
+      const conversation = conversations.find(
+        (conv: Conversation) => conv.id === activeConversation
+      );
+      if (conversation && activeUser) {
+        const newMessages =
+          await window.electron.getConversationMessagesWithData(
+            activeUser.id,
+            conversation.id
+          );
+        setMessages(newMessages.messages);
+      }
+    }
+  }, [activeConversation, conversations, activeUser]);
+
   const cancelRequest = useCallback(() => {
     return new Promise<void>((resolve) => {
       if (currentRequestId) {
         window.electron.abortChatRequest(currentRequestId);
-        // Give a small delay to ensure the cancellation is processed
         setTimeout(() => {
           setStreamingMessage("");
           resolve();
@@ -224,7 +230,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
                 ? new Date(latestMessage.timestamp).getTime()
                 : Date.now(),
             };
-            fetchMessages();
+            await fetchMessages();
             setConversations((prev) => [newConversation, ...prev]);
             setFilteredConversations((prev) => [newConversation, ...prev]);
           } else {
@@ -269,25 +275,22 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         setCurrentRequestId(null);
       }
     },
-    [activeUser, activeConversation, input, messages]
+    [activeUser, activeConversation, input, messages, fetchMessages]
   );
 
-  const fetchMessages = useCallback(async () => {
-    if (activeConversation) {
-      const conversation = conversations.find(
-        (conv: Conversation) => conv.id === activeConversation
-      );
-      if (conversation && activeUser) {
-        const newMessages =
-          await window.electron.getConversationMessagesWithData(
-            activeUser.id,
-            conversation.id
-          );
-        setMessages(newMessages.messages);
-      }
-    }
-  }, [activeConversation, conversations, activeUser]);
+  // Memoize chat input related values
+  const chatInputValue = useMemo<ChatInputContextType>(
+    () => ({
+      input,
+      setInput,
+      isLoading,
+      handleChatRequest,
+      cancelRequest,
+    }),
+    [input, setInput, isLoading, handleChatRequest, cancelRequest]
+  );
 
+  // Memoize the main context value
   const contextValue = useMemo(
     () => ({
       activeUser,
@@ -313,10 +316,6 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       setNewConversation,
       title,
       setTitle,
-      input,
-      setInput,
-      isLoading,
-      setIsLoading,
       streamingMessage,
       setStreamingMessage,
       handleResetChat,
@@ -333,8 +332,6 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       setError,
       currentRequestId,
       setCurrentRequestId,
-      handleChatRequest,
-      cancelRequest,
       openRouterModels,
       setOpenRouterModels,
     }),
@@ -350,8 +347,6 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       messages,
       newConversation,
       title,
-      input,
-      isLoading,
       streamingMessage,
       handleResetChat,
       devAPIKeys,
@@ -363,15 +358,16 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       fetchMessages,
       error,
       currentRequestId,
-      handleChatRequest,
-      cancelRequest,
       openRouterModels,
-      setOpenRouterModels,
     ]
   );
 
   return (
-    <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>
+    <UserContext.Provider value={contextValue}>
+      <ChatInputContext.Provider value={chatInputValue}>
+        {children}
+      </ChatInputContext.Provider>
+    </UserContext.Provider>
   );
 };
 
