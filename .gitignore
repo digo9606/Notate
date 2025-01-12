@@ -86,3 +86,16 @@ Backend/tests/test_curl.txt
 Backend/src/models/__pycache__/model_loader.cpython-310.pyc
 Backend/src/endpoint/__pycache__/api.cpython-310.pyc
 Frontend/models/TheBloke/deepseek-coder-6.7B-base-GGUF/deepseek-coder-6.7b-base.Q4_K_M.gguf
+Frontend/models/microsoft/phi-2/added_tokens.json
+Frontend/models/microsoft/phi-2/config.json
+Frontend/models/microsoft/phi-2/generation_config.json
+Frontend/models/microsoft/phi-2/merges.txt
+Frontend/models/microsoft/phi-2/model-00001-of-00002.safetensors
+Frontend/models/microsoft/phi-2/model-00002-of-00002.safetensors
+Frontend/models/microsoft/phi-2/model.safetensors.index.json
+Frontend/models/microsoft/phi-2/special_tokens_map.json
+Frontend/models/microsoft/phi-2/tokenizer_config.json
+Frontend/models/microsoft/phi-2/tokenizer.json
+Frontend/models/microsoft/phi-2/vocab.json
+Frontend/models/TheBloke/deepseek-coder-6.7b-base.Q4_K_M.gguf
+Frontend/models/TheBloke/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf

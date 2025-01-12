@@ -447,17 +447,21 @@ class ModelManager:
         except ImportError:
             raise ImportError("llama-cpp-python is not installed. Please install it with: pip install llama-cpp-python")
 
+        # Determine model path and ensure parent directory exists
         model_path = Path(request.model_path) if request.model_path else Path(f"models/{request.model_name}")
-        
-        # Create models directory if it doesn't exist
-        model_path.parent.mkdir(parents=True, exist_ok=True)
+        model_dir = model_path.parent
+        model_dir.mkdir(parents=True, exist_ok=True)
 
-        # If it's a HuggingFace model ID and doesn't exist locally or is a directory
-        if '/' in request.model_name and (not model_path.exists() or model_path.is_dir()):
-            logger.info(f"Model not found locally, attempting to download: {request.model_name}")
+        # Check for existing GGUF files in the model directory
+        existing_gguf = list(model_dir.glob("*.gguf"))
+        if existing_gguf:
+            logger.info(f"Found existing GGUF model: {existing_gguf[0]}")
+            model_path = existing_gguf[0]
+        # Only download if it's a HF model ID and no GGUF file exists
+        elif '/' in request.model_name and not any(f.suffix == '.gguf' for f in model_dir.glob("*")):
+            logger.info(f"No GGUF model found locally, attempting to download: {request.model_name}")
             
             # Create the full directory path
-            model_dir = model_path if model_path.is_dir() else model_path.parent
             model_dir.mkdir(parents=True, exist_ok=True)
             
             # Determine the repository ID
@@ -493,26 +497,30 @@ class ModelManager:
                 # Set the model path to include the file name
                 model_path = model_dir / file_name
                 
-                # Download the file with progress bar
-                logger.info(f"Downloading {file_name} to {model_path} ({file_info.get('size', 'unknown size')})...")
-                response = requests.get(download_url, stream=True, headers=headers)
-                response.raise_for_status()
-                
-                total_size = int(response.headers.get('content-length', 0))
-                block_size = 8192  # 8 KB
-                
-                with open(model_path, 'wb') as f, tqdm(
-                    desc=file_name,
-                    total=total_size,
-                    unit='iB',
-                    unit_scale=True,
-                    unit_divisor=1024,
-                ) as pbar:
-                    for data in response.iter_content(block_size):
-                        size = f.write(data)
-                        pbar.update(size)
-                
-                logger.info(f"Successfully downloaded {file_name}")
+                # Only download if file doesn't exist or is empty
+                if not model_path.exists() or model_path.stat().st_size == 0:
+                    # Download the file with progress bar
+                    logger.info(f"Downloading {file_name} to {model_path} ({file_info.get('size', 'unknown size')})...")
+                    response = requests.get(download_url, stream=True, headers=headers)
+                    response.raise_for_status()
+                    
+                    total_size = int(response.headers.get('content-length', 0))
+                    block_size = 8192  # 8 KB
+                    
+                    with open(model_path, 'wb') as f, tqdm(
+                        desc=file_name,
+                        total=total_size,
+                        unit='iB',
+                        unit_scale=True,
+                        unit_divisor=1024,
+                    ) as pbar:
+                        for data in response.iter_content(block_size):
+                            size = f.write(data)
+                            pbar.update(size)
+                    
+                    logger.info(f"Successfully downloaded {file_name}")
+                else:
+                    logger.info(f"Using existing model file: {model_path}")
             except Exception as e:
                 if model_path.exists() and model_path.stat().st_size == 0:
                     model_path.unlink()  # Remove empty/partial file
@@ -554,7 +562,7 @@ class ModelManager:
             model_params["use_mlock"] = request.use_mlock
         if request.offload_kqv is not None:
             model_params["offload_kqv"] = request.offload_kqv
-        if request.split_mode is not None:
+        if request.split_mode is not None and request.split_mode != "":
             model_params["split_mode"] = request.split_mode
         if request.flash_attn is not None:
             model_params["flash_attn"] = request.flash_attn
@@ -577,10 +585,13 @@ class ModelManager:
             logger.info(f"  - Main GPU: {request.main_gpu}")
             logger.info(f"  - Tensor Split: {request.tensor_split}")
             logger.info(f"  - Using Tensor Cores: {request.mul_mat_q}")
-            logger.info(f"  - Flash Attention: {model_params['flash_attn']}")
-            logger.info(f"  - KQV Offloading: {model_params['offload_kqv']}")
+            logger.info(f"  - Flash Attention: {model_params.get('flash_attn', False)}")
+            logger.info(f"  - KQV Offloading: {model_params.get('offload_kqv', False)}")
             logger.info(f"  - Cache Type: {request.cache_type}")
-            logger.info(f"  - Split Mode: {model_params['split_mode']}")
+            if 'split_mode' in model_params:
+                logger.info(f"  - Split Mode: {model_params['split_mode']}")
+            else:
+                logger.info("  - Split Mode: None")
 
         model = Llama(**model_params)
 
