@@ -3,12 +3,12 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from typing import AsyncGenerator
 import json
 import asyncio
-from src.models.model_loader import model_manager
 from src.endpoint.models import GenerateRequest, ModelLoadRequest
 from transformers import TextIteratorStreamer
 from threading import Thread
 import logging
 import os
+from src.models.manager import model_manager
 
 # Configure logging
 log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs")

@@ -10,8 +10,8 @@ from src.endpoint.vectorQuery import query_vectorstore
 from src.endpoint.devApiCall import rag_call, llm_call, vector_call
 from src.endpoint.transcribe import transcribe_audio
 from src.endpoint.webcrawl import webcrawl
-from src.models.model_loader import model_manager
 from src.endpoint.api import generate_stream
+from src.models.manager import model_manager
 from fastapi import FastAPI, Depends, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -68,27 +68,29 @@ async def load_model_endpoint(request: ModelLoadRequest):
         logger.info(f"is_compatible: {is_compatible}, message: {message}")
         # Return early if platform is not compatible
         if not is_compatible:
-            return {
+            response_data = model_manager._make_json_serializable({
                 "status": "error",
                 "message": f"Cannot load model: {message}",
                 "model_info": model_manager.get_model_info()
-            }
+            })
+            return JSONResponse(content=response_data)
     try:
         model, tokenizer = model_manager.load_model(request)
-        return JSONResponse(content={
+        response_data = model_manager._make_json_serializable({
             "status": "success",
             "message": f"Successfully loaded model {request.model_name}",
             "model_info": model_manager.get_model_info()
         })
+        print(response_data)
+        logger.info(response_data)
+        return JSONResponse(content=response_data)
     except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={
-                "status": "error",
-                "message": str(e),
-                "model_info": model_manager.get_model_info()
-            }
-        )
+        response_data = model_manager._make_json_serializable({
+            "status": "error",
+            "message": str(e),
+            "model_info": model_manager.get_model_info()
+        })
+        return JSONResponse(status_code=500, content=response_data)
 
 
 @app.post("/unload-model")
