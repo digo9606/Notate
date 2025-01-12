@@ -41,6 +41,7 @@ export function highlightCode(code: string, language: string): string {
     return highlighter.codeToHtml(code, {
       lang: language,
       theme: "github-dark-dimmed",
+      
     });
   } catch (error) {
     console.error("Error highlighting code:", error);

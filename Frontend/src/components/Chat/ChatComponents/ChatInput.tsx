@@ -200,7 +200,7 @@ export const ChatInput = memo(function ChatInput() {
           }}
           disabled={transcriptionLoading}
           data-testid="chat-input"
-          className={`z-10 max-h-[72px] min-h-[72px] flex-grow bg-background text-foreground placeholder-muted-foreground border-secondary rounded-none transition-opacity duration-200 ${
+          className={`z-10 max-h-[72px] min-h-[72px] flex-grow bg-background text-foreground placeholder-muted-foreground border-secondary rounded-none transition-opacity duration-200 [overflow-wrap:anywhere] ${
             transcriptionLoading ? "opacity-50" : "opacity-100"
           }`}
         />

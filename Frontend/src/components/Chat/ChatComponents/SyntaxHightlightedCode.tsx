@@ -12,7 +12,7 @@ export function SyntaxHighlightedCode({
   code,
   language,
 }: SyntaxHighlightedCodeProps) {
-  const normalizedLanguage = normalizeLanguage(language);
+  const normalizedLanguage = normalizeLanguage(language, code);
   const highlightedCode = highlightCode(code, normalizedLanguage);
   const clipboard = useClipboard();
   const [isCopied, setIsCopied] = useState(false);
@@ -24,7 +24,7 @@ export function SyntaxHighlightedCode({
   };
 
   return (
-    <div className="rounded-[4px] overflow-hidden bg-[#22272e] relative">
+    <div className="rounded-[4px] overflow-hidden bg-[#22272e] relative max-w-full">
       <div className="absolute top-2 right-2">
         <button
           onClick={handleCopy}
@@ -39,10 +39,18 @@ export function SyntaxHighlightedCode({
         </button>
       </div>
       <div className="overflow-x-auto p-4">
-        <pre className="whitespace-pre-wrap break-words">
+        <pre className="whitespace-pre-wrap break-words w-full">
           <div
             dangerouslySetInnerHTML={{ __html: highlightedCode }}
-            style={{ whiteSpace: "pre-wrap", wordWrap: "break-word" }}
+            style={{
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              overflowWrap: "break-word",
+              maxWidth: "100%",
+              display: "block",
+              fontSize: "0.9em",
+              lineHeight: "1.5"
+            }}
           />
         </pre>
       </div>
@@ -50,7 +58,7 @@ export function SyntaxHighlightedCode({
   );
 }
 
-function normalizeLanguage(language: string): string {
+function normalizeLanguage(language: string, code: string): string {
   language = language.toLowerCase();
   if (
     language === "typescript" ||
@@ -63,5 +71,8 @@ function normalizeLanguage(language: string): string {
   if (language === "javascript" || language === "js") {
     return "javascript";
   }
-  return language;
+  if (!language && /^\s*\{[\s\S]*\}\s*$/.test(code)) {
+    return "json";
+  }
+  return language || "plaintext";
 }

@@ -279,7 +279,7 @@ export const ChatMessage = memo(function ChatMessage({
             </div>
           )}
           {!isRetrieval && (
-            <div className="text-sm whitespace-pre-wrap break-words text-left overflow-hidden">
+            <div className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere] text-left overflow-hidden">
               {renderContent(message?.content || "")}
               <div className="sr-only">{message?.content}</div>
             </div>
