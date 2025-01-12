@@ -12,7 +12,7 @@ database.sqlite
 Backend/__pycache__
 Backend/.pytest_cache
 Backend/venv
-
+models/*
 
 .DS_Store
 
@@ -82,3 +82,6 @@ Backend/src/llms/providers/__pycache__/ollama.cpython-310.pyc
 Backend/src/llms/providers/__pycache__/ooba.cpython-310.pyc
 Backend/src/llms/providers/__pycache__/openai.cpython-310.pyc
 Backend/src/llms/messages/__pycache__/formMessages.cpython-310.pyc
+Backend/tests/test_curl.txt
+Backend/src/models/__pycache__/model_loader.cpython-310.pyc
+Backend/src/endpoint/__pycache__/api.cpython-310.pyc
