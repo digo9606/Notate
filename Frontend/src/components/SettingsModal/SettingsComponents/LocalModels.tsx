@@ -13,7 +13,11 @@ import { useState } from "react";
 import { FolderOpenIcon, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Tooltip } from "@/components/ui/tooltip";
-import { TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const formatDirectoryPath = (path: string | null) => {
   if (!path) return "Not set";
@@ -27,6 +31,7 @@ export default function LocalModels() {
   const { activeUser } = useUser();
   const {
     localModels,
+    setLocalModels,
     handleRunOllama,
     localModalLoading,
     progressLocalOutput,
@@ -39,17 +44,24 @@ export default function LocalModels() {
     try {
       const dirPath = await window.electron.openDirectory();
       if (dirPath) {
-        console.log('Selected directory path:', dirPath);
+        console.log("Selected directory path:", dirPath);
         setLocalModelDir(dirPath);
-        const DirModels = await window.electron.getDirModels(dirPath);
-        console.log('Directory models:', DirModels);
+        const response = (await window.electron.getDirModels(dirPath) as unknown) as { dirPath: string; models: string[] };
+        console.log("Directory models:", response);
+        const newModels = response.models.map((modelName: string) => ({
+          name: modelName,
+          modified_at: "",
+          size: 0,
+          digest: "",
+        }));
+        setLocalModels(newModels);
         toast({
           title: "Directory selected",
           description: `Selected directory: ${dirPath}`,
         });
       }
     } catch (error) {
-      console.error('Error selecting directory:', error);
+      console.error("Error selecting directory:", error);
       toast({
         title: "Error",
         description: "Failed to select directory",
@@ -64,14 +76,24 @@ export default function LocalModels() {
         <TooltipProvider>
           <Tooltip delayDuration={200}>
             <TooltipTrigger asChild>
-              <p className="truncate flex-1">{formatDirectoryPath(localModelDir)}</p>
+              <p className="truncate flex-1">
+                {formatDirectoryPath(localModelDir)}
+              </p>
             </TooltipTrigger>
-            <TooltipContent side="top" align="start" className="max-w-[300px] break-all">
+            <TooltipContent
+              side="top"
+              align="start"
+              className="max-w-[300px] break-all"
+            >
               <p>{localModelDir || "No directory selected"}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        <Button onClick={handleSelectDirectory} variant="outline" className="ml-2">
+        <Button
+          onClick={handleSelectDirectory}
+          variant="outline"
+          className="ml-2"
+        >
           <FolderOpenIcon className="w-4 h-4 mr-2" />
           Select Directory
         </Button>
