@@ -33,9 +33,16 @@ import { useView } from "@/context/useView";
 import { useSysSettings } from "@/context/useSysSettings";
 import { toast } from "@/hooks/use-toast";
 import { useLibrary } from "@/context/useLibrary";
+import { Input } from "@/components/ui/input";
 
 export default function ChatSettings() {
-  const { setApiKeys, setPrompts, setConversations, setActiveUser, openRouterModels } = useUser();
+  const {
+    setApiKeys,
+    setPrompts,
+    setConversations,
+    setActiveUser,
+    openRouterModels,
+  } = useUser();
   const { setSelectedCollection, setFiles } = useLibrary();
   const { activeUser, apiKeys, prompts } = useUser();
   const [open, setOpen] = useState<boolean>(false);
@@ -49,7 +56,22 @@ export default function ChatSettings() {
     setSettingsOpen,
     localModels,
     handleRunOllama,
+    maxTokens,
+    setMaxTokens,
   } = useSysSettings();
+  const [localMaxTokens, setLocalMaxTokens] = useState<string>("");
+
+  useEffect(() => {
+    setLocalMaxTokens(maxTokens?.toString() || "");
+  }, [maxTokens]);
+
+  const handleMaxTokensChange = (value: string) => {
+    setLocalMaxTokens(value);
+    const parsedValue = parseInt(value);
+    if (!isNaN(parsedValue)) {
+      setMaxTokens(parsedValue);
+    }
+  };
 
   const handleSettingChange = async (
     setting: string,
@@ -73,6 +95,23 @@ export default function ChatSettings() {
     } catch (error) {
       console.error("Error updating user settings:", error);
     }
+  };
+
+  const modelTokenDefaults = {
+    "gpt-3.5-turbo": 4096,
+    "gpt-4o": 8192,
+    "gpt-4o-mini": 4096,
+    "claude-3-5-sonnet-20241022": 8192,
+    "claude-3-5-haiku-20241022": 8192,
+    "claude-3-opus-20240229": 8192,
+    "claude-3-sonnet-20240229": 8192,
+    "claude-3-haiku-20240307": 8192,
+    "claude-2.1": 8192,
+    "claude-2.0": 8192,
+    "gemini-1.5-flash": 8192,
+    "gemini-1.5-pro": 8192,
+    "grok-beta": 8192,
+    local: 2048,
   };
 
   const modelOptions = {
@@ -269,6 +308,7 @@ export default function ChatSettings() {
 
                 handleSettingChange("model", value);
                 handleSettingChange("provider", provider);
+                setMaxTokens(modelTokenDefaults[value as keyof typeof modelTokenDefaults]);
 
                 if (provider === "local" && activeUser) {
                   handleRunOllama(value, activeUser);
@@ -312,6 +352,21 @@ export default function ChatSettings() {
                 </SelectGroup>
               </SelectContent>
             </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label
+              htmlFor="maxTokens"
+              className="text-right text-sm font-medium"
+            >
+              Max Tokens
+            </Label>
+            <Input
+              id="maxTokens"
+              type="number"
+              value={localMaxTokens}
+              onChange={(e) => handleMaxTokensChange(e.target.value)}
+              className="col-span-3"
+            />
           </div>
         </div>
       </div>

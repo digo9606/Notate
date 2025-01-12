@@ -284,10 +284,11 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       input,
       setInput,
       isLoading,
+      setIsLoading,
       handleChatRequest,
       cancelRequest,
     }),
-    [input, setInput, isLoading, handleChatRequest, cancelRequest]
+    [input, setInput, isLoading, setIsLoading, handleChatRequest, cancelRequest]
   );
 
   // Memoize the main context value

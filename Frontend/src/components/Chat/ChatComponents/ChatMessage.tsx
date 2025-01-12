@@ -1,6 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { SyntaxHighlightedCode } from "@/components/Chat/ChatComponents/SyntaxHightlightedCode";
-import { useRef, useEffect, useState } from "react";
+import { lazy, Suspense, useRef, useEffect, useState, useMemo, memo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   NotebookPenIcon,
@@ -10,7 +9,14 @@ import {
 } from "lucide-react";
 import { getYouTubeLink, formatTimestamp, getFileName } from "@/lib/utils";
 
-export function ChatMessage({
+// Lazy load the syntax highlighter
+const SyntaxHighlightedCode = lazy(() => 
+  import("@/components/Chat/ChatComponents/SyntaxHightlightedCode").then(
+    module => ({ default: module.SyntaxHighlightedCode })
+  )
+);
+
+export const ChatMessage = memo(function ChatMessage({
   message,
   formatDate,
 }: {
@@ -21,13 +27,30 @@ export function ChatMessage({
   const isRetrieval = message?.isRetrieval;
   const [isDataContentExpanded, setIsDataContentExpanded] = useState(false);
 
-  const renderDataContent = (content: string) => {
-    const dataContent: DataContent = JSON.parse(content);
-    const topk = dataContent.top_k;
+  const parsedDataContent = useMemo(() => {
+    if (!message.data_content) return null;
+    try {
+      return JSON.parse(message.data_content);
+    } catch {
+      return null;
+    }
+  }, [message.data_content]);
+
+  const renderDataContent = useMemo(() => {
+    if (!parsedDataContent) return null;
+    const topk = parsedDataContent.top_k;
 
     return (
       <div className="flex flex-col divide-y divide-border">
-        {dataContent.results.map((result, index) => (
+        {parsedDataContent.results.map((result: { 
+          content: string;
+          metadata: {
+            chunk_start?: number;
+            chunk_end?: number;
+            source: string;
+            title?: string;
+          };
+        }, index: number) => (
           <div
             key={index}
             className="flex flex-col gap-3 p-4 hover:bg-muted/30 transition-colors duration-200"
@@ -124,7 +147,7 @@ export function ChatMessage({
         ))}
       </div>
     );
-  };
+  }, [parsedDataContent]);
 
   const renderContent = (content: string) => {
     const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
@@ -141,7 +164,9 @@ export function ChatMessage({
       const code = match[2].trim();
       parts.push(
         <div key={match.index} className="w-full overflow-x-auto">
-          <SyntaxHighlightedCode code={code} language={language} />
+          <Suspense fallback={<div>Loading...</div>}>
+            <SyntaxHighlightedCode code={code} language={language} />
+          </Suspense>
         </div>
       );
 
@@ -225,7 +250,7 @@ export function ChatMessage({
                     Reference Notes
                   </span>
                   <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary/70 rounded-[6px]">
-                    {JSON.parse(message.data_content).results.length} sources
+                    {parsedDataContent?.results.length} sources
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -249,20 +274,12 @@ export function ChatMessage({
                 </div>
               </div>
               <div className="bg-background/50 backdrop-blur-sm">
-                {renderDataContent(message.data_content)}
+                {renderDataContent}
               </div>
             </div>
           )}
           {!isRetrieval && (
-            <div
-              className={`text-sm whitespace-pre-wrap break-words text-left overflow-hidden ${
-                isRetrieval
-                  ? "bg-background/50 backdrop-blur-sm rounded-[10px] p-3"
-                  : ""
-              }`}
-              style={{ overflowWrap: "break-word", wordBreak: "break-word" }}
-              data-testid={`message-content-${message.role}`}
-            >
+            <div className="text-sm whitespace-pre-wrap break-words text-left overflow-hidden">
               {renderContent(message?.content || "")}
               <div className="sr-only">{message?.content}</div>
             </div>
@@ -282,4 +299,4 @@ export function ChatMessage({
       </div>
     </div>
   );
-}
+});

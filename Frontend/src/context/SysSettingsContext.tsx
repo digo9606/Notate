@@ -52,6 +52,8 @@ interface SysSettingsContextType {
   fetchLocalModels: () => Promise<void>;
   fetchSystemSpecs: () => Promise<void>;
   checkOllama: () => Promise<void>;
+  maxTokens: number;
+  setMaxTokens: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const SysSettingsContext = createContext<SysSettingsContextType | undefined>(
@@ -88,7 +90,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     GPU_Manufacturer: "Unknown",
   });
   const totalVRAM = parseInt(systemSpecs.vram);
-
+  const [maxTokens, setMaxTokens] = useState(4096);
   const checkFFMPEG = async () => {
     try {
       const result = await window.electron.checkIfFFMPEGInstalled();
@@ -227,6 +229,8 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         fetchLocalModels,
         fetchSystemSpecs,
         checkOllama,
+        maxTokens,
+        setMaxTokens,
       }}
     >
       {children}

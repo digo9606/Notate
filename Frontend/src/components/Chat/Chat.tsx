@@ -13,7 +13,7 @@ import logo from "@/assets/icon.png";
 import { useSysSettings } from "@/context/useSysSettings";
 import { useView } from "@/context/useView";
 import { NewConvoWelcome } from "./ChatComponents/NewConvoWelcome";
-
+import { useChatInput } from "@/context/useChatInput";
 export default function Chat() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [resetCounter, setResetCounter] = useState(0);
@@ -21,8 +21,6 @@ export default function Chat() {
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const {
     handleResetChat: originalHandleResetChat,
-    isLoading,
-    setIsLoading,
     streamingMessage,
     setStreamingMessage,
     activeUser,
@@ -30,6 +28,8 @@ export default function Chat() {
     setMessages,
     error,
   } = useUser();
+
+  const { isLoading, setIsLoading } = useChatInput();
   const { setActiveView } = useView();
 
   const { localModalLoading } = useSysSettings();
@@ -143,7 +143,7 @@ export default function Chat() {
   return (
     <div className="pt-5 h-[calc(100vh-1rem)] flex flex-col">
       <div className={`flex flex-col h-full overflow-hidden`}>
-        <div className="p-2 bg-secondary/50 border-b border-secondary flex items-center">
+        <div className="p-2 bg-card border-b border-secondary flex items-center">
           <div className="flex items-center flex-1">
             <img src={logo} alt="logo" className="h-6 w-6 mr-2" />
 
