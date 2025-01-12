@@ -42,6 +42,7 @@ class ModelLoadRequest(BaseModel):
     n_ctx: Optional[int] = 2048
     n_batch: Optional[int] = 512
     n_threads: Optional[int] = None
+    n_gpu_layers: Optional[int] = None  # Number of layers to offload to GPU
     
     # HQQ specific settings
     hqq_backend: Optional[str] = "PYTORCH_COMPILE"  # PYTORCH_COMPILE, ATEN, TENSORRT

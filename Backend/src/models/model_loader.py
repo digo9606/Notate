@@ -525,11 +525,16 @@ class ModelManager:
         if not model_path.exists():
             raise ValueError(f"Model path does not exist: {model_path}")
 
-        # Configure Metal for M1/M2 Macs
-        gpu_layers = 0
+        # Configure GPU layers
+        gpu_layers = request.n_gpu_layers or 0
         if request.device == "mps" or (request.device == "auto" and hasattr(torch.backends, "mps") and torch.backends.mps.is_available()):
-            gpu_layers = 1  # Use Metal acceleration
+            # For M1/M2 Macs, if n_gpu_layers is not set, default to 1 layer
+            gpu_layers = request.n_gpu_layers if request.n_gpu_layers is not None else 1
             logger.info("Using Metal acceleration for M1/M2 Mac")
+        elif request.device == "cuda" or (request.device == "auto" and torch.cuda.is_available()):
+            # For CUDA, if n_gpu_layers is not set, use all layers (value of 0)
+            gpu_layers = request.n_gpu_layers if request.n_gpu_layers is not None else 0
+            logger.info(f"Using CUDA acceleration with {gpu_layers} GPU layers")
 
         model = Llama(
             model_path=str(model_path),
