@@ -136,6 +136,11 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       model_type: model_type,
       user_id: Number(user_id),
     })) as unknown as { status: string };
+    setSettings((prev) => ({
+      ...prev,
+      model: model_name,
+      provider: "local",
+    }));
     if (result.status === "success") {
       toast({
         title: "Model loading",
