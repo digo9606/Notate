@@ -50,6 +50,12 @@ interface SysSettingsContextType {
   localModelDir: string;
   setLocalModelDir: React.Dispatch<React.SetStateAction<string>>;
   loadModelsFromDirectory: (dirPath: string) => Promise<void>;
+  handleRunModel: (
+    model_name: string,
+    model_location: string,
+    model_type: string,
+    user_id: string
+  ) => Promise<void>;
 }
 
 const SysSettingsContext = createContext<SysSettingsContextType | undefined>(
@@ -117,6 +123,35 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const handleRunModel = async (
+    model_name: string,
+    model_location: string,
+    model_type: string,
+    user_id: string
+  ) => {
+    setLocalModalLoading(true);
+    const result = (await window.electron.loadModel({
+      model_location: model_location,
+      model_name: model_name,
+      model_type: model_type,
+      user_id: Number(user_id),
+    })) as unknown as { status: string };
+    if (result.status === "success") {
+      toast({
+        title: "Model loading",
+        description: `Loading ${model_name}...`,
+      });
+      setLocalModalLoading(false);
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to load model",
+        variant: "destructive",
+      });
+      setLocalModalLoading(false);
+    }
+  };
+
   const checkOllama = async () => {
     const { isOllamaRunning } = await window.electron.checkOllama();
     setIsOllamaRunning(isOllamaRunning);
@@ -139,7 +174,8 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
           ? data.models.map((model: string | Model) => ({
               name: typeof model === "string" ? model : model.name || "",
               type: typeof model === "string" ? "" : model.type || "",
-              model_location: typeof model === "string" ? "" : model.model_location || "",
+              model_location:
+                typeof model === "string" ? "" : model.model_location || "",
               modified_at:
                 typeof model === "string" ? "" : model.modified_at || "",
               size: typeof model === "string" ? 0 : model.size || 0,
@@ -273,6 +309,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         localModelDir,
         setLocalModelDir,
         loadModelsFromDirectory,
+        handleRunModel,
       }}
     >
       {children}

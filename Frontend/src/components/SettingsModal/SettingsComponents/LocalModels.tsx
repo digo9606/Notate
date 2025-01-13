@@ -39,11 +39,11 @@ export default function LocalModels() {
     localModels,
     setLocalModels,
     localModalLoading,
-    setLocalModalLoading,
     progressLocalOutput,
     progressRef,
     setLocalModelDir,
     localModelDir,
+    handleRunModel,
   } = useSysSettings();
 
   const handleSelectDirectory = async () => {
@@ -69,37 +69,6 @@ export default function LocalModels() {
         description: "Failed to select directory",
         variant: "destructive",
       });
-    }
-  };
-
-  const handleRunModel = async (
-    model_name: string,
-    model_location: string,
-    model_type: string,
-    user_id: string
-  ) => {
-    setLocalModalLoading(true);
-    if (activeUser) {
-      const result = (await window.electron.loadModel({
-        model_location: model_location,
-        model_name: model_name,
-        model_type: model_type,
-        user_id: Number(user_id),
-      })) as unknown as { status: string };
-      if (result.status === "success") {
-        toast({
-          title: "Model loading",
-          description: `Loading ${model_name}...`,
-        });
-        setLocalModalLoading(false);
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to load model",
-          variant: "destructive",
-        });
-        setLocalModalLoading(false);
-      }
     }
   };
 

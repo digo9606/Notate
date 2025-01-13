@@ -55,7 +55,7 @@ export default function ChatSettings() {
     setSettings,
     setSettingsOpen,
     localModels,
-    handleRunOllama,
+    handleRunModel,
     maxTokens,
     setMaxTokens,
   } = useSysSettings();
@@ -129,11 +129,13 @@ export default function ChatSettings() {
     gemini: ["gemini-1.5-flash", "gemini-1.5-pro"],
     xai: ["grok-beta"],
     openrouter: openRouterModels || [],
-    local: Array.isArray(localModels) ? localModels.map((model) => model.name) : [],
+    local: Array.isArray(localModels)
+      ? localModels.map((model) => model.name)
+      : [],
   };
 
-  console.log('Local models in ChatSettings:', localModels);
-  console.log('Model options:', modelOptions);
+  console.log("Local models in ChatSettings:", localModels);
+  console.log("Model options:", modelOptions);
 
   const handleAddPrompt = async () => {
     if (activeUser) {
@@ -310,27 +312,41 @@ export default function ChatSettings() {
                   modelOptions[key as keyof typeof modelOptions].includes(value)
                 ) as Provider;
 
-                console.log('Selected model:', value);
-                console.log('Detected provider:', provider);
+                console.log("Selected model:", value);
+                console.log("Detected provider:", provider);
 
                 handleSettingChange("model", value);
                 handleSettingChange("provider", provider);
-                
+
                 const newMaxTokens =
-                  modelTokenDefaults[value as keyof typeof modelTokenDefaults] || 
-                  modelTokenDefaults.local;
-                
+                  modelTokenDefaults[
+                    value as keyof typeof modelTokenDefaults
+                  ] || modelTokenDefaults.local;
+
                 setMaxTokens(newMaxTokens);
                 handleSettingChange("maxTokens", newMaxTokens);
                 setLocalMaxTokens(newMaxTokens.toString());
 
                 const isLocalModel = modelOptions.local.includes(value);
                 if (isLocalModel && activeUser) {
+                  const selectedModelPath = localModels.find(
+                    (model) => model.name === value
+                  )?.model_location;
+                  const selectedModelType = localModels.find(
+                    (model) => model.name === value
+                  )?.type;
                   toast({
-                    title: "Ollama model loading",
+                    title: "Local model loading",
                     description: `Loading ${value}...`,
                   });
-                  handleRunOllama(value, activeUser);
+                  if (selectedModelPath && selectedModelType) {
+                    handleRunModel(
+                      value,
+                      selectedModelPath,
+                      selectedModelType,
+                      activeUser.id.toString()
+                    );
+                  }
                 } else {
                   toast({
                     title: "Model set",
