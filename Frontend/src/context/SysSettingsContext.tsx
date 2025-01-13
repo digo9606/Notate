@@ -141,6 +141,16 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       model: model_name,
       provider: "local",
     }));
+    await window.electron.updateUserSettings(
+      Number(user_id),
+      "model",
+      model_name
+    );
+    await window.electron.updateUserSettings(
+      Number(user_id),
+      "provider",
+      "local"
+    );
     if (result.status === "success") {
       toast({
         title: "Model loading",
