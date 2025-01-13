@@ -24,7 +24,8 @@ export default function AddNewModel() {
     progressRef,
     setProgressLocalOutput,
     progressLocalOutput,
-    handleRunOllama,
+    handleRunModel,
+    localModelDir,
   } = useSysSettings();
   const { activeUser } = useUser();
 
@@ -88,7 +89,12 @@ export default function AddNewModel() {
             disabled={localModalLoading}
             onClick={() => {
               if (activeUser) {
-                handleRunOllama(newModelName, activeUser);
+                handleRunModel(
+                  newModelName,
+                  localModelDir,
+                  "Transformers",
+                  activeUser.id.toString()
+                );
                 toast({
                   title: "Model pulling",
                   description: `Pulling ${newModelName}...`,
