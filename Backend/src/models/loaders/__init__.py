@@ -4,7 +4,6 @@ from .llamaccphf import LlamaCppHFLoader
 from .exllama import ExLlamaV2Loader, ExLlamaV2HFLoader
 from .hqq import HQQLoader
 from .tensorrt import TensorRTLoader
-from .ollamaloader import OllamaLoader
 
 __all__ = [
     'TransformersLoader',
@@ -14,5 +13,4 @@ __all__ = [
     'ExLlamaV2HFLoader',
     'HQQLoader',
     'TensorRTLoader',
-    'OllamaLoader',
 ] 
