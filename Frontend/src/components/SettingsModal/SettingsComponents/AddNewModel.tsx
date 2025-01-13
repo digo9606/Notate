@@ -126,7 +126,16 @@ export default function AddNewModel() {
           <DialogTitle>Add a New Model</DialogTitle>
           <DialogDescription>
             Enter a Hugging Face model ID prefixed with "hf.co/"
-            (e.g. hf.co/TheBloke/Mistral-7B-v0.1-GGUF)
+            (e.g. hf.co/TheBloke/Mistral-7B-v0.1-GGUF).
+            <br />
+            <a
+              href="https://huggingface.co/models?pipeline_tag=text-generation&sort=trending"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              Browse models on Hugging Face →
+            </a>
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
