@@ -106,6 +106,18 @@ interface TranscribeAudioOutput {
   error?: string;
 }
 
+interface DownloadModelProgress {
+  type: "progress";
+  data: {
+    message: string;
+    fileName?: string;
+    fileNumber?: number;
+    totalFiles?: number;
+    fileProgress?: number;
+    totalProgress: number;
+  };
+}
+
 interface EventPayloadMapping {
   resetAppState: void;
   statistics: Statistics;
@@ -292,6 +304,13 @@ interface EventPayloadMapping {
     model_type?: string;
     user_id: number;
   };
+  downloadModel: {
+    modelId: string;
+    dirPath: string;
+    hfToken?: string;
+  };
+  "download-model-progress": DownloadModelProgress;
+  cancelDownload: { success: boolean };
 }
 
 interface Model {
@@ -492,17 +511,17 @@ interface Window {
       callback: (event: Electron.IpcRendererEvent, message: string) => void
     ) => void;
     on: (
-      channel: "ingest-progress" | "ollama-progress",
+      channel: "ingest-progress" | "ollama-progress" | "download-model-progress",
       func: (
         event: Electron.IpcRendererEvent,
-        message: string | OllamaProgressEvent
+        message: string | OllamaProgressEvent | DownloadModelProgress
       ) => void
     ) => void;
     removeListener: (
-      channel: "ingest-progress" | "ollama-progress",
+      channel: "ingest-progress" | "ollama-progress" | "download-model-progress",
       func: (
         event: Electron.IpcRendererEvent,
-        message: string | OllamaProgressEvent
+        message: string | OllamaProgressEvent | DownloadModelProgress
       ) => void
     ) => void;
     deleteConversation: (
@@ -566,6 +585,12 @@ interface Window {
       max_workers: number;
       status: string;
     }>;
+    downloadModel: (payload: {
+      modelId: string;
+      dirPath: string;
+      hfToken?: string;
+    }) => Promise<void>;
+    cancelDownload: () => Promise<{ success: boolean }>;
     subscribeResetUserState: (callback: () => void) => UnsubscribeFunction;
     transcribeAudio: (
       audioData: ArrayBuffer,
@@ -659,17 +684,17 @@ interface OllamaProgressEvent {
 
 interface Electron {
   on(
-    channel: "ingest-progress" | "ollama-progress",
+    channel: "ingest-progress" | "ollama-progress" | "download-model-progress",
     func: (
       event: Electron.IpcRendererEvent,
-      message: string | OllamaProgressEvent
+      message: string | OllamaProgressEvent | DownloadModelProgress
     ) => void
   ): void;
   removeListener(
-    channel: "ingest-progress" | "ollama-progress",
+    channel: "ingest-progress" | "ollama-progress" | "download-model-progress",
     func: (
       event: Electron.IpcRendererEvent,
-      message: string | OllamaProgressEvent
+      message: string | OllamaProgressEvent | DownloadModelProgress
     ) => void
   ): void;
 }

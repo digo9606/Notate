@@ -152,6 +152,12 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("getOpenRouterModel", { userId }) as unknown as Promise<{
       model: string;
     }>,
+  downloadModel: (payload: {
+    modelId: string;
+    dirPath: string;
+    hfToken?: string;
+  }) => ipcInvoke("downloadModel", payload) as unknown as Promise<void>,
+  cancelDownload: () => ipcInvoke("cancelDownload") as unknown as Promise<{ success: boolean }>,
   addOpenRouterModel: (userId: number, model: string) =>
     ipcInvoke("addOpenRouterModel", {
       userId,
@@ -313,11 +319,11 @@ electron.contextBridge.exposeInMainWorld("electron", {
       success?: boolean;
     }>,
   on: (
-    channel: "ingest-progress" | "ollama-progress",
+    channel: "ingest-progress" | "ollama-progress" | "download-model-progress",
     func: (event: Electron.IpcRendererEvent, message: any) => void
   ) => electron.ipcRenderer.on(channel, func),
   removeListener: (
-    channel: "ingest-progress" | "ollama-progress",
+    channel: "ingest-progress" | "ollama-progress" | "download-model-progress",
     func: (event: Electron.IpcRendererEvent, message: any) => void
   ) => electron.ipcRenderer.removeListener(channel, func),
   cancelEmbed: (payload: { userId: number }) =>
@@ -432,9 +438,10 @@ electron.contextBridge.exposeInMainWorld("electron", {
     model_name: string;
     model_type?: string;
     user_id: number;
-  }) => ipcInvoke("getModelInfo", payload) as unknown as Promise<{
-    model_info: Model;
-  }>,
+  }) =>
+    ipcInvoke("getModelInfo", payload) as unknown as Promise<{
+      model_info: Model;
+    }>,
   unloadModel: (payload: {
     model_location: string;
     model_name: string;
