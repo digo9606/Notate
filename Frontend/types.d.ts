@@ -244,6 +244,12 @@ interface EventPayloadMapping {
     collectionName: string;
     userId: number;
   };
+  loadModel: {
+    model_location: string;
+    model_name: string;
+    model_type?: string;
+    user_id: number;
+  };
   addDevAPIKey: {
     userId: number;
     name: string;
@@ -273,10 +279,43 @@ interface EventPayloadMapping {
   deleteOpenRouterModel: { userId: number; id: number };
   getOpenRouterModels: { userId: number };
   getDirModels: { dirPath: string };
+  getModelInfo: {
+    model_location: string;
+    model_name: string;
+    model_type?: string;
+    user_id: number;
+  };
+  unloadModel: {
+    model_location: string;
+    model_name: string;
+    model_type?: string;
+    user_id: number;
+  };
+}
+
+interface Model {
+  name: string;
+  type: string;
+  model_location: string;
+  modified_at: string;
+  size: number;
+  digest: string;
 }
 
 interface Window {
   electron: {
+    unloadModel: (payload: {
+      model_location: string;
+      model_name: string;
+      model_type?: string;
+      user_id: number;
+    }) => Promise<void>;
+    getModelInfo: (payload: {
+      model_location: string;
+      model_name: string;
+      model_type?: string;
+      user_id: number;
+    }) => Promise<{ model_info: Model }>;
     getDirModels: (dirPath: string) => Promise<string[]>;
     pullModel: (model: string) => Promise<void>;
     changeUser: () => Promise<void>;
@@ -572,6 +611,12 @@ interface Window {
     addOpenRouterModel: (userId: number, model: string) => Promise<void>;
     deleteOpenRouterModel: (userId: number, id: number) => Promise<void>;
     getOpenRouterModels: (userId: number) => Promise<{ models: string[] }>;
+    loadModel: (payload: {
+      model_location: string;
+      model_name: string;
+      model_type?: string;
+      user_id: number;
+    }) => Promise<void>;
   };
 }
 type Keys = {

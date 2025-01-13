@@ -26,13 +26,18 @@ const formatDirectoryPath = (path: string | null) => {
   return `.../${lastTwoParts.join("/")}`;
 };
 
+const formatModelName = (name: string) => {
+  const parts = name.split("-");
+  if (parts.length <= 2) return name;
+  return `${parts[0]}-${parts[1]}...`;
+};
+
 export default function LocalModels() {
   const [selectedModel, setSelectedModel] = useState<string>("");
   const { activeUser } = useUser();
   const {
-    localModels,
+    localModels = [],
     setLocalModels,
-    handleRunOllama,
     localModalLoading,
     progressLocalOutput,
     progressRef,
@@ -46,15 +51,11 @@ export default function LocalModels() {
       if (dirPath) {
         console.log("Selected directory path:", dirPath);
         setLocalModelDir(dirPath);
-        const response = (await window.electron.getDirModels(dirPath) as unknown) as { dirPath: string; models: string[] };
+        const response = (await window.electron.getDirModels(
+          dirPath
+        )) as unknown as { dirPath: string; models: Model[] };
         console.log("Directory models:", response);
-        const newModels = response.models.map((modelName: string) => ({
-          name: modelName,
-          modified_at: "",
-          size: 0,
-          digest: "",
-        }));
-        setLocalModels(newModels);
+        setLocalModels(response.models);
         toast({
           title: "Directory selected",
           description: `Selected directory: ${dirPath}`,
@@ -66,6 +67,26 @@ export default function LocalModels() {
         title: "Error",
         description: "Failed to select directory",
         variant: "destructive",
+      });
+    }
+  };
+
+  const handleRunModel = async (
+    model_name: string,
+    model_location: string,
+    model_type: string,
+    user_id: string
+  ) => {
+    if (activeUser) {
+      window.electron.loadModel({
+        model_location: model_location,
+        model_name: model_name,
+        model_type: model_type,
+        user_id: Number(user_id),
+      });
+      toast({
+        title: "Model loading",
+        description: `Loading ${model_name}...`,
       });
     }
   };
@@ -104,22 +125,39 @@ export default function LocalModels() {
           <SelectValue placeholder="Select a local model" />
         </SelectTrigger>
         <SelectContent>
-          {localModels.map((model) => (
-            <SelectItem key={model.digest || model.name} value={model.name}>
-              {model.name}
-            </SelectItem>
-          ))}
+          {Array.isArray(localModels) &&
+            localModels.map((model) => (
+              <SelectItem key={model.digest || model.name} value={model.name}>
+                {formatModelName(model.name)} ({model.type})
+              </SelectItem>
+            ))}
         </SelectContent>
       </Select>
 
       <Button
         onClick={() => {
           if (activeUser) {
-            handleRunOllama(selectedModel, activeUser);
-            toast({
-              title: "Model loading",
-              description: `Loading ${selectedModel}...`,
-            });
+            // selectedModelPath
+            const selectedModelPath = localModels.find(
+              (model) => model.name === selectedModel
+            )?.model_location;
+            console.log("selectedModelPath", selectedModelPath);
+            const selectedModelType = localModels.find(
+              (model) => model.name === selectedModel
+            )?.type;
+            console.log("selectedModelType", selectedModelType);
+            if (selectedModelPath && selectedModelType) {
+              handleRunModel(
+                selectedModel,
+                selectedModelPath,
+                selectedModelType,
+                activeUser.id.toString()
+              );
+              toast({
+                title: "Model loading",
+                description: `Loading ${selectedModel}...`,
+              });
+            }
           }
         }}
         disabled={localModalLoading || !selectedModel}
@@ -144,7 +182,7 @@ export default function LocalModels() {
         >
           {progressLocalOutput.map((line, i) => (
             <div key={i} className="whitespace-pre-wrap">
-              {line}
+              {typeof line === "string" ? line : JSON.stringify(line, null, 2)}
             </div>
           ))}
         </div>

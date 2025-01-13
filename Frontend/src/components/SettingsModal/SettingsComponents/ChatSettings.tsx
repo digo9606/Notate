@@ -128,9 +128,12 @@ export default function ChatSettings() {
     ],
     gemini: ["gemini-1.5-flash", "gemini-1.5-pro"],
     xai: ["grok-beta"],
-    openrouter: openRouterModels,
-    local: localModels.map((model) => model.name),
+    openrouter: openRouterModels || [],
+    local: Array.isArray(localModels) ? localModels.map((model) => model.name) : [],
   };
+
+  console.log('Local models in ChatSettings:', localModels);
+  console.log('Model options:', modelOptions);
 
   const handleAddPrompt = async () => {
     if (activeUser) {

@@ -26,7 +26,7 @@ import { setupVttHandlers } from "./handlers/voiceHandlers.js";
 import { setupFileHandlers } from "./handlers/fileHandlers.js";
 import { getDevSecretPath } from "./authentication/devApi.js";
 import { setupOpenRouterHandlers } from "./handlers/openRouterHandlers.js";
-
+import { setupLocalModelHandlers } from "./handlers/localModelHandlers.js";
 import crypto from "crypto";
 
 // Configure logging first
@@ -201,7 +201,7 @@ app.on("ready", async () => {
     setupFileHandlers();
     setupOpenRouterHandlers();
     handleCloseEvents(mainWindow);
-
+    setupLocalModelHandlers();
     await new Promise((resolve) => setTimeout(resolve, 1000));
     mainWindow.show();
 

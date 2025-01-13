@@ -1,13 +1,6 @@
 import React, { createContext, useRef, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 
-interface OllamaModel {
-  name: string;
-  modified_at: string;
-  size: number;
-  digest: string;
-}
-
 interface SysSettingsContextType {
   isOllamaRunning: boolean;
   setIsOllamaRunning: (isOllamaRunning: boolean) => void;
@@ -34,8 +27,8 @@ interface SysSettingsContextType {
   users: User[];
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
   totalVRAM: number;
-  localModels: OllamaModel[];
-  setLocalModels: React.Dispatch<React.SetStateAction<OllamaModel[]>>;
+  localModels: Model[];
+  setLocalModels: React.Dispatch<React.SetStateAction<Model[]>>;
   isRunningModel: boolean;
   setIsRunningModel: React.Dispatch<React.SetStateAction<boolean>>;
   isFFMPEGInstalled: boolean;
@@ -67,7 +60,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [localModelDir, setLocalModelDir] = useState<string>("");
-  const [localModels, setLocalModels] = useState<OllamaModel[]>([]);
+  const [localModels, setLocalModels] = useState<Model[]>([]);
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
   const [isOllamaRunning, setIsOllamaRunning] = useState<boolean>(false);
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
@@ -134,11 +127,19 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const fetchLocalModels = async () => {
     try {
-      const data = await window.electron.fetchOllamaModels();
+      const data = (await window.electron.getDirModels(
+        localModelDir
+      )) as unknown as {
+        dirPath: string;
+        models: string[];
+      };
+
       setLocalModels(
         Array.isArray(data.models)
-          ? data.models.map((model: string | OllamaModel) => ({
+          ? data.models.map((model: string | Model) => ({
               name: typeof model === "string" ? model : model.name || "",
+              type: typeof model === "string" ? "" : model.type || "",
+              model_location: typeof model === "string" ? "" : model.model_location || "",
               modified_at:
                 typeof model === "string" ? "" : model.modified_at || "",
               size: typeof model === "string" ? 0 : model.size || 0,
@@ -203,18 +204,20 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!Array.isArray(models)) {
         throw new Error("Invalid response from getDirModels - expected array");
       }
-      
+
       // Convert the models array to the OllamaModel format
-      const formattedModels: OllamaModel[] = models.map((modelName: string) => ({
+      const formattedModels: Model[] = models.map((modelName: string) => ({
         name: modelName,
+        type: "",
+        model_location: "",
         modified_at: "", // These fields might not be available for local models
         size: 0,
         digest: "",
       }));
-      
+
       setLocalModels(formattedModels);
       setLocalModelDir(dirPath);
-      
+
       toast({
         title: "Models Loaded",
         description: `Found ${formattedModels.length} models in directory`,

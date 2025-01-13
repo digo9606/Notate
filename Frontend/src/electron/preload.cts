@@ -145,7 +145,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
       name: string;
       description: string;
       type: string;
-    }>, 
+    }>,
   getDirModels: (dirPath: string) =>
     ipcInvoke("getDirModels", { dirPath }) as unknown as Promise<string[]>,
   getOpenRouterModel: (userId: number) =>
@@ -193,6 +193,12 @@ electron.contextBridge.exposeInMainWorld("electron", {
       throw error;
     }
   },
+  loadModel: (payload: {
+    model_location: string;
+    model_name: string;
+    model_type?: string;
+    user_id: number;
+  }) => ipcInvoke("loadModel", payload) as unknown as Promise<void>,
   fetchOllamaModels: () =>
     ipcInvoke("fetchOllamaModels") as unknown as Promise<{
       models: string[];
@@ -421,6 +427,20 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("openCollectionFolderFromFileExplorer", { filepath }) as Promise<{
       filepath: string;
     }>,
+  getModelInfo: (payload: {
+    model_location: string;
+    model_name: string;
+    model_type?: string;
+    user_id: number;
+  }) => ipcInvoke("getModelInfo", payload) as unknown as Promise<{
+    model_info: Model;
+  }>,
+  unloadModel: (payload: {
+    model_location: string;
+    model_name: string;
+    model_type?: string;
+    user_id: number;
+  }) => ipcInvoke("unloadModel", payload) as unknown as Promise<void>,
 } satisfies Window["electron"]);
 
 function ipcInvoke<Key extends keyof EventPayloadMapping>(
