@@ -35,136 +35,12 @@ async def generate_stream(request: GenerateRequest) -> AsyncGenerator[str, None]
 
     try:
         model = model_manager.current_model
+        generator = TextGenerator(model, model_manager.current_tokenizer, model_manager.device)
 
-        # Handle Ollama models
-        if model_manager.model_type == "ollama":
-            import aiohttp
-            
-            # Prepare request data for Ollama API
-            data = {
-                "model": model["name"],
-                "prompt": request.prompt,
-                "stream": True,
-                "options": {
-                    "temperature": request.temperature,
-                    "top_p": request.top_p,
-                    "top_k": request.top_k,
-                    "repeat_penalty": request.repetition_penalty,
-                }
-            }
-            
-            async with aiohttp.ClientSession() as session:
-                async with session.post("http://localhost:11434/api/generate", json=data) as resp:
-                    async for line in resp.content:
-                        if line:
-                            try:
-                                chunk = json.loads(line)
-                                if "error" in chunk:
-                                    raise HTTPException(status_code=500, detail=chunk["error"])
-                                    
-                                response = {
-                                    "id": f"chatcmpl-{uuid.uuid4()}",
-                                    "object": "chat.completion.chunk",
-                                    "created": int(time.time()),
-                                    "model": model["name"],
-                                    "choices": [{
-                                        "index": 0,
-                                        "delta": {
-                                            "content": chunk.get("response", "")
-                                        },
-                                        "finish_reason": "stop" if chunk.get("done", False) else None
-                                    }]
-                                }
-                                yield f"data: {json.dumps(response)}\n\n"
-                                
-                                if chunk.get("done", False):
-                                    yield "data: [DONE]\n\n"
-                                    break
-                            except json.JSONDecodeError:
-                                continue
-            return
-
-        # For both llama.cpp and other models, use our TextGenerator
-        tokenizer = model_manager.current_tokenizer
-        device = model.device.type if hasattr(model, "device") else "cpu"
-        
-        # Initialize text generator
-        generator = StreamIterator(model, tokenizer, device)
-        
         # Set up stopping criteria
         stopping_criteria = [StopOnInterrupt()]
-        
-        # Set up callback for streaming
-        generated_text = ""
-        
-        def stream_callback(new_text: str):
-            nonlocal generated_text
-            generated_text += new_text
-            
-            # Check for stop sequences
-            should_stop = False
-            if request.stop_sequences:
-                for stop_seq in request.stop_sequences:
-                    if stop_seq in generated_text:
-                        should_stop = True
-                        break
-                        
-            return should_stop
 
-        # For llama.cpp models, we'll use their native completion method through our generator
-        if model_manager.model_type == "llama.cpp":
-            async def llama_generate(callback):
-                try:
-                    completion = model.create_completion(
-                        prompt=request.prompt,
-                        max_tokens=request.max_tokens,
-                        temperature=request.temperature,
-                        top_p=request.top_p,
-                        top_k=request.top_k,
-                        repeat_penalty=request.repetition_penalty,
-                        stream=True
-                    )
-                    
-                    for chunk in completion:
-                        text = chunk["choices"][0]["text"]
-                        callback(text)
-                        if stream_callback(text):
-                            break
-                        # Add a small delay to prevent overwhelming the system
-                        await asyncio.sleep(0.01)
-                    
-                    return generated_text
-                except Exception as e:
-                    logger.error(f"Error in llama_generate: {str(e)}")
-                    raise
-
-            # Create an async iterator that wraps the llama.cpp completion
-            async def async_iterator():
-                queue = asyncio.Queue()
-                
-                def callback(text):
-                    asyncio.run_coroutine_threadsafe(queue.put(text), loop)
-                
-                loop = asyncio.get_event_loop()
-                task = asyncio.create_task(llama_generate(callback))
-                
-                try:
-                    while True:
-                        try:
-                            token = await queue.get()
-                            yield token
-                        except asyncio.CancelledError:
-                            break
-                finally:
-                    task.cancel()
-                    try:
-                        await task
-                    except asyncio.CancelledError:
-                        pass
-
-            stream_iterator = async_iterator()
-        else:
-            # Start generation with streaming for other models
+        if request.stream:
             stream_iterator = generator.generate(
                 prompt=request.prompt,
                 max_new_tokens=request.max_tokens,
@@ -173,32 +49,26 @@ async def generate_stream(request: GenerateRequest) -> AsyncGenerator[str, None]
                 top_k=request.top_k,
                 repetition_penalty=request.repetition_penalty,
                 stopping_criteria=stopping_criteria,
-                callback=stream_callback,
                 stream=True
             )
-        
-        # Stream the tokens
-        async for token in stream_iterator:
-            response = {
-                "id": f"chatcmpl-{uuid.uuid4()}",
-                "object": "chat.completion.chunk",
-                "created": int(time.time()),
-                "model": model_manager.model_name,
-                "choices": [{
-                    "index": 0,
-                    "delta": {
-                        "content": token
-                    },
-                    "finish_reason": None
-                }]
-            }
+
+            async for chunk in stream_iterator:
+                yield chunk
+
+        else:
+            # Non-streaming response
+            response = generator.generate(
+                prompt=request.prompt,
+                max_new_tokens=request.max_tokens,
+                temperature=request.temperature,
+                top_p=request.top_p,
+                top_k=request.top_k,
+                repetition_penalty=request.repetition_penalty,
+                stopping_criteria=stopping_criteria,
+                stream=False
+            )
             yield f"data: {json.dumps(response)}\n\n"
-            
-            # Add a small delay to prevent overwhelming the client
-            await asyncio.sleep(0.01)
-            
-        # Send final [DONE] message
-        yield "data: [DONE]\n\n"
+            yield "data: [DONE]\n\n"
 
     except Exception as e:
         error_response = {
@@ -218,61 +88,81 @@ async def generate_stream(request: GenerateRequest) -> AsyncGenerator[str, None]
         yield "data: [DONE]\n\n"
 
 async def chat_completion_stream(request: ChatCompletionRequest) -> AsyncGenerator[str, None]:
-    """Generate streaming chat completion"""
-    if not model_manager.is_model_loaded():
-        raise HTTPException(
-            status_code=400, detail="No model is currently loaded")
-
+    """Stream chat completion from the model"""
     try:
         model = model_manager.current_model
+        if not model:
+            yield f"data: {json.dumps({'error': 'No model loaded'})}\n\n"
+            return
 
-        # Format the messages according to the chat template
-        formatted_prompt = ""
-        system_message = next((message.content for message in request.messages if message.role == "system"), None)
-        
-        if system_message:
-            formatted_prompt = f"<s>[INST] <<SYS>>\n{system_message}\n<</SYS>>\n\n"
+        # Convert messages to prompt
+        prompt = ""
+        for msg in request.messages:
+            if msg.role == "system":
+                prompt += f"System: {msg.content}\n"
+            elif msg.role == "user":
+                prompt += f"User: {msg.content}\n"
+            elif msg.role == "assistant":
+                prompt += f"Assistant: {msg.content}\n"
+        prompt += "Assistant: "
+
+        # Create text generator
+        generator = TextGenerator(model, model_manager.current_tokenizer, model_manager.device)
+
+        if request.stream:
+            stream_iterator = generator.generate(
+                prompt=prompt,
+                max_new_tokens=request.max_tokens or 2048,
+                temperature=request.temperature or 0.7,
+                top_p=request.top_p or 0.95,
+                top_k=request.top_k or 50,
+                repetition_penalty=1.1,
+                stream=True
+            )
+
+            async for chunk in stream_iterator:
+                yield chunk
+
         else:
-            formatted_prompt = "<s>"
+            # Non-streaming response in OpenAI format
+            response = generator.generate(
+                prompt=prompt,
+                max_new_tokens=request.max_tokens or 2048,
+                temperature=request.temperature or 0.7,
+                top_p=request.top_p or 0.95,
+                top_k=request.top_k or 50,
+                repetition_penalty=1.1,
+                stream=False
+            )
             
-        # Process user and assistant messages
-        for i, message in enumerate(request.messages):
-            if message.role == "user":
-                if i == 0 and not system_message:
-                    formatted_prompt += f"[INST] {message.content} [/INST]"
-                else:
-                    formatted_prompt += f"</s><s>[INST] {message.content} [/INST]"
-            elif message.role == "assistant":
-                formatted_prompt += f" {message.content}"
-                
-        # Add final token if needed
-        if formatted_prompt.endswith("[/INST]"):
-            formatted_prompt += " "
-        else:
-            formatted_prompt += "</s>"
-
-        # Create a generate request from the chat request
-        generate_request = GenerateRequest(
-            prompt=formatted_prompt,
-            max_tokens=request.max_tokens,
-            temperature=request.temperature,
-            top_p=request.top_p,
-            top_k=request.top_k,
-            repetition_penalty=request.repetition_penalty,
-            stop_sequences=request.stop if isinstance(request.stop, list) else [request.stop] if request.stop else None,
-            stream=request.stream
-        )
-
-        # Use the existing generate_stream function
-        async for chunk in generate_stream(generate_request):
-            yield chunk
+            # Format response exactly like OpenAI
+            formatted_response = {
+                "id": f"chatcmpl-{str(hash(response))[-12:]}",
+                "object": "chat.completion",
+                "created": int(time.time()),
+                "model": "local-model",
+                "choices": [{
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": response
+                    },
+                    "finish_reason": "stop"
+                }],
+                "usage": {
+                    "prompt_tokens": len(prompt),
+                    "completion_tokens": len(response),
+                    "total_tokens": len(prompt) + len(response)
+                }
+            }
+            yield f"data: {json.dumps(formatted_response)}\n\n"
 
     except Exception as e:
         error_response = {
             "id": f"chatcmpl-{uuid.uuid4()}",
             "object": "chat.completion.chunk",
             "created": int(time.time()),
-            "model": model_manager.model_name,
+            "model": "local-model",
             "choices": [{
                 "index": 0,
                 "delta": {
@@ -282,5 +172,4 @@ async def chat_completion_stream(request: ChatCompletionRequest) -> AsyncGenerat
             }]
         }
         yield f"data: {json.dumps(error_response)}\n\n"
-        yield "data: [DONE]\n\n"
 

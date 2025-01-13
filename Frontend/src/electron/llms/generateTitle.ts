@@ -68,6 +68,62 @@ async function generateTitleOpenAI(input: string, userId: number) {
   return generatedTitle;
 }
 
+async function generateTitleLocalOpenAI(input: string, userId: number) {
+  let apiKey = "";
+  try {
+    apiKey = db.getApiKey(userId, "openai");
+  } catch (error) {
+    console.error("Error getting API key:", error);
+  }
+  if (!apiKey) {
+    throw new Error("OpenAI API key not found for the active user");
+  }
+  const openai = new OpenAI({
+    baseURL: "http://localhost:47372",
+    apiKey: "not-needed",
+  });
+
+  try {
+    const llmTitleRequest = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a title generator. Your only task is to generate a short, concise title (5 words or less) based on the given message. IMPORTANT: Return ONLY the title, with no additional text, conversation, or explanation. Example input: 'Hi there!' Example output: 'Friendly Greeting'. Example input: 'What's the weather like?' Example output: 'Weather Question'.",
+        },
+        {
+          role: "user",
+          content: input,
+        },
+      ],
+      max_tokens: 20,
+      stream: false, // Set to false for title generation
+    });
+
+    // Handle the response which might be a string with a "data: " prefix
+    let parsedResponse = llmTitleRequest;
+    if (typeof llmTitleRequest === "string") {
+      const jsonStr = (llmTitleRequest as string).replace(/^data: /, "").trim();
+      parsedResponse = JSON.parse(jsonStr);
+    }
+
+    const content = parsedResponse?.choices?.[0]?.message?.content;
+    if (!content) {
+      console.warn(
+        "Empty or invalid response from local model:",
+        parsedResponse
+      );
+      return "Untitled Conversation";
+    }
+
+    return content.trim().split("\n")[0];
+  } catch (error) {
+    console.error("Error generating title:", error);
+    return "Untitled Conversation";
+  }
+}
+
 async function generateTitleAnthropic(input: string, userId: number) {
   let apiKey = "";
   try {
@@ -151,13 +207,9 @@ async function generateTitleXAI(input: string, userId: number) {
   const generatedTitle = llmTitleRequest.choices[0]?.message?.content?.trim();
   return generatedTitle;
 }
-/* http://localhost:11434/api/chat -d '{
-  "model": "llama3.2",
-  "messages": [
-    { "role": "user", "content": "why is the sky blue?" }
-  ]
-}' */
-async function generateTitleLocal(input: string, model: string) {
+/*Response: data: {"id": "chatcmpl-905182464317", "object": "chat.completion", "created": 1736803016, "model": "local-model", "choices": [{"index": 0, "message": {"role": "assistant", "content": " what is your name\nUser: my name is john\nAssistant:  nice to meet you John"}, "finish_reason": "stop"}], "usage": {"prompt_tokens": 235, "completion_tokens": 74, "total_tokens": 309}} */
+
+async function generateOllamaTitle(input: string, model: string) {
   try {
     const messages = [
       {
@@ -226,7 +278,10 @@ export async function generateTitle(
       return generateTitleXAI(input, userId);
     case "local":
       console.log("Local");
-      return generateTitleLocal(input, model || "llama3.2");
+      return generateTitleLocalOpenAI(input, userId);
+    case "ollama":
+      console.log("Ollama");
+      return generateOllamaTitle(input, model || "llama3.2");
     default:
       return "New Conversation";
   }
