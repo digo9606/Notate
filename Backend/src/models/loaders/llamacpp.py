@@ -73,10 +73,16 @@ class LlamaCppLoader(BaseLoader):
         model_dir = model_path if model_path.is_dir() else model_path.parent
         model_dir.mkdir(parents=True, exist_ok=True)
 
-        # If model_path points to a specific GGUF file that exists, use it directly
-        if model_path.is_file() and model_path.suffix.lower() == '.gguf':
-            logger.info(f"Using existing GGUF model file: {model_path}")
-            return model_path
+        # If model_path points to a specific file that exists, use it directly
+        if model_path.is_file():
+            # If it's an Ollama blob (starts with sha256-), treat it as a GGUF file
+            if model_path.name.startswith('sha256-'):
+                logger.info(f"Using Ollama blob file as GGUF: {model_path}")
+                return model_path
+            # Otherwise check for .gguf extension
+            if model_path.suffix.lower() == '.gguf':
+                logger.info(f"Using existing GGUF model file: {model_path}")
+                return model_path
 
         # Check for existing GGUF files in the directory
         if model_dir.exists():

@@ -48,6 +48,8 @@ logger = logging.getLogger(__name__)
 @app.post("/chat/completions")
 async def chat_completion(request: ChatCompletionRequest) -> StreamingResponse:
     """Stream chat completion from the model"""
+    print("Chat completion request received")
+    print(request)
     return StreamingResponse(
         chat_completion_stream(request),
         media_type="text/event-stream"
@@ -63,6 +65,8 @@ async def get_model_info():
 @app.post("/load-model")
 async def load_model_endpoint(request: ModelLoadRequest):
     """Load a model with the specified configuration"""
+    print("Loading model")
+    print(request)
     model_type = request.model_type or "auto"
     if model_type != "auto":
         is_compatible, message = model_manager.check_platform_compatibility(

@@ -9,6 +9,7 @@ from threading import Thread
 import logging
 import os
 from src.models.manager import model_manager
+from src.models.streamer import TextGenerator, StopOnInterrupt, StreamIterator
 import uuid
 import time
 
@@ -83,97 +84,23 @@ async def generate_stream(request: GenerateRequest) -> AsyncGenerator[str, None]
                                 continue
             return
 
-        # Handle llama.cpp models
-        if model_manager.model_type == "llama.cpp":
-            # Use llama.cpp's native completion method
-            completion = model.create_completion(
-                prompt=request.prompt,
-                max_tokens=request.max_tokens,
-                temperature=request.temperature,
-                top_p=request.top_p,
-                top_k=request.top_k,
-                repeat_penalty=request.repetition_penalty,
-                stream=True
-            )
-
-            # Stream the output
-            for chunk in completion:
-                response = {
-                    "id": f"chatcmpl-{uuid.uuid4()}",
-                    "object": "chat.completion.chunk",
-                    "created": int(time.time()),
-                    "model": model_manager.model_name,
-                    "choices": [{
-                        "index": 0,
-                        "delta": {
-                            "content": chunk["choices"][0]["text"]
-                        },
-                        "finish_reason": None
-                    }]
-                }
-                yield f"data: {json.dumps(response)}\n\n"
-
-            # Send final [DONE] message
-            yield "data: [DONE]\n\n"
-            return
-
-        # For other model types, use the transformers pipeline
+        # For both llama.cpp and other models, use our TextGenerator
         tokenizer = model_manager.current_tokenizer
-
-        # Encode the prompt
-        inputs = tokenizer(request.prompt, return_tensors="pt",
-                           add_special_tokens=True)
-        if hasattr(model, "to"):
-            inputs = {k: v.to(model.device) for k, v in inputs.items()}
-
-        # Set up generation config with better numerical stability
-        gen_config = {
-            "max_new_tokens": request.max_tokens,
-            "temperature": max(request.temperature, 1e-2),
-            "top_p": min(max(request.top_p, 0.1), 0.95),
-            "do_sample": True,
-            "pad_token_id": tokenizer.pad_token_id,
-            "eos_token_id": tokenizer.eos_token_id,
-            "use_cache": True
-        }
-
-        # Apply stable generation settings for Apple Silicon or specific models
-        if (hasattr(model, "device") and 
-            (model.device.type == "mps" or "phi" in model_manager.model_name.lower())):
-            # Force CPU for better stability
-            model = model.to("cpu")
-            inputs = {k: v.to("cpu") for k, v in inputs.items()}
-
-            # Use more conservative generation config
-            gen_config.update({
-                "max_new_tokens": min(request.max_tokens, 256),  # Limit length
-                "temperature": max(request.temperature, 0.7),    # Minimum temperature
-                "top_k": 50,
-                "top_p": 0.95,
-                "num_beams": 1,                                 # Disable beam search
-                "renormalize_logits": True,                     # Add logit renormalization
-                "forced_decoder_ids": None,
-                "remove_invalid_values": True,                  # Remove inf/nan
-                "exponential_decay_length_penalty": (8, 1.2),   # Add length penalty
-            })
-
-        # Stream the output
+        device = model.device.type if hasattr(model, "device") else "cpu"
+        
+        # Initialize text generator
+        generator = StreamIterator(model, tokenizer, device)
+        
+        # Set up stopping criteria
+        stopping_criteria = [StopOnInterrupt()]
+        
+        # Set up callback for streaming
         generated_text = ""
-        streamer = TextIteratorStreamer(tokenizer, skip_special_tokens=True)
-        generation_kwargs = dict(
-            **inputs,
-            streamer=streamer,
-            **gen_config
-        )
-
-        # Create a thread to run the generation
-        thread = Thread(target=model.generate, kwargs=generation_kwargs)
-        thread.start()
-
-        # Stream the output tokens
-        for new_text in streamer:
+        
+        def stream_callback(new_text: str):
+            nonlocal generated_text
             generated_text += new_text
-
+            
             # Check for stop sequences
             should_stop = False
             if request.stop_sequences:
@@ -181,7 +108,77 @@ async def generate_stream(request: GenerateRequest) -> AsyncGenerator[str, None]
                     if stop_seq in generated_text:
                         should_stop = True
                         break
+                        
+            return should_stop
 
+        # For llama.cpp models, we'll use their native completion method through our generator
+        if model_manager.model_type == "llama.cpp":
+            async def llama_generate(callback):
+                try:
+                    completion = model.create_completion(
+                        prompt=request.prompt,
+                        max_tokens=request.max_tokens,
+                        temperature=request.temperature,
+                        top_p=request.top_p,
+                        top_k=request.top_k,
+                        repeat_penalty=request.repetition_penalty,
+                        stream=True
+                    )
+                    
+                    for chunk in completion:
+                        text = chunk["choices"][0]["text"]
+                        callback(text)
+                        if stream_callback(text):
+                            break
+                        # Add a small delay to prevent overwhelming the system
+                        await asyncio.sleep(0.01)
+                    
+                    return generated_text
+                except Exception as e:
+                    logger.error(f"Error in llama_generate: {str(e)}")
+                    raise
+
+            # Create an async iterator that wraps the llama.cpp completion
+            async def async_iterator():
+                queue = asyncio.Queue()
+                
+                def callback(text):
+                    asyncio.run_coroutine_threadsafe(queue.put(text), loop)
+                
+                loop = asyncio.get_event_loop()
+                task = asyncio.create_task(llama_generate(callback))
+                
+                try:
+                    while True:
+                        try:
+                            token = await queue.get()
+                            yield token
+                        except asyncio.CancelledError:
+                            break
+                finally:
+                    task.cancel()
+                    try:
+                        await task
+                    except asyncio.CancelledError:
+                        pass
+
+            stream_iterator = async_iterator()
+        else:
+            # Start generation with streaming for other models
+            stream_iterator = generator.generate(
+                prompt=request.prompt,
+                max_new_tokens=request.max_tokens,
+                temperature=request.temperature,
+                top_p=request.top_p,
+                top_k=request.top_k,
+                repetition_penalty=request.repetition_penalty,
+                stopping_criteria=stopping_criteria,
+                callback=stream_callback,
+                stream=True
+            )
+        
+        # Stream the tokens
+        async for token in stream_iterator:
             response = {
                 "id": f"chatcmpl-{uuid.uuid4()}",
                 "object": "chat.completion.chunk",
@@ -190,19 +187,16 @@ async def generate_stream(request: GenerateRequest) -> AsyncGenerator[str, None]
                 "choices": [{
                     "index": 0,
                     "delta": {
-                        "content": new_text
+                        "content": token
                     },
-                    "finish_reason": "stop" if should_stop else None
+                    "finish_reason": None
                 }]
             }
             yield f"data: {json.dumps(response)}\n\n"
-
-            if should_stop:
-                break
-
+            
             # Add a small delay to prevent overwhelming the client
             await asyncio.sleep(0.01)
-
+            
         # Send final [DONE] message
         yield "data: [DONE]\n\n"
 
@@ -234,15 +228,28 @@ async def chat_completion_stream(request: ChatCompletionRequest) -> AsyncGenerat
 
         # Format the messages according to the chat template
         formatted_prompt = ""
-        for message in request.messages:
-            if message.role == "user":
-                formatted_prompt += f"<|user|>\n{message.content}</s>\n"
-            elif message.role == "system":
-                formatted_prompt += f"<|system|>\n{message.content}</s>\n"
-            elif message.role == "assistant":
-                formatted_prompt += f"<|assistant|>\n{message.content}</s>\n"
+        system_message = next((message.content for message in request.messages if message.role == "system"), None)
         
-        formatted_prompt += "<|assistant|>"
+        if system_message:
+            formatted_prompt = f"<s>[INST] <<SYS>>\n{system_message}\n<</SYS>>\n\n"
+        else:
+            formatted_prompt = "<s>"
+            
+        # Process user and assistant messages
+        for i, message in enumerate(request.messages):
+            if message.role == "user":
+                if i == 0 and not system_message:
+                    formatted_prompt += f"[INST] {message.content} [/INST]"
+                else:
+                    formatted_prompt += f"</s><s>[INST] {message.content} [/INST]"
+            elif message.role == "assistant":
+                formatted_prompt += f" {message.content}"
+                
+        # Add final token if needed
+        if formatted_prompt.endswith("[/INST]"):
+            formatted_prompt += " "
+        else:
+            formatted_prompt += "</s>"
 
         # Create a generate request from the chat request
         generate_request = GenerateRequest(

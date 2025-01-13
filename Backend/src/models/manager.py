@@ -168,6 +168,45 @@ class ModelManager:
             self.device = get_device(request)
             self.model_name = request.model_name
 
+            # Handle Ollama models first - convert to llama.cpp
+            if request.model_type == 'ollama':
+                try:
+                    # Read the manifest to get the blob SHA
+                    manifest_path = Path(request.model_path) / 'latest'
+                    logger.info(f"Looking for manifest at: {manifest_path}")
+                    if not manifest_path.exists():
+                        raise ModelLoadError(f"Manifest file not found at: {manifest_path}")
+
+                    import json
+                    with open(manifest_path) as f:
+                        manifest = json.load(f)
+                    logger.info(f"Manifest content: {json.dumps(manifest, indent=2)}")
+                    
+                    # Get the model layer (first layer with mediaType 'application/vnd.ollama.image.model')
+                    try:
+                        model_layer = next(layer for layer in manifest['layers'] 
+                                        if layer['mediaType'] == 'application/vnd.ollama.image.model')
+                    except StopIteration:
+                        raise ModelLoadError("No model layer found in manifest")
+
+                    # Extract SHA and construct blob path
+                    sha = model_layer['digest'].split(':')[1]
+                    # Ollama stores the files directly in the blobs directory with a sha256- prefix
+                    blob_path = Path(request.model_path).parent.parent.parent.parent / 'blobs' / f'sha256-{sha}'
+                    logger.info(f"Looking for blob at: {blob_path}")
+                    
+                    if not blob_path.exists():
+                        raise ModelLoadError(f"Model file not found at: {blob_path}")
+
+                    # Update the request to use the actual model file
+                    request.model_path = str(blob_path)
+                    request.model_type = "llama.cpp"
+                    logger.info(f"Converting Ollama model to llama.cpp with path: {request.model_path}")
+
+                except Exception as e:
+                    logger.error(f"Error processing Ollama model: {str(e)}")
+                    raise ModelLoadError(f"Failed to process Ollama model: {str(e)}")
+
             # Auto-detect model type if not specified
             if not request.model_type or request.model_type == "auto":
                 request.model_type = self._detect_model_type(request)
@@ -181,6 +220,8 @@ class ModelManager:
 
             # Get the appropriate loader
             loader_class = self.loader_mapping.get(request.model_type)
+            logger.info(f"Model type: {request.model_type}")
+            logger.info(f"Available loaders: {list(self.loader_mapping.keys())}")
             if not loader_class:
                 raise ModelLoadError(f"Unsupported model type: {request.model_type}")
 
@@ -220,8 +261,6 @@ class ModelManager:
         model_path = Path(request.model_path) if request.model_path else Path(
             f"models/{request.model_name}")
 
-        if request.model_type == 'ollama':
-            return 'ollama'
         if model_path.exists():
             return detect_model_type(model_path)
         
