@@ -62,31 +62,39 @@ class LlamaCppLoader(BaseLoader):
 
     def _get_model_path(self) -> Path:
         """Get and validate the model path, downloading if necessary."""
-        model_path = Path(self.request.model_path) if self.request.model_path else Path(
-            f"models/{self.request.model_name}")
-        model_dir = model_path.parent
+        # Handle both direct file paths and model names
+        if self.request.model_path:
+            model_path = Path(self.request.model_path)
+        else:
+            # Convert HF style paths to filesystem paths
+            safe_name = self.request.model_name.replace('/', os.path.sep)
+            model_path = Path('models') / safe_name
+
+        model_dir = model_path if model_path.is_dir() else model_path.parent
         model_dir.mkdir(parents=True, exist_ok=True)
 
-        # If model_path points to a file that exists, use it directly
-        if model_path.is_file() and model_path.suffix == '.gguf':
+        # If model_path points to a specific GGUF file that exists, use it directly
+        if model_path.is_file() and model_path.suffix.lower() == '.gguf':
             logger.info(f"Using existing GGUF model file: {model_path}")
             return model_path
 
         # Check for existing GGUF files in the directory
-        existing_gguf = list(model_dir.glob("*.gguf"))
-        if existing_gguf:
-            logger.info(f"Found existing GGUF model: {existing_gguf[0]}")
-            return existing_gguf[0]
+        if model_dir.exists():
+            existing_gguf = list(model_dir.glob("*.gguf"))
+            if existing_gguf:
+                # Sort by preference: q4_k_m first, then by file size
+                existing_gguf.sort(key=lambda x: (
+                    0 if 'q4_k_m' in x.name.lower() else 1,
+                    x.stat().st_size
+                ))
+                logger.info(f"Found existing GGUF model: {existing_gguf[0]}")
+                return existing_gguf[0]
 
-        # Only attempt to download if it looks like a HF model ID and no local file exists
-        if '/' in self.request.model_name and not model_path.exists():
+        # Only attempt to download if it looks like a HF model ID
+        if '/' in self.request.model_name:
             return self._download_model(model_dir)
 
-        if not model_path.exists():
-            raise ModelLoadError(
-                f"Model path does not exist: {model_path}")
-
-        return model_path
+        raise ModelLoadError(f"No GGUF model files found in: {model_dir}")
 
     def _download_model(self, model_dir: Path) -> Path:
         """Download model from Hugging Face."""
