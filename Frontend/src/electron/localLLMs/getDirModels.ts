@@ -1,31 +1,6 @@
 import fs from "fs";
 import path from "path";
 
-function determineModelType(modelPath: string, name: string): string {
-  // Check file extension for common model formats
-  if (name.toLowerCase().endsWith('.gguf')) {
-    return 'llama.cpp';
-  } else if (name.toLowerCase().endsWith('.hqq')) {
-    return 'hqq';
-  }
-
-  // Check if it's in the Ollama registry path
-  if (modelPath.includes('registry.ollama.ai')) {
-    return 'ollama';
-  }
-
-  // Check if it's in the HuggingFace path
-  if (modelPath.includes('hf.co')) {
-    // If it's a GGUF model from HF, mark as llama.cpp
-    if (name.toLowerCase().includes('gguf')) {
-      return 'llama.cpp';
-    }
-    return 'huggingface';
-  }
-
-  return 'unknown';
-}
-
 export async function getDirModels(payload: {
   dirPath: string;
 }): Promise<Model[]> {
@@ -37,18 +12,83 @@ export async function getDirModels(payload: {
     return [];
   }
 
+  const models: Model[] = [];
+
   // List contents of the directory to debug
   const contents = fs.readdirSync(dirPath);
   console.log("Directory contents:", contents);
 
-  // For Ollama models, we need to check the manifests directory
+  // First try to handle as regular model directory
+  if (contents.length > 0) {
+    try {
+      // Process each publisher/author directory
+      for (const publisher of contents) {
+        if (publisher.startsWith('.')) continue;
+        
+        const publisherPath = path.join(dirPath, publisher);
+        if (!fs.statSync(publisherPath).isDirectory()) continue;
+
+        // First check for GGUF files directly in the publisher directory
+        const publisherFiles = fs.readdirSync(publisherPath);
+        for (const file of publisherFiles) {
+          if (file.endsWith('.gguf')) {
+            const modelPath = path.join(publisherPath, file);
+            const stats = fs.statSync(modelPath);
+            
+            // Remove the .gguf extension for the model name
+            const modelName = file.replace('.gguf', '');
+            
+            models.push({
+              name: `${publisher}/${modelName}`,
+              type: 'llama.cpp',
+              model_location: modelPath,
+              modified_at: stats.mtime.toISOString(),
+              size: stats.size,
+              digest: "",
+            });
+          }
+        }
+
+        // Then check subdirectories for other model types
+        for (const item of publisherFiles) {
+          if (item.startsWith('.')) continue;
+          
+          const itemPath = path.join(publisherPath, item);
+          if (!fs.statSync(itemPath).isDirectory()) continue;
+
+          const stats = fs.statSync(itemPath);
+          
+          // Check for common model files to determine type
+          const files = fs.readdirSync(itemPath);
+          let modelType = 'unknown';
+          
+          if (files.some(f => f.endsWith('.gguf'))) {
+            modelType = 'llama.cpp';
+          } else if (files.some(f => f === 'config.json' || f === 'pytorch_model.bin')) {
+            modelType = 'Transformers';
+          }
+          
+          models.push({
+            name: `${publisher}/${item}`,
+            type: modelType,
+            model_location: itemPath,
+            modified_at: stats.mtime.toISOString(),
+            size: stats.size,
+            digest: "",
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Error reading regular model directory:", err);
+    }
+  }
+
+  // Then check for Ollama models in manifests directory
   const manifestsDir = path.join(dirPath, "manifests");
   console.log("Checking manifests directory:", manifestsDir);
 
   if (fs.existsSync(manifestsDir)) {
     try {
-      const models: Model[] = [];
-
       // Check registry.ollama.ai/library for official models
       const registryPath = path.join(
         manifestsDir,
@@ -66,11 +106,11 @@ export async function getDirModels(payload: {
             
             models.push({
               name: entry.name,
-              type: determineModelType(modelPath, entry.name),
+              type: 'ollama',
               model_location: modelPath,
               modified_at: stats.mtime.toISOString(),
               size: stats.size,
-              digest: "", // Would need to read from manifest file if needed
+              digest: "",
             });
           }
         }
@@ -92,13 +132,15 @@ export async function getDirModels(payload: {
                   const modelPath = path.join(dir, entry.name, subEntry.name);
                   const stats = fs.statSync(modelPath);
                   
+                  const ollamaModelName = `${entry.name}/${subEntry.name}`;
+                  
                   models.push({
-                    name: subEntry.name,
-                    type: determineModelType(modelPath, subEntry.name),
-                    model_location: modelPath,
+                    name: ollamaModelName,
+                    type: 'ollama',
+                    model_location: path.join(manifestsDir, "hf.co", entry.name, subEntry.name),
                     modified_at: stats.mtime.toISOString(),
                     size: stats.size,
-                    digest: "", // Would need to read from manifest file if needed
+                    digest: "",
                   });
                 }
               }
@@ -107,15 +149,12 @@ export async function getDirModels(payload: {
         };
         processHFDir(hfPath);
       }
-
-      return models;
     } catch (err) {
-      console.error("Error reading models directory:", err);
-      return [];
+      console.error("Error reading Ollama models directory:", err);
     }
   } else {
     console.log("No manifests directory found");
   }
 
-  return [];
+  return models;
 }

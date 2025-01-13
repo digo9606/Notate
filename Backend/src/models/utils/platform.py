@@ -21,7 +21,8 @@ def check_platform_compatibility(model_type: str) -> Tuple[bool, str]:
         'llama.cpp': ['linux', 'windows', 'darwin'],
         'llamacpp_HF': ['linux', 'windows', 'darwin'],
         # Transformers works on all platforms
-        'Transformers': ['linux', 'windows', 'darwin']
+        'Transformers': ['linux', 'windows', 'darwin'],
+        'ollama': ['linux', 'windows', 'darwin']
     }
 
     compatible_platforms = platform_compatibility.get(model_type, [])

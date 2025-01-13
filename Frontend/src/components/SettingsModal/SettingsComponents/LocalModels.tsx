@@ -36,9 +36,10 @@ export default function LocalModels() {
   const [selectedModel, setSelectedModel] = useState<string>("");
   const { activeUser } = useUser();
   const {
-    localModels = [],
+    localModels,
     setLocalModels,
     localModalLoading,
+    setLocalModalLoading,
     progressLocalOutput,
     progressRef,
     setLocalModelDir,
@@ -47,14 +48,14 @@ export default function LocalModels() {
 
   const handleSelectDirectory = async () => {
     try {
+      if (!activeUser) return;
       const dirPath = await window.electron.openDirectory();
       if (dirPath) {
-        console.log("Selected directory path:", dirPath);
         setLocalModelDir(dirPath);
+        window.electron.updateUserSettings(activeUser.id, "model_dir", dirPath);
         const response = (await window.electron.getDirModels(
           dirPath
         )) as unknown as { dirPath: string; models: Model[] };
-        console.log("Directory models:", response);
         setLocalModels(response.models);
         toast({
           title: "Directory selected",
@@ -77,17 +78,28 @@ export default function LocalModels() {
     model_type: string,
     user_id: string
   ) => {
+    setLocalModalLoading(true);
     if (activeUser) {
-      window.electron.loadModel({
+      const result = (await window.electron.loadModel({
         model_location: model_location,
         model_name: model_name,
         model_type: model_type,
         user_id: Number(user_id),
-      });
-      toast({
-        title: "Model loading",
-        description: `Loading ${model_name}...`,
-      });
+      })) as unknown as { status: string };
+      if (result.status === "success") {
+        toast({
+          title: "Model loading",
+          description: `Loading ${model_name}...`,
+        });
+        setLocalModalLoading(false);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load model",
+          variant: "destructive",
+        });
+        setLocalModalLoading(false);
+      }
     }
   };
 
@@ -141,11 +153,9 @@ export default function LocalModels() {
             const selectedModelPath = localModels.find(
               (model) => model.name === selectedModel
             )?.model_location;
-            console.log("selectedModelPath", selectedModelPath);
             const selectedModelType = localModels.find(
               (model) => model.name === selectedModel
             )?.type;
-            console.log("selectedModelType", selectedModelType);
             if (selectedModelPath && selectedModelType) {
               handleRunModel(
                 selectedModel,

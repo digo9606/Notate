@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union, Literal
 
 
 class EmbeddingRequest(BaseModel):
@@ -145,8 +145,31 @@ class QueryRequest(BaseModel):
     is_ollama: Optional[bool] = False
 
 
+class Message(BaseModel):
+    """A single message in a chat completion request"""
+    role: Literal["system", "user", "assistant"]
+    content: str
+    name: Optional[str] = None
+
+
+class ChatCompletionRequest(BaseModel):
+    """Request model for chat completion"""
+    messages: List[Message]
+    model: Optional[str] = None
+    temperature: Optional[float] = 0.7
+    top_p: Optional[float] = 0.95
+    top_k: Optional[int] = 50
+    n: Optional[int] = 1
+    max_tokens: Optional[int] = 512
+    presence_penalty: Optional[float] = 0
+    frequency_penalty: Optional[float] = 0
+    repetition_penalty: Optional[float] = 1.1
+    stop: Optional[Union[str, List[str]]] = None
+    stream: Optional[bool] = True
+
+
 class GenerateRequest(BaseModel):
-    """Request model for text generation"""
+    """Request model for raw text generation"""
     prompt: str
     max_tokens: Optional[int] = 512
     temperature: Optional[float] = 0.7

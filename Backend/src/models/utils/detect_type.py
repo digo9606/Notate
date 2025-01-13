@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 def detect_model_type(model_path: Union[str, Path]) -> str:
     """
     Detect the model type from the model files and metadata
-    Returns one of: 'Transformers', 'llama.cpp', 'llamacpp_HF', 'ExLlamav2', 'ExLlamav2_HF', 'HQQ', 'TensorRT-LLM'
+    Returns one of: 'ollama', 'Transformers', 'llama.cpp', 'llamacpp_HF', 'ExLlamav2', 'ExLlamav2_HF', 'HQQ', 'TensorRT-LLM'
     """
     model_path = Path(model_path)
     if not model_path.exists():

@@ -14,7 +14,8 @@ from src.models.loaders import (
     ExLlamaV2Loader,
     ExLlamaV2HFLoader,
     HQQLoader,
-    TensorRTLoader
+    TensorRTLoader,
+    OllamaLoader
 )
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ class ModelManager:
 
         # Map model types to their respective loaders
         self.loader_mapping = {
+            'ollama': OllamaLoader,
             'Transformers': TransformersLoader,
             'llama.cpp': LlamaCppLoader,
             'llamacpp_HF': LlamaCppHFLoader,
@@ -220,6 +222,8 @@ class ModelManager:
         model_path = Path(request.model_path) if request.model_path else Path(
             f"models/{request.model_name}")
 
+        if request.model_type == 'ollama':
+            return 'ollama'
         if model_path.exists():
             return detect_model_type(model_path)
         

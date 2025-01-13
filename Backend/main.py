@@ -23,6 +23,8 @@ import psutil
 import threading
 import uvicorn
 import json
+from src.endpoint.api import chat_completion_stream
+from src.endpoint.models import ChatCompletionRequest
 
 app = FastAPI()
 embedding_task = None
@@ -43,11 +45,11 @@ app.add_middleware(
 logger = logging.getLogger(__name__)
 
 
-@app.post("/generate")
-async def generate(request: GenerateRequest) -> StreamingResponse:
-    """Stream generated text from the model"""
+@app.post("/chat/completions")
+async def chat_completion(request: ChatCompletionRequest) -> StreamingResponse:
+    """Stream chat completion from the model"""
     return StreamingResponse(
-        generate_stream(request),
+        chat_completion_stream(request),
         media_type="text/event-stream"
     )
 
@@ -328,6 +330,10 @@ async def cancel_crawl(user_id: str = Depends(verify_token)):
         crawl_event.set()
         return {"status": "success", "message": "Crawl process cancelled"}
     return {"status": "error", "message": "No crawl process running"}
+# Add the chat completion endpoint
+
+
+
 
 if __name__ == "__main__":
     print("Starting server...")

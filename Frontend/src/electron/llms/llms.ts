@@ -6,7 +6,7 @@ import { GeminiProvider } from "./providers/gemini.js";
 import { XAIProvider } from "./providers/xai.js";
 import { generateTitle } from "./generateTitle.js";
 import { vectorstoreQuery } from "../embedding/vectorstoreQuery.js";
-import { LocalProvider } from "./providers/local.js";
+import { LocalModelProvider } from "./providers/localModel.js";
 import { OpenRouterProvider } from "./providers/openrouter.js";
 import log from "electron-log";
 import os from "os";
@@ -163,7 +163,7 @@ export async function chatRequest(
         provider = XAIProvider;
         break;
       case "local":
-        provider = LocalProvider;
+        provider = LocalModelProvider;
         break;
       default:
         throw new Error(

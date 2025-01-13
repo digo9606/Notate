@@ -38,6 +38,8 @@ export function useAppInitialization() {
     fetchSystemSpecs,
     checkOllama,
     setPlatform,
+    setLocalModelDir,
+    setLocalModels,
   } = useSysSettings();
 
   // Initial setup that doesn't depend on activeUser
@@ -89,6 +91,13 @@ export function useAppInitialization() {
       if (activeUser) {
         const settings = await window.electron.getUserSettings(activeUser.id);
         setSettings(settings);
+        if (settings.model_dir) {
+          setLocalModelDir(settings.model_dir);
+          const models = (await window.electron.getDirModels(
+            settings.model_dir
+          )) as unknown as { dirPath: string; models: Model[] };
+          setLocalModels(models.models);
+        }
       }
     };
 

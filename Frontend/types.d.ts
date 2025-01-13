@@ -58,6 +58,7 @@ interface UserSettings {
   model?: string;
   provider?: string;
   is_local?: boolean;
+  model_dir?: string;
   local_embedding_model?: string;
   [key: string]: string | number | boolean | undefined;
 }
