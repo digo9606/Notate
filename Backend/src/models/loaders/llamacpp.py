@@ -170,12 +170,12 @@ class LlamaCppLoader(BaseLoader):
         # Add optional parameters
         optional_params = {
             "tensor_split": self.request.tensor_split,
-            "mul_mat_q": self.request.mul_mat_q,
-            "use_mmap": self.request.use_mmap,
-            "use_mlock": self.request.use_mlock,
-            "offload_kqv": self.request.offload_kqv,
+            "mul_mat_q": True,
+            "use_mmap": True,
+            "use_mlock": True,
+            "offload_kqv": True,
             "split_mode": self.request.split_mode,
-            "flash_attn": self.request.flash_attn,
+            "flash_attn": True,
             "cache_type": self.request.cache_type,
         }
 
@@ -189,30 +189,30 @@ class LlamaCppLoader(BaseLoader):
             if self.request.rope_freq_scale is not None:
                 params["rope_freq_scale"] = self.request.rope_freq_scale
 
+        if self.request.tensor_split:
+            try:
+                tensor_split = [float(x) for x in self.request.tensor_split.split(",")]
+                params["tensor_split"] = tensor_split
+            except:
+                logger.warning("Invalid tensor split configuration, ignoring")
+
         return params
 
     def _configure_gpu_layers(self) -> int:
         """Configure the number of GPU layers based on device and request."""
         import torch
-
-        gpu_layers = self.request.n_gpu_layers or 0
-
-        if self.request.device == "mps" or (
-            self.request.device == "auto" and 
-            hasattr(torch.backends, "mps") and 
-            torch.backends.mps.is_available()
-        ):
-            # For M1/M2 Macs
-            gpu_layers = self.request.n_gpu_layers if self.request.n_gpu_layers is not None else 1
-            logger.info("Using Metal acceleration for M1/M2 Mac")
-        elif self.request.device == "cuda" or (
-            self.request.device == "auto" and 
-            torch.cuda.is_available()
-        ):
-            # For CUDA
-            gpu_layers = self.request.n_gpu_layers if self.request.n_gpu_layers is not None else 0
+        
+        if torch.cuda.is_available():
+            # Use all available GPU layers by default for CUDA
+            gpu_layers = self.request.n_gpu_layers or -1
             logger.info(f"Using CUDA acceleration with {gpu_layers} GPU layers")
-
+        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            # For Apple Silicon (M1/M2)
+            gpu_layers = self.request.n_gpu_layers or 1
+            logger.info("Using Metal acceleration for Apple Silicon")
+        else:
+            gpu_layers = 0
+        
         return gpu_layers
 
     def _setup_cache(self, model: Any) -> None:
@@ -220,9 +220,11 @@ class LlamaCppLoader(BaseLoader):
         try:
             from llama_cpp import LlamaCache
             if hasattr(model, 'set_cache'):
-                model.set_cache(LlamaCache(capacity_bytes=self.request.cache_size))
-                logger.info(
-                    f"Initialized LLM cache with {self.request.cache_size / (1024*1024*1024):.1f}GB capacity")
+                # Convert GB to bytes
+                cache_size = self.request.cache_size * 1024 * 1024 * 1024
+                cache_type = "fp16"  # or q8_0 or q4_0 depending on your needs
+                model.set_cache(LlamaCache(capacity_bytes=cache_size))
+                logger.info(f"Initialized LLM cache with {self.request.cache_size}GB capacity using {cache_type}")
         except Exception as e:
             logger.warning(f"Failed to initialize cache: {e}")
 
