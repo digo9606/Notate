@@ -16,7 +16,7 @@ export async function loadModel(payload: {
       },
 
       body: JSON.stringify({
-        model_location: payload.model_location,
+        model_path: payload.model_location,
         model_name: payload.model_name,
         model_type: payload.model_type,
       }),
