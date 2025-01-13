@@ -5,13 +5,14 @@ import SearchComponent from "./HeaderComponents/Search";
 import SettingsDialog from "./HeaderComponents/SettingsDialog";
 import WindowControls from "./HeaderComponents/MainWindowControl";
 import WinLinuxControls from "./HeaderComponents/WinLinuxControls";
+import { useChatInput } from "@/context/useChatInput";
 
 export function Header() {
-  const { isSearchOpen, searchTerm, conversations, setFilteredConversations, input } =
+  const { isSearchOpen, searchTerm, conversations, setFilteredConversations } =
     useUser();
 
   const { platform, isMaximized, setIsMaximized } = useSysSettings();
-
+  const { input } = useChatInput();
   useEffect(() => {
     if (isSearchOpen) {
       const filtered =
@@ -31,12 +32,13 @@ export function Header() {
   // Update filtered conversations when input is cleared (new chat request)
   useEffect(() => {
     if (!input) {
-      const filtered = conversations
-        ?.sort((a, b) => (b?.id ?? 0) - (a?.id ?? 0))
-        ?.slice(0, 10) ?? [];
+      const filtered =
+        conversations
+          ?.sort((a, b) => (b?.id ?? 0) - (a?.id ?? 0))
+          ?.slice(0, 10) ?? [];
       setFilteredConversations(filtered);
     }
-  }, [input, conversations, setFilteredConversations]);
+  }, [conversations, setFilteredConversations]);
 
   const renderWindowControls = WindowControls({
     isMaximized,
