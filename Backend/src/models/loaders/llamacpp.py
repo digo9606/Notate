@@ -67,14 +67,19 @@ class LlamaCppLoader(BaseLoader):
         model_dir = model_path.parent
         model_dir.mkdir(parents=True, exist_ok=True)
 
-        # Check for existing GGUF files
+        # If model_path points to a file that exists, use it directly
+        if model_path.is_file() and model_path.suffix == '.gguf':
+            logger.info(f"Using existing GGUF model file: {model_path}")
+            return model_path
+
+        # Check for existing GGUF files in the directory
         existing_gguf = list(model_dir.glob("*.gguf"))
         if existing_gguf:
             logger.info(f"Found existing GGUF model: {existing_gguf[0]}")
             return existing_gguf[0]
 
-        # Download if it's a HF model ID
-        if '/' in self.request.model_name:
+        # Only attempt to download if it looks like a HF model ID and no local file exists
+        if '/' in self.request.model_name and not model_path.exists():
             return self._download_model(model_dir)
 
         if not model_path.exists():
