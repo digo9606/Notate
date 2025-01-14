@@ -269,7 +269,7 @@ const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const handleProgress = (
       _: Electron.IpcRendererEvent,
-      message: string | ProgressData | OllamaProgressEvent
+      message: string | ProgressData | OllamaProgressEvent | DownloadModelProgress
     ) => {
       try {
         const data =
@@ -285,6 +285,14 @@ const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({
         if ("type" in data && (data.type === "pull" || data.type === "verify")) {
           // Handle Ollama progress
           setProgressMessage(`Ollama: ${data.status || data.type}`);
+          return;
+        }
+
+        if ("total" in data && "received" in data) {
+          // Handle DownloadModelProgress
+          const percentage = Math.floor((data.received / data.total) * 100);
+          setProgressMessage(`Downloading model: ${percentage}%`);
+          setProgress(percentage);
           return;
         }
 
