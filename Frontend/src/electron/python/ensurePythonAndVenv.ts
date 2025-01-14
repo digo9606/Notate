@@ -217,6 +217,12 @@ export async function ensurePythonAndVenv(backendPath: string) {
 
     // Check if llama-cpp-python is already installed with correct configuration
     try {
+      // Skip llama-cpp-python installation for non-Mac CPU systems
+      if (process.platform !== "darwin" && !hasNvidiaGpu) {
+        log.info("Skipping llama-cpp-python installation for non-Mac CPU system");
+        return { venvPython, hasNvidiaGpu };
+      }
+
       // First install build dependencies for all platforms
       log.info("Installing build dependencies for llama-cpp-python");
       execSync(`"${venvPython}" -m pip install setuptools wheel scikit-build-core cmake ninja`);
