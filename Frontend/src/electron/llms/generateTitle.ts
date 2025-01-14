@@ -69,15 +69,6 @@ async function generateTitleOpenAI(input: string, userId: number) {
 }
 
 async function generateTitleLocalOpenAI(input: string, userId: number) {
-  let apiKey = "";
-  try {
-    apiKey = db.getApiKey(userId, "openai");
-  } catch (error) {
-    console.error("Error getting API key:", error);
-  }
-  if (!apiKey) {
-    throw new Error("OpenAI API key not found for the active user");
-  }
   const openai = new OpenAI({
     baseURL: "http://localhost:47372",
     apiKey: "not-needed",

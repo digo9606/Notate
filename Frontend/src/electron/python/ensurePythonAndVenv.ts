@@ -18,6 +18,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
   let pythonCommand: string | null = null;
   let pythonVersion: string | null = null;
 
+  // First ensure Python is installed
   for (const cmd of pythonCommands) {
     try {
       log.info(`Trying Python command: ${cmd}`);
@@ -50,7 +51,6 @@ export async function ensurePythonAndVenv(backendPath: string) {
     });
 
     if (response.response === 0) {
-      // Open Python download page
       await shell.openExternal(
         "https://www.python.org/downloads/release/python-31010/"
       );
@@ -71,6 +71,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
       ? path.join(venvPath, "Scripts", "python.exe")
       : path.join(venvPath, "bin", "python");
 
+  // Create virtual environment if it doesn't exist
   if (!fs.existsSync(venvPath)) {
     log.info("Creating virtual environment with Python 3.10...");
 
@@ -79,13 +80,11 @@ export async function ensurePythonAndVenv(backendPath: string) {
         const packageManager = getLinuxPackageManager();
         log.info(`Using package manager: ${packageManager.command}`);
 
-        // For Linux, ensure we use the full path in privileged commands
         const pythonFullPath = execSync(`which ${pythonCommand}`)
           .toString()
           .trim();
         log.info(`Full Python path: ${pythonFullPath}`);
 
-        // Run all commands with a single privilege prompt
         await runWithPrivileges([
           packageManager.installCommand,
           `${pythonFullPath} -m venv "${venvPath}"`,
@@ -101,7 +100,6 @@ export async function ensurePythonAndVenv(backendPath: string) {
         throw new Error("Unknown error while creating virtual environment");
       }
     } else {
-      // Original code for non-Linux systems
       try {
         execSync(`${pythonCommand} -m venv "${venvPath}"`);
         log.info("Virtual environment created successfully");
@@ -117,26 +115,14 @@ export async function ensurePythonAndVenv(backendPath: string) {
     }
   }
 
-  try {
-    execSync(`"${venvPython}" -m pip install --upgrade pip`);
-    log.info("Pip upgraded successfully");
-  } catch (error) {
-    log.error("Failed to upgrade pip", error);
-    throw new Error("Failed to upgrade pip");
-  }
-
-  // Add check for NVIDIA GPU and CUDA
+  // Check for NVIDIA GPU and CUDA first
   let hasNvidiaGpu = false;
   let cudaAvailable = false;
-  let cudaVersion: string | null = null;
-
-  // Check for NVIDIA GPU
   try {
     if (process.platform === "linux" || process.platform === "win32") {
       execSync("nvidia-smi");
       hasNvidiaGpu = true;
     } else if (process.platform === "darwin") {
-      // MacOS doesn't support CUDA
       hasNvidiaGpu = false;
     }
   } catch {
@@ -144,10 +130,8 @@ export async function ensurePythonAndVenv(backendPath: string) {
     hasNvidiaGpu = false;
   }
 
-  // If we have an NVIDIA GPU, check for CUDA in multiple ways
   if (hasNvidiaGpu) {
     try {
-      // Try different methods to detect CUDA
       const cudaCheckCommands = [
         "nvcc --version",
         process.platform === "win32" 
@@ -163,14 +147,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
           const output = execSync(cmd).toString();
           if (output) {
             cudaAvailable = true;
-            // Try to extract CUDA version from various outputs
-            const versionMatch = output.match(/release (\d+\.\d+)/i) || 
-                               output.match(/cuda[/\\]v?(\d+\.\d+)/i) ||
-                               output.match(/cuda-(\d+\.\d+)/i);
-            if (versionMatch) {
-              cudaVersion = versionMatch[1];
-              break;
-            }
+            break;
           }
         } catch (e) {
           log.debug(`CUDA check command failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -182,70 +159,90 @@ export async function ensurePythonAndVenv(backendPath: string) {
     }
   }
 
-  // Add CUDA support prompt if NVIDIA GPU is detected
-  if (hasNvidiaGpu) {
-    let detailMessage = "This will install llama-cpp-python with CUDA support.";
-    if (!cudaAvailable) {
-      detailMessage += "\n\nNOTE: CUDA toolkit is not detected on your system. " +
-        "Please install CUDA toolkit (version 12.1-12.5) from NVIDIA's website first:\n" +
-        "https://developer.nvidia.com/cuda-downloads";
-    } else if (cudaVersion) {
-      detailMessage += `\n\nDetected CUDA version: ${cudaVersion}`;
+  // Upgrade pip and install dependencies
+  try {
+    execSync(`"${venvPython}" -m pip install --upgrade pip`);
+    log.info("Pip upgraded successfully");
+
+    // Install NumPy first with specific version and prevent upgrades
+    execSync(`"${venvPython}" -m pip install "numpy==1.24.3" --no-deps --no-cache-dir`);
+    log.info("NumPy 1.24.3 installed successfully");
+
+    // Install FastAPI and dependencies with version constraints to prevent NumPy upgrade
+    const fastApiCommand = `"${venvPython}" -m pip install --no-cache-dir "fastapi>=0.109.0" "pydantic>=2.5.0" "starlette>=0.36.0" "uvicorn[standard]>=0.27.0" "python-multipart>=0.0.7" "email-validator>=2.1.0" "httpx>=0.26.0,<0.28.0" "numpy==1.24.3" "PyJWT==2.10.1"`;
+    execSync(fastApiCommand);
+    log.info("FastAPI and dependencies installed successfully");
+
+    // Install PyTorch with appropriate CUDA support
+    try {
+      if (hasNvidiaGpu && cudaAvailable) {
+        log.info("Installing PyTorch with CUDA support");
+        execSync(`"${venvPython}" -m pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121`);
+      } else {
+        log.info("Installing CPU-only PyTorch");
+        execSync(`"${venvPython}" -m pip install --no-cache-dir torch torchvision torchaudio`);
+      }
+      log.info("PyTorch installed successfully");
+    } catch (error) {
+      log.error("Failed to install PyTorch", error);
+      throw new Error("Failed to install PyTorch");
     }
 
-    const cudaResponse = await dialog.showMessageBox({
-      type: "question",
-      buttons: cudaAvailable ? ["Yes", "No"] : ["Open CUDA Download Page", "Cancel"],
-      defaultId: 0,
-      title: "CUDA Support Available",
-      message: cudaAvailable 
-        ? "Would you like to enable CUDA support for better performance?"
-        : "CUDA Toolkit Required",
-      detail: detailMessage,
-    });
+    // Check if llama-cpp-python is already installed with correct configuration
+    try {
+      if (hasNvidiaGpu && cudaAvailable) {
+        // First check for tensor cores capability
+        let hasTensorCores = false;
+        try {
+          const gpuInfo = execSync('nvidia-smi --query-gpu=gpu_name --format=csv,noheader').toString().toLowerCase();
+          hasTensorCores = gpuInfo.includes('rtx') || gpuInfo.includes('titan') || gpuInfo.includes('a100') || gpuInfo.includes('a6000');
+          log.info(`GPU supports tensor cores: ${hasTensorCores}`);
+        } catch (e) {
+          log.info('Could not determine tensor cores capability');
+        }
 
-    if (cudaResponse.response === 0) {
-      if (!cudaAvailable) {
-        // Open NVIDIA CUDA download page
-        await shell.openExternal("https://developer.nvidia.com/cuda-downloads");
-        throw new Error("Please install CUDA toolkit and restart the application");
-      }
-
-      log.info("Installing llama-cpp-python with CUDA support");
-      try {
-        let command: string;
+        // Set environment variables for CUDA build
+        process.env.CMAKE_ARGS = "-DGGML_CUDA=ON";
+        process.env.FORCE_CMAKE = "1";
+        process.env.LLAMA_CUDA = "1";
+        process.env.CUDA_PATH = process.env.CUDA_PATH || "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1";
         
-        if (cudaVersion && ["12.1", "12.2", "12.3", "12.4", "12.5"].includes(cudaVersion)) {
-          // Use pre-built wheel for supported CUDA versions
-          const cudaShortVersion = cudaVersion.replace(".", "");
-          command = `"${venvPython}" -m pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu${cudaShortVersion}`;
-        } else {
-          // Fall back to building from source
-          command = `CMAKE_ARGS="-DGGML_CUDA=on" "${venvPython}" -m pip install llama-cpp-python`;
+        log.info("Installing llama-cpp-python with CUDA support");
+        // First install build dependencies
+        execSync(`"${venvPython}" -m pip install setuptools wheel scikit-build-core cmake ninja`);
+        // Install required dependencies first
+        execSync(`"${venvPython}" -m pip install typing-extensions numpy diskcache msgpack`);
+        // Install llama-cpp-python with CUDA
+        execSync(`"${venvPython}" -m pip install --no-cache-dir --verbose llama-cpp-python`);
+        
+        // Verify CUDA installation
+        const checkCuda = `"${venvPython}" -c "from llama_cpp import Llama; import inspect; print('n_gpu_layers' in inspect.signature(Llama.__init__).parameters)"`;
+        const result = execSync(checkCuda).toString().trim();
+        
+        if (result.toLowerCase() !== 'true') {
+          throw new Error('CUDA support not properly enabled');
         }
         
-        if (process.platform === "linux") {
-          await runWithPrivileges([command]);
-        } else {
-          execSync(command);
-        }
-        log.info("Successfully installed llama-cpp-python with CUDA support");
-      } catch (error) {
-        log.error("Failed to install CUDA support", error);
-        await dialog.showMessageBox({
-          type: "error",
-          title: "CUDA Installation Failed",
-          message: "Failed to install CUDA support",
-          detail: error instanceof Error 
-            ? `${error.message}\n\nPlease ensure CUDA toolkit is properly installed and try again.`
-            : "Unknown error occurred",
-        });
+        log.info("Successfully installed CUDA-enabled llama-cpp-python");
+      } else {
+        log.info("Installing CPU-only llama-cpp-python");
+        execSync(`"${venvPython}" -m pip install --no-cache-dir llama-cpp-python`);
       }
+    } catch (e) {
+      log.error("Failed to install llama-cpp-python", e);
+      throw new Error("Failed to install llama-cpp-python");
     }
+
+    // Set environment variables for runtime
+    process.env.USE_CUDA = hasNvidiaGpu && cudaAvailable ? "1" : "0";
+    process.env.LLAMA_CUDA_FORCE_MMQ = "1";
+    process.env.GGML_CUDA_NO_PINNED = "1";
+    process.env.GGML_CUDA_FORCE_MMQ = "1";
+
+    return { venvPython, hasNvidiaGpu };
+
+  } catch (error) {
+    log.error("Failed to upgrade pip or install dependencies", error);
+    throw new Error("Failed to upgrade pip or install dependencies");
   }
-
-  // Set environment variable for the Python process
-  process.env.USE_CUDA = hasNvidiaGpu && cudaAvailable ? "1" : "0";
-
-  return { venvPython, hasNvidiaGpu };
 }

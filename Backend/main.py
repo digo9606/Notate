@@ -49,6 +49,7 @@ logger = logging.getLogger(__name__)
 async def chat_completion(request: ChatCompletionRequest) -> StreamingResponse:
     """Stream chat completion from the model"""
     print("Chat completion request received")
+
     print(request)
     return StreamingResponse(
         chat_completion_stream(request),

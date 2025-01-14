@@ -70,53 +70,16 @@ def install_requirements(custom_venv_path=None):
         requirements_path = os.path.join(
             os.path.dirname(__file__), 'requirements.txt')
 
-        # First handle CUDA-dependent packages
-        use_cuda = os.environ.get('USE_CUDA', '0') == '1'
-        sys.stdout.write("Checking CUDA availability...|0\n")
-        sys.stdout.flush()
-
-        # Install torch and torchaudio first with appropriate backend
-        if use_cuda:
-            subprocess.check_call(
-                [python_path, '-m', 'pip', 'install', 'torch', 'torchaudio'],
-                stderr=subprocess.DEVNULL
-            )
-            subprocess.check_call(
-                [python_path, '-m', 'pip', 'install', 'openai-whisper'],
-                stderr=subprocess.DEVNULL
-            )
-            sys.stdout.write("Installed CUDA-enabled PyTorch and Whisper|5\n")
-        else:
-            subprocess.check_call(
-                [python_path, '-m', 'pip', 'install', 'torch', 'torchaudio',
-                '--index-url', 'https://download.pytorch.org/whl/cpu'],
-                stderr=subprocess.DEVNULL
-            )
-            subprocess.check_call(
-                [python_path, '-m', 'pip', 'install', 'openai-whisper', '--no-deps'],
-                stderr=subprocess.DEVNULL
-            )
-            sys.stdout.write("Installed CPU-only PyTorch and Whisper|5\n")
-        sys.stdout.flush()
-
-        # Install typing_extensions first to ensure we have the latest version
-        subprocess.check_call(
-            [python_path, '-m', 'pip', 'install', '--upgrade', 'typing_extensions>=4.7.0'],
-            stderr=subprocess.DEVNULL
-        )
-        sys.stdout.write("Installed typing_extensions|10\n")
-        sys.stdout.flush()
-
-        # Now handle the rest of the requirements
+        # Handle all requirements except those already installed by ensurePythonAndVenv.ts
         with open(requirements_path, 'r') as f:
             requirements = [line.strip() for line in f if line.strip()
                             and not line.startswith('#')
-                            and not line.startswith('torch')
-                            and not line.startswith('openai-whisper')
-                            and not line.startswith('typing_extensions')]  # Skip packages we've already installed
+                            and not line.startswith('llama-cpp-python')
+                            and not line.startswith('typing_extensions')
+                            and not line.startswith('numpy')]
 
         total_deps = len(requirements)
-        sys.stdout.write(f"Total packages: {total_deps}|10\n")
+        sys.stdout.write(f"Total packages to process: {total_deps}|20\n")
         sys.stdout.flush()
 
         installed_packages = get_installed_packages(python_path)
@@ -128,7 +91,7 @@ def install_requirements(custom_venv_path=None):
                 to_install.append(req)
 
         completed_deps = total_deps - len(to_install)
-        progress = 5 + (completed_deps / total_deps) * 32.5
+        progress = 20 + (completed_deps / total_deps) * 30
         sys.stdout.write(f"Checked installed packages|{progress:.1f}\n")
         sys.stdout.flush()
 
@@ -140,7 +103,7 @@ def install_requirements(custom_venv_path=None):
                 pkg_name = pkg.split('==')[0] if '==' in pkg else pkg
                 result, error = future.result()
                 completed_deps += 1
-                progress = 37.5 + (completed_deps / total_deps) * 37.5
+                progress = 50 + (completed_deps / total_deps) * 50
 
                 if error:
                     sys.stdout.write(
@@ -149,7 +112,7 @@ def install_requirements(custom_venv_path=None):
                     sys.stdout.write(f"Installed {pkg_name}|{progress:.1f}\n")
                 sys.stdout.flush()
 
-        sys.stdout.write("Dependencies installed successfully!|75\n")
+        sys.stdout.write("Dependencies installed successfully!|100\n")
         sys.stdout.flush()
 
     except Exception as e:

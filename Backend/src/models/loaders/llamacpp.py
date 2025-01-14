@@ -23,41 +23,71 @@ class LlamaCppLoader(BaseLoader):
         self.cache = None
 
     def load(self) -> Tuple[Any, Any]:
-        """
-        Load a llama.cpp model and return the model and tokenizer.
-        
-        Returns:
-            Tuple[model, tokenizer] where both are the same object for llama.cpp
-            
-        Raises:
-            ModelLoadError: If there's an error loading the model
-            ModelDownloadError: If there's an error downloading the model
-        """
+        """Load a llama.cpp model and return the model and tokenizer."""
         try:
+            import torch
             from llama_cpp import Llama, LlamaCache
-        except ImportError:
-            raise ModelLoadError(
-                "llama-cpp-python is not installed. Please install it with: pip install llama-cpp-python")
-
-        try:
+            
+            # Force CUDA environment variables before anything else
+            if torch.cuda.is_available():
+                os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+                os.environ['LLAMA_CUDA_FORCE'] = '1'
+                
+                # Log CUDA information
+                logger.info("CUDA is available")
+                logger.info(f"CUDA Device: {torch.cuda.get_device_name(0)}")
+                logger.info(f"Total CUDA Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**2:.0f}MB")
+                torch.cuda.empty_cache()
+            
             # Get model path and ensure it exists
             model_path = self._get_model_path()
+            if not model_path.exists():
+                raise ModelLoadError(f"Model file not found: {model_path}")
+                
+            logger.info(f"Loading model from path: {model_path}")
             
-            # Configure model parameters
-            model_params = self._get_model_params()
+            # Simple CUDA parameters that match working Q8 configurations
+            model_params = {
+                "model_path": str(model_path),
+                "n_ctx": int(self.request.n_ctx) if self.request.n_ctx is not None else 2048,
+                "n_batch": int(self.request.n_batch) if self.request.n_batch is not None else 512,
+                "n_gpu_layers": -1,
+                "main_gpu": 0,
+                "use_mmap": True,  # Enable memory mapping
+                "use_mlock": False,
+                "verbose": True
+            }
             
-            # Load the model
-            logger.info(f"Loading llama.cpp model from {model_path}")
+            # Log parameters
+            logger.info(f"Loading model with parameters: {model_params}")
+            
+            # Load model
             model = Llama(**model_params)
+            logger.info("Initial model load successful")
             
-            # Configure cache if requested
-            if self.request.cache_size:
-                self._setup_cache(model)
-
+            # Simple CUDA test
+            if torch.cuda.is_available():
+                try:
+                    logger.info("Testing model...")
+                    # Basic tokenization test
+                    tokens = model.tokenize(b"test")
+                    logger.info("Tokenization successful")
+                    
+                    # Log memory usage
+                    allocated = torch.cuda.memory_allocated() / 1024**2
+                    reserved = torch.cuda.memory_reserved() / 1024**2
+                    logger.info(f"CUDA Memory allocated: {allocated:.2f}MB")
+                    logger.info(f"CUDA Memory reserved: {reserved:.2f}MB")
+                    
+                except Exception as e:
+                    logger.error(f"Model test failed: {e}")
+                    raise ModelLoadError(f"Failed to initialize model: {e}")
+            
             logger.info("Model loaded successfully")
-            return model, model  # llama.cpp includes its own tokenizer
+            return model, model
 
         except Exception as e:
+            logger.error(f"Error loading model: {str(e)}", exc_info=True)
             raise ModelLoadError(f"Failed to load llama.cpp model: {str(e)}")
 
     def _get_model_path(self) -> Path:
@@ -73,26 +103,77 @@ class LlamaCppLoader(BaseLoader):
         model_dir = model_path if model_path.is_dir() else model_path.parent
         model_dir.mkdir(parents=True, exist_ok=True)
 
-        # If model_path points to a specific file that exists, use it directly
-        if model_path.is_file():
-            # If it's an Ollama blob (starts with sha256-), treat it as a GGUF file
-            if model_path.name.startswith('sha256-'):
-                logger.info(f"Using Ollama blob file as GGUF: {model_path}")
-                return model_path
-            # Otherwise check for .gguf extension
-            if model_path.suffix.lower() == '.gguf':
-                logger.info(f"Using existing GGUF model file: {model_path}")
-                return model_path
+        # Special handling for Ollama paths
+        if '.ollama' in str(model_path):
+            logger.info("Detected Ollama model path")
+            # First check for the model file in the models directory
+            ollama_dir = Path(os.path.expandvars('%USERPROFILE%\\.ollama\\models'))
+            if not ollama_dir.exists():
+                ollama_dir = Path(os.path.expanduser('~/.ollama/models'))
+            
+            if ollama_dir.exists():
+                # First try to find a .gguf file
+                gguf_files = list(ollama_dir.glob("**/*.gguf"))
+                if gguf_files:
+                    logger.info(f"Found Ollama GGUF file: {gguf_files[0]}")
+                    return gguf_files[0]
+                
+                # Then try to find a blob file that matches the model name
+                model_name = model_path.name
+                if 'registry.ollama.ai/library/' in str(model_path):
+                    model_name = str(model_path).split('registry.ollama.ai/library/')[-1]
+                
+                manifest_dir = ollama_dir / 'manifests' / 'registry.ollama.ai' / 'library' / model_name
+                if manifest_dir.exists():
+                    with open(manifest_dir / 'latest', 'r') as f:
+                        manifest = f.read()
+                        import json
+                        try:
+                            manifest_data = json.loads(manifest)
+                            for layer in manifest_data.get('layers', []):
+                                if layer.get('mediaType') == 'application/vnd.ollama.image.model':
+                                    blob_hash = layer.get('digest', '').replace('sha256:', 'sha256-')
+                                    if blob_hash:
+                                        blob_path = ollama_dir / 'blobs' / blob_hash
+                                        if blob_path.exists():
+                                            logger.info(f"Found Ollama model blob: {blob_path}")
+                                            
+                                            # Create a temporary directory for converted models if it doesn't exist
+                                            temp_models_dir = Path('models') / 'temp_ollama'
+                                            temp_models_dir.mkdir(parents=True, exist_ok=True)
+                                            
+                                            # Create a GGUF file name from the model name
+                                            gguf_name = f"{model_name.replace('/', '_')}.gguf"
+                                            gguf_path = temp_models_dir / gguf_name
+                                            
+                                            # Only copy if the file doesn't exist or is older than the blob
+                                            if not gguf_path.exists() or blob_path.stat().st_mtime > gguf_path.stat().st_mtime:
+                                                logger.info(f"Copying Ollama blob to GGUF: {gguf_path}")
+                                                import shutil
+                                                shutil.copy2(blob_path, gguf_path)
+                                            else:
+                                                logger.info(f"Using existing GGUF file: {gguf_path}")
+                                            
+                                            # Force CUDA environment variables
+                                            import torch
+                                            if torch.cuda.is_available():
+                                                os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+                                                os.environ['LLAMA_CUDA_FORCE'] = '1'
+                                                os.environ['LLAMA_FORCE_GPU'] = '1'
+                                                os.environ['LLAMA_CPU_DISABLE'] = '1'
+                                                logger.info("CUDA environment variables set for Ollama model")
+                                            
+                                            return gguf_path
+                        except json.JSONDecodeError:
+                            pass
+            
+            logger.warning(f"No Ollama model files found in: {ollama_dir}")
+            raise ModelLoadError(f"Could not find Ollama model files in {ollama_dir}")
 
         # Check for existing GGUF files in the directory
         if model_dir.exists():
             existing_gguf = list(model_dir.glob("*.gguf"))
             if existing_gguf:
-                # Sort by preference: q4_k_m first, then by file size
-                existing_gguf.sort(key=lambda x: (
-                    0 if 'q4_k_m' in x.name.lower() else 1,
-                    x.stat().st_size
-                ))
                 logger.info(f"Found existing GGUF model: {existing_gguf[0]}")
                 return existing_gguf[0]
 
@@ -100,7 +181,7 @@ class LlamaCppLoader(BaseLoader):
         if '/' in self.request.model_name:
             return self._download_model(model_dir)
 
-        raise ModelLoadError(f"No GGUF model files found in: {model_dir}")
+        raise ModelLoadError(f"No model files found in: {model_dir}")
 
     def _download_model(self, model_dir: Path) -> Path:
         """Download model from Hugging Face."""
@@ -167,67 +248,75 @@ class LlamaCppLoader(BaseLoader):
         """Configure model parameters based on request and system capabilities."""
         import torch
 
-        # Configure GPU layers
-        gpu_layers = self._configure_gpu_layers()
-
         # Base parameters
         params = {
-            "model_path": str(self._get_model_path()),
             "n_ctx": int(self.request.n_ctx) if self.request.n_ctx is not None else 2048,
             "n_batch": int(self.request.n_batch) if self.request.n_batch is not None else 512,
             "n_threads": int(self.request.n_threads) if self.request.n_threads is not None else os.cpu_count(),
-            "n_threads_batch": int(self.request.n_threads_batch) if self.request.n_threads_batch is not None else min(8, os.cpu_count()),
-            "n_gpu_layers": int(gpu_layers),
-            "main_gpu": int(self.request.main_gpu) if self.request.main_gpu is not None else 0,
+            "verbose": True,  # Enable verbose output for debugging
         }
 
-        # Add optional parameters
+        # Add CUDA parameters if available
+        if torch.cuda.is_available():
+            logger.info("Configuring CUDA parameters...")
+            
+            # Force CUDA environment variables
+            os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+            os.environ['LLAMA_CUDA_FORCE'] = '1'
+            os.environ['LLAMA_FORCE_GPU'] = '1'  # Force GPU usage
+            os.environ['LLAMA_CPU_DISABLE'] = '1'  # Disable CPU fallback
+            
+            # Enhanced CUDA parameters - optimized for GPU usage
+            cuda_params = {
+                "n_gpu_layers": -1,    # Use all layers on GPU
+                "main_gpu": 0,         # Use the first GPU
+                "tensor_split": None,   # No tensor splitting
+                "use_mmap": False,     # Disable memory mapping
+                "use_mlock": True,     # Lock memory to prevent swapping
+                "mul_mat_q": True,     # Enable matrix multiplication
+                "offload_kqv": True,   # Keep KQV on GPU
+                "f16_kv": True,        # Use float16 for KV cache
+                "logits_all": True,    # Compute logits for all tokens
+                "embedding": True      # Use GPU for embeddings
+            }
+            
+            params.update(cuda_params)
+            logger.info(f"CUDA parameters configured: {cuda_params}")
+            
+            # Log CUDA device info
+            logger.info(f"CUDA Device: {torch.cuda.get_device_name(0)}")
+            logger.info(f"CUDA Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**2:.0f}MB")
+
+        # Add optional parameters if specified in request
         optional_params = {
             "tensor_split": self.request.tensor_split,
-            "mul_mat_q": True,
-            "use_mmap": True,
-            "use_mlock": True,
-            "offload_kqv": True,
             "split_mode": self.request.split_mode,
-            "flash_attn": True,
             "cache_type": self.request.cache_type,
         }
 
+        # Only add optional params if they have non-None values
         params.update({k: v for k, v in optional_params.items() if v is not None})
 
-        # Add rope parameters if specified
-        if self.request.rope_scaling_type:
-            params["rope_scaling_type"] = self.request.rope_scaling_type
-            if self.request.rope_freq_base is not None:
-                params["rope_freq_base"] = self.request.rope_freq_base
-            if self.request.rope_freq_scale is not None:
-                params["rope_freq_scale"] = self.request.rope_freq_scale
-
-        if self.request.tensor_split:
-            try:
-                tensor_split = [float(x) for x in self.request.tensor_split.split(",")]
-                params["tensor_split"] = tensor_split
-            except:
-                logger.warning("Invalid tensor split configuration, ignoring")
-
+        logger.info(f"Final model parameters: {params}")
         return params
 
     def _configure_gpu_layers(self) -> int:
-        """Configure the number of GPU layers based on device and request."""
+        """Configure the number of GPU layers based on hardware and request."""
         import torch
         
-        if torch.cuda.is_available():
-            # Use all available GPU layers by default for CUDA
-            gpu_layers = self.request.n_gpu_layers or -1
-            logger.info(f"Using CUDA acceleration with {gpu_layers} GPU layers")
-        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-            # For Apple Silicon (M1/M2)
-            gpu_layers = self.request.n_gpu_layers or 1
-            logger.info("Using Metal acceleration for Apple Silicon")
-        else:
-            gpu_layers = 0
+        if not torch.cuda.is_available():
+            return 0
+            
+        # Force environment variables for CUDA
+        os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+        os.environ['LLAMA_CUDA_FORCE'] = '1'
         
-        return gpu_layers
+        # If n_gpu_layers is specified in request, use that
+        if self.request.n_gpu_layers is not None:
+            return self.request.n_gpu_layers
+            
+        # Otherwise, use all layers on GPU
+        return -1  # -1 means use all layers on GPU
 
     def _setup_cache(self, model: Any) -> None:
         """Setup model cache if supported."""

@@ -207,10 +207,20 @@ class ModelManager:
                     logger.error(f"Error processing Ollama model: {str(e)}")
                     raise ModelLoadError(f"Failed to process Ollama model: {str(e)}")
 
-            # Auto-detect model type if not specified
-            if not request.model_type or request.model_type == "auto":
-                request.model_type = self._detect_model_type(request)
-                logger.info(f"Detected model type: {request.model_type}")
+            # Check if model exists locally first
+            model_path = Path(request.model_path) if request.model_path else Path(f"models/{request.model_name}")
+            if model_path.exists():
+                logger.info(f"Found local model at: {model_path}")
+                # Auto-detect model type if not specified
+                if not request.model_type or request.model_type == "auto":
+                    request.model_type = self._detect_model_type(request)
+                    logger.info(f"Detected model type: {request.model_type}")
+            else:
+                # Only attempt to download if it looks like a HF model ID
+                if '/' in request.model_name:
+                    logger.info(f"Model not found locally, will attempt to download from HuggingFace")
+                else:
+                    raise ModelNotFoundError(f"Model not found at: {model_path}")
 
             # Check platform compatibility
             is_compatible, message = check_platform_compatibility(request.model_type)

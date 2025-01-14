@@ -19,6 +19,10 @@ interface DownloadProgress {
     totalFiles?: number;
     fileProgress?: number;
     totalProgress: number;
+    currentSize?: string;
+    totalSize?: string;
+    currentStep?: string;
+    speed?: string;
   };
 }
 
@@ -35,7 +39,46 @@ async function downloadModel(payload: {
     mainWindow?.webContents.send("download-model-progress", data);
   };
 
+  // Calculate download speed
+  const calculateSpeed = (bytes: number, timeInMs: number) => {
+    const bytesPerSecond = (bytes / timeInMs) * 1000;
+    if (bytesPerSecond > 1024 * 1024) {
+      return `${(bytesPerSecond / (1024 * 1024)).toFixed(2)} MB/s`;
+    } else if (bytesPerSecond > 1024) {
+      return `${(bytesPerSecond / 1024).toFixed(2)} KB/s`;
+    }
+    return `${bytesPerSecond.toFixed(2)} B/s`;
+  };
+
   try {
+    // Check if directory exists and has files
+    if (fs.existsSync(payload.dirPath)) {
+      const existingFiles = fs.readdirSync(payload.dirPath);
+      if (existingFiles.length > 0) {
+        // Check for common model files
+        const hasModelFiles = existingFiles.some(file => 
+          file.endsWith('.gguf') || 
+          file.endsWith('.bin') || 
+          file.endsWith('.safetensors') ||
+          file === 'config.json' ||
+          file === 'tokenizer.json'
+        );
+        
+        if (hasModelFiles) {
+          console.log("Model already exists in:", payload.dirPath);
+          sendProgress({
+            type: "progress",
+            data: {
+              message: "Model already exists",
+              totalProgress: 100,
+              currentStep: "complete"
+            }
+          });
+          return payload;
+        }
+      }
+    }
+
     // Create directory if it doesn't exist
     fs.mkdirSync(payload.dirPath, { recursive: true });
 
@@ -51,7 +94,8 @@ async function downloadModel(payload: {
       type: "progress",
       data: {
         message: "Fetching model information...",
-        totalProgress: 0
+        totalProgress: 0,
+        currentStep: "init"
       }
     });
 
@@ -68,12 +112,32 @@ async function downloadModel(payload: {
     const files = (await response.json()) as { path: string; size: number }[];
     console.log("Found files:", files);
 
+    // Filter out zero-size files and sort by size (largest first)
+    const downloadableFiles = files
+      .filter(file => file.size > 0)
+      .sort((a, b) => b.size - a.size);
+
     // Calculate total size
-    const totalSize = files.reduce((acc, file) => acc + file.size, 0);
+    const totalSize = downloadableFiles.reduce((acc, file) => acc + file.size, 0);
     let downloadedSize = 0;
 
+    // Format size to human readable
+    const formatSize = (bytes: number) => {
+      const units = ['B', 'KB', 'MB', 'GB'];
+      let size = bytes;
+      let unitIndex = 0;
+      while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex++;
+      }
+      return `${size.toFixed(2)} ${units[unitIndex]}`;
+    };
+
+    // Keep track of failed files
+    const failedFiles: string[] = [];
+
     // Download each file
-    for (const [index, file] of files.entries()) {
+    for (const [index, file] of downloadableFiles.entries()) {
       const fileName = file.path;
       const downloadUrl = `https://huggingface.co/${payload.modelId}/resolve/main/${fileName}`;
       const filePath = path.join(payload.dirPath, fileName);
@@ -85,68 +149,119 @@ async function downloadModel(payload: {
       sendProgress({
         type: "progress",
         data: {
-          message: "Downloading file...",
+          message: `Downloading file ${index + 1} of ${downloadableFiles.length}`,
           fileName,
           fileNumber: index + 1,
-          totalFiles: files.length,
+          totalFiles: downloadableFiles.length,
           fileProgress: 0,
-          totalProgress: Math.round((downloadedSize / totalSize) * 100)
+          totalProgress: Math.round((downloadedSize / totalSize) * 100),
+          currentSize: formatSize(downloadedSize),
+          totalSize: formatSize(totalSize),
+          currentStep: "downloading",
+          speed: "Starting..."
         }
       });
 
-      const fileResponse = await fetch(downloadUrl, { headers, signal });
+      try {
+        const fileResponse = await fetch(downloadUrl, { headers, signal });
 
-      if (!fileResponse.ok) {
-        throw new Error(
-          `Failed to download ${fileName}: ${fileResponse.statusText}`
-        );
-      }
+        if (!fileResponse.ok) {
+          console.warn(`Failed to download ${fileName}: ${fileResponse.statusText}`);
+          failedFiles.push(fileName);
+          continue;
+        }
 
-      if (!fileResponse.body) {
-        throw new Error(`No data received for ${fileName}`);
-      }
+        if (!fileResponse.body) {
+          console.warn(`No data received for ${fileName}`);
+          failedFiles.push(fileName);
+          continue;
+        }
 
-      // Stream the file to disk with progress tracking
-      const fileStream = fs.createWriteStream(filePath);
-      const reader = fileResponse.body.getReader();
-      let receivedLength = 0;
+        // Stream the file to disk with progress tracking
+        const fileStream = fs.createWriteStream(filePath);
+        const reader = fileResponse.body.getReader();
+        let receivedLength = 0;
+        let lastUpdate = Date.now();
+        let lastBytes = 0;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        receivedLength += value.length;
-        downloadedSize += value.length;
-        fileStream.write(value);
+          receivedLength += value.length;
+          downloadedSize += value.length;
+          fileStream.write(value);
 
-        // Update progress
-        const totalProgress = Math.round((downloadedSize / totalSize) * 100);
-        const fileProgress = Math.round((receivedLength / file.size) * 100);
-        
-        sendProgress({
-          type: "progress",
-          data: {
-            message: "Downloading file...",
-            fileName,
-            fileNumber: index + 1,
-            totalFiles: files.length,
-            fileProgress,
-            totalProgress
+          // Calculate speed every 500ms
+          const now = Date.now();
+          const timeDiff = now - lastUpdate;
+          if (timeDiff >= 500) {
+            const bytesDiff = receivedLength - lastBytes;
+            const speed = calculateSpeed(bytesDiff, timeDiff);
+            lastUpdate = now;
+            lastBytes = receivedLength;
+
+            // Update progress
+            const totalProgress = Math.round((downloadedSize / totalSize) * 100);
+            const fileProgress = Math.round((receivedLength / file.size) * 100);
+            
+            sendProgress({
+              type: "progress",
+              data: {
+                message: `Downloading file ${index + 1} of ${downloadableFiles.length}`,
+                fileName,
+                fileNumber: index + 1,
+                totalFiles: downloadableFiles.length,
+                fileProgress,
+                totalProgress,
+                currentSize: formatSize(downloadedSize),
+                totalSize: formatSize(totalSize),
+                currentStep: "downloading",
+                speed
+              }
+            });
           }
-        });
-      }
+        }
 
-      fileStream.end();
-      console.log(`Successfully downloaded ${fileName}`);
+        fileStream.end();
+        console.log(`Successfully downloaded ${fileName}`);
+      } catch (error) {
+        console.warn(`Error downloading ${fileName}:`, error);
+        failedFiles.push(fileName);
+        continue;
+      }
     }
 
-    sendProgress({
-      type: "progress",
-      data: {
-        message: "Download completed successfully",
-        totalProgress: 100
-      }
-    });
+    // If all files failed, throw error
+    if (failedFiles.length === downloadableFiles.length) {
+      throw new Error("Failed to download any files from the model");
+    }
+
+    // If some files failed but not all, show warning
+    if (failedFiles.length > 0) {
+      console.warn("Some files failed to download:", failedFiles);
+      sendProgress({
+        type: "progress",
+        data: {
+          message: `Download completed with ${failedFiles.length} skipped files`,
+          totalProgress: 100,
+          currentStep: "complete",
+          currentSize: formatSize(downloadedSize),
+          totalSize: formatSize(totalSize)
+        }
+      });
+    } else {
+      sendProgress({
+        type: "progress",
+        data: {
+          message: "Download completed successfully",
+          totalProgress: 100,
+          currentStep: "complete",
+          currentSize: formatSize(totalSize),
+          totalSize: formatSize(totalSize)
+        }
+      });
+    }
 
     currentDownloadController = null;
     return payload;

@@ -17,11 +17,26 @@ import { useUser } from "@/context/useUser";
 import { toast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 
+interface DownloadProgressData {
+  message: string;
+  fileName?: string;
+  fileNumber?: number;
+  totalFiles?: number;
+  fileProgress?: number;
+  totalProgress: number;
+  currentSize?: string;
+  totalSize?: string;
+  currentStep?: string;
+  speed?: string;
+}
 
 export default function AddNewModel() {
   const [newModelName, setNewModelName] = useState("");
   const [isAddingModel, setIsAddingModel] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadProgress, setDownloadProgress] = useState<DownloadProgressData>({ 
+    message: "", 
+    totalProgress: 0 
+  });
   const [progressMessage, setProgressMessage] = useState("");
   const [currentFile, setCurrentFile] = useState<string>();
   const [fileProgress, setFileProgress] = useState(0);
@@ -32,9 +47,9 @@ export default function AddNewModel() {
   useEffect(() => {
     const handleProgress = (_: Electron.IpcRendererEvent, message: string | OllamaProgressEvent | DownloadModelProgress) => {
       if (typeof message === 'object' && 'type' in message && message.type === 'progress') {
-        const { message: progressMessage, fileName, fileProgress, totalProgress } = message.data;
+        const { message: progressMessage, fileName, fileProgress, totalProgress, ...rest } = message.data;
         setProgressMessage(progressMessage);
-        setDownloadProgress(totalProgress);
+        setDownloadProgress({ message: progressMessage, totalProgress, ...rest });
         if (fileName) setCurrentFile(fileName);
         if (typeof fileProgress === 'number') setFileProgress(fileProgress);
       }
@@ -60,7 +75,7 @@ export default function AddNewModel() {
     } finally {
       setIsDownloading(false);
       setLocalModalLoading(false);
-      setDownloadProgress(0);
+      setDownloadProgress({ message: "", totalProgress: 0 });
       setFileProgress(0);
       setProgressMessage("");
       setCurrentFile(undefined);
@@ -81,9 +96,8 @@ export default function AddNewModel() {
     try {
       setIsDownloading(true);
       setLocalModalLoading(true);
-      setDownloadProgress(0);
+      setDownloadProgress({ message: "Starting download...", totalProgress: 0 });
       setFileProgress(0);
-      setProgressMessage("Starting download...");
       setCurrentFile(undefined);
       const modelId = newModelName.replace("hf.co/", "");
       
@@ -106,7 +120,7 @@ export default function AddNewModel() {
     } finally {
       setIsDownloading(false);
       setLocalModalLoading(false);
-      setDownloadProgress(0);
+      setDownloadProgress({ message: "", totalProgress: 0 });
       setFileProgress(0);
       setProgressMessage("");
       setCurrentFile(undefined);
@@ -160,12 +174,27 @@ export default function AddNewModel() {
                 )}
               </div>
               {currentFile && (
-                <>
-                  <p className="text-xs text-muted-foreground truncate">{currentFile}</p>
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs text-muted-foreground truncate flex-1">{currentFile}</p>
+                    <p className="text-xs text-muted-foreground ml-2">
+                      {fileProgress}%
+                    </p>
+                  </div>
                   <Progress value={fileProgress} className="h-1" />
-                </>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{downloadProgress.currentSize || '0 B'} / {downloadProgress.totalSize || '0 B'}</span>
+                    {downloadProgress.speed && <span>{downloadProgress.speed}</span>}
+                  </div>
+                </div>
               )}
-              <Progress value={downloadProgress} className="h-1" />
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Total Progress</span>
+                  <span>{downloadProgress.totalProgress}%</span>
+                </div>
+                <Progress value={downloadProgress.totalProgress} className="h-1" />
+              </div>
             </div>
           )}
           <Button

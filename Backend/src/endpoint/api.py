@@ -12,6 +12,8 @@ from src.models.manager import model_manager
 from src.models.streamer import TextGenerator, StopOnInterrupt, StreamIterator
 import uuid
 import time
+import torch
+import transformers
 
 # Configure logging
 log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs")
@@ -97,67 +99,158 @@ async def chat_completion_stream(request: ChatCompletionRequest) -> AsyncGenerat
 
         # Convert messages to prompt
         prompt = ""
-        for msg in request.messages:
-            if msg.role == "system":
-                prompt += f"System: {msg.content}\n"
-            elif msg.role == "user":
-                prompt += f"User: {msg.content}\n"
-            elif msg.role == "assistant":
-                prompt += f"Assistant: {msg.content}\n"
-        prompt += "Assistant: "
+        try:
+            # Add system instruction about response format
+            prompt += """System: You are a helpful AI assistant. Follow these rules:
+1. Provide clear, concise responses
+2. Keep explanations under 4-5 sentences per topic
+3. Stop immediately once you've covered the main points
+4. Do not generate additional questions or conversation turns
+5. Respond only to the current question
+
+Remember: Be direct and stay focused on the current question only.
+
+"""
+            
+            # Format messages without explicit User/Assistant markers
+            for msg in request.messages:
+                if msg.role == "system":
+                    prompt += f"{msg.content}\n"
+                elif msg.role == "user":
+                    prompt += f"Question: {msg.content}\n"
+                elif msg.role == "assistant":
+                    prompt += f"Response: {msg.content}\n"
+            prompt += "Response: "
+            
+            logger.info(f"Generated prompt: {prompt}")
+        except Exception as e:
+            logger.error(f"Error formatting prompt: {str(e)}", exc_info=True)
+            raise
 
         # Create text generator
-        generator = TextGenerator(model, model_manager.current_tokenizer, model_manager.device)
+        try:
+            generator = TextGenerator(model, model_manager.current_tokenizer, model_manager.device)
+            
+            # Encode the prompt and create attention mask
+            input_ids = model_manager.current_tokenizer.encode(prompt, return_tensors="pt")
+            attention_mask = torch.ones_like(input_ids)
+            if hasattr(model, "device"):
+                input_ids = input_ids.to(model.device)
+                attention_mask = attention_mask.to(model.device)
+        except Exception as e:
+            logger.error(f"Error setting up generator: {str(e)}", exc_info=True)
+            raise
 
         if request.stream:
-            stream_iterator = generator.generate(
-                prompt=prompt,
-                max_new_tokens=request.max_tokens or 2048,
-                temperature=request.temperature or 0.7,
-                top_p=request.top_p or 0.95,
-                top_k=request.top_k or 50,
-                repetition_penalty=1.1,
-                stream=True
-            )
-
-            async for chunk in stream_iterator:
-                yield chunk
-
-        else:
-            # Non-streaming response in OpenAI format
-            response = generator.generate(
-                prompt=prompt,
-                max_new_tokens=request.max_tokens or 2048,
-                temperature=request.temperature or 0.7,
-                top_p=request.top_p or 0.95,
-                top_k=request.top_k or 50,
-                repetition_penalty=1.1,
-                stream=False
-            )
-            
-            # Format response exactly like OpenAI
-            formatted_response = {
-                "id": f"chatcmpl-{str(hash(response))[-12:]}",
-                "object": "chat.completion",
-                "created": int(time.time()),
-                "model": "local-model",
-                "choices": [{
-                    "index": 0,
-                    "message": {
-                        "role": "assistant",
-                        "content": response
-                    },
-                    "finish_reason": "stop"
-                }],
-                "usage": {
-                    "prompt_tokens": len(prompt),
-                    "completion_tokens": len(response),
-                    "total_tokens": len(prompt) + len(response)
+            try:
+                # Set up generation config
+                gen_config = {
+                    "max_new_tokens": min(request.max_tokens or 2048, 2048),  # Cap at 2048 if not specified
+                    "temperature": request.temperature or 0.7,
+                    "top_p": request.top_p or 0.95,
+                    "top_k": request.top_k or 40,  # Slightly lower for more focused sampling
+                    "repetition_penalty": 1.2,  # Increased to reduce repetition
+                    "do_sample": True,
+                    "pad_token_id": model_manager.current_tokenizer.pad_token_id,
+                    "eos_token_id": model_manager.current_tokenizer.eos_token_id,
+                    "no_repeat_ngram_size": 5,  # Increased to catch longer repetitive phrases
+                    "min_new_tokens": 32,  # Increased minimum for more complete thoughts
+                    "max_time": 30.0,
+                    "stopping_criteria": transformers.StoppingCriteriaList([StopOnInterrupt()]),
+                    "forced_eos_token_id": model_manager.current_tokenizer.eos_token_id,
+                    "length_penalty": 0.8,  # Slight penalty for longer sequences
+                    "num_return_sequences": 1,
+                    "remove_invalid_values": True
                 }
-            }
-            yield f"data: {json.dumps(formatted_response)}\n\n"
+
+                # Add [END] token to the tokenizer's special tokens
+                special_tokens = {"additional_special_tokens": ["[END]"]}
+                model_manager.current_tokenizer.add_special_tokens(special_tokens)
+                
+                logger.info(f"Generation config: {gen_config}")
+
+                # Create streamer with token-by-token streaming
+                streamer = TextIteratorStreamer(
+                    model_manager.current_tokenizer,
+                    skip_prompt=True,
+                    skip_special_tokens=True,
+                    timeout=None,  # No timeout to prevent queue.Empty errors
+                    skip_word_before_colon=False,
+                    spaces_between_special_tokens=False,
+                    tokenizer_decode_kwargs={"skip_special_tokens": True}
+                )
+                generation_kwargs = dict(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    streamer=streamer,
+                    **gen_config
+                )
+
+                # Create thread for generation
+                thread = Thread(target=model.generate, kwargs=generation_kwargs)
+                thread.start()
+
+                # Generate a consistent ID for this completion
+                completion_id = f"chatcmpl-{uuid.uuid4()}"
+
+                # Send the initial role message
+                response = {
+                    "id": completion_id,
+                    "object": "chat.completion.chunk",
+                    "created": int(time.time()),
+                    "model": "local-model",
+                    "choices": [{
+                        "index": 0,
+                        "delta": {"role": "assistant"},
+                        "finish_reason": None
+                    }]
+                }
+                yield f"data: {json.dumps(response)}\n\n"
+
+                # Stream the output
+                accumulated_text = ""
+                for new_text in streamer:
+                    if not new_text:
+                        continue
+                        
+                    # Split into individual characters/tokens for smoother streaming
+                    chars = list(new_text)
+                    for char in chars:
+                        accumulated_text += char
+                        response = {
+                            "id": completion_id,
+                            "object": "chat.completion.chunk",
+                            "created": int(time.time()),
+                            "model": "local-model",
+                            "choices": [{
+                                "index": 0,
+                                "delta": {"content": char},
+                                "finish_reason": None
+                            }]
+                        }
+                        yield f"data: {json.dumps(response)}\n\n"
+
+                # Send the final message
+                response = {
+                    "id": completion_id,
+                    "object": "chat.completion.chunk",
+                    "created": int(time.time()),
+                    "model": "local-model",
+                    "choices": [{
+                        "index": 0,
+                        "delta": {},
+                        "finish_reason": "stop"
+                    }]
+                }
+                yield f"data: {json.dumps(response)}\n\n"
+                yield "data: [DONE]\n\n"
+
+            except Exception as e:
+                logger.error(f"Error during streaming: {str(e)}", exc_info=True)
+                raise
 
     except Exception as e:
+        logger.error(f"Error in chat completion: {str(e)}", exc_info=True)
         error_response = {
             "id": f"chatcmpl-{uuid.uuid4()}",
             "object": "chat.completion.chunk",
@@ -172,4 +265,5 @@ async def chat_completion_stream(request: ChatCompletionRequest) -> AsyncGenerat
             }]
         }
         yield f"data: {json.dumps(error_response)}\n\n"
+        yield "data: [DONE]\n\n"  # Make sure to send DONE even on error
 

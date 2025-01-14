@@ -38,8 +38,8 @@ def detect_model_type(model_path: Union[str, Path]) -> str:
     if any(f.endswith('.gguf') for f in file_names):
         # Check if there's a HF tokenizer
         if any(f == 'tokenizer_config.json' for f in file_names):
-            return 'llamacpp_HF'
-        return 'llama.cpp'
+            return 'ExLlamav2_HF'
+        return 'ExLlamav2'
 
     # HQQ check
     if any(f.endswith('.hqq') for f in file_names):

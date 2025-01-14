@@ -43,7 +43,7 @@ class ModelLoadRequest(BaseModel):
     n_batch: Optional[int] = 512
     n_threads: Optional[int] = None
     n_threads_batch: Optional[int] = None
-    n_gpu_layers: Optional[int] = None
+    n_gpu_layers: Optional[int] = 32
     main_gpu: Optional[int] = 0
     tensor_split: Optional[List[float]] = None
     mul_mat_q: Optional[bool] = True
@@ -155,16 +155,16 @@ class Message(BaseModel):
 class ChatCompletionRequest(BaseModel):
     """Request model for chat completion"""
     messages: List[Message]
-    model: Optional[str] = None
+    model: str = "local-model"
     temperature: Optional[float] = 0.7
     top_p: Optional[float] = 0.95
     top_k: Optional[int] = 50
     n: Optional[int] = 1
-    max_tokens: Optional[int] = 512
-    presence_penalty: Optional[float] = 0
-    frequency_penalty: Optional[float] = 0
+    max_tokens: Optional[int] = 2048
+    presence_penalty: Optional[float] = 0.1
+    frequency_penalty: Optional[float] = 0.1
     repetition_penalty: Optional[float] = 1.1
-    stop: Optional[Union[str, List[str]]] = None
+    stop: Optional[List[str]] = None
     stream: Optional[bool] = True
 
 

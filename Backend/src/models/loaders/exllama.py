@@ -15,6 +15,7 @@ class ExLlamaV2Loader(BaseLoader):
         """Load an ExLlamav2 model."""
         try:
             from exllamav2 import ExLlamaV2, ExLlamaV2Config, ExLlamaV2Tokenizer
+            import torch
         except ImportError:
             raise ModelLoadError(
                 "exllamav2 is not installed. Please install it from the ExLlamaV2 repository")
@@ -22,16 +23,39 @@ class ExLlamaV2Loader(BaseLoader):
         if not self.model_path.exists():
             raise ModelLoadError(f"Model path does not exist: {self.model_path}")
 
+        # Clear CUDA cache
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            logger.info(f"CUDA Device: {torch.cuda.get_device_name(0)}")
+            logger.info(f"CUDA Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**2:.0f}MB")
+
+        if not torch.cuda.is_available():
+            raise ModelLoadError("GPU is required for ExLlama2")
+
+        # Force CUDA device
+        torch.set_default_device('cuda')
+        torch.set_default_tensor_type('torch.cuda.FloatTensor')
+        
         config = ExLlamaV2Config()
         config.model_dir = str(self.model_path)
         config.max_seq_len = self.request.max_seq_len or 2048
         config.compress_pos_emb = self.request.compress_pos_emb
         config.alpha_value = self.request.alpha_value
+        config.calculate_rotary_embedding_base()  # Important for GPU performance
 
+        logger.info(f"Loading model with config: {config.__dict__}")
         model = ExLlamaV2(config)
+
+        # Force model to GPU
         model.load()
+        for param in model.parameters():
+            param.data = param.data.cuda()
+            
+        logger.info(f"Model loaded on GPU. CUDA Memory: {torch.cuda.memory_allocated() / 1024**2:.0f}MB")
+        logger.info(f"Device for first parameter: {next(model.parameters()).device}")
 
         tokenizer = ExLlamaV2Tokenizer(config)
+        logger.info("Model and tokenizer loaded successfully")
 
         return model, tokenizer
 

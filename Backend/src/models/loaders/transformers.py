@@ -23,142 +23,129 @@ class TransformersLoader(BaseLoader):
     Handles both local and remote model loading with various optimizations.
     """
 
-    def load(self) -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
-        """
-        Load a Hugging Face Transformers model and tokenizer.
-        
-        Returns:
-            Tuple[model, tokenizer]
-            
-        Raises:
-            ModelLoadError: If there's an error loading the model
-            ModelDownloadError: If there's an error downloading the model
-        """
+    def load(self) -> Tuple[Any, Any]:
+        """Load a transformers model and return the model and tokenizer."""
         try:
-            self.prepare_loading()
+            import torch
+            from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
             
-            # Try to download from HuggingFace if it's a HF model ID
-            if '/' in self.request.model_name:
-                return self._download_and_load_model()
+            logger.info(f"Loading model: {self.request.model_name}")
+            logger.info(f"Model type: {self.request.model_type}")
+            logger.info(f"Model path: {self.request.model_path}")
+            logger.info(f"Device: {self.request.device}")
+
+            # Configure model loading parameters
+            model_kwargs = self._get_model_kwargs()
             
-            # Load local model
-            return self._load_local_model()
-            
+            # If we have a local path, use it directly
+            if self.request.model_path and Path(self.request.model_path).exists():
+                logger.info(f"Loading model from local path: {self.request.model_path}")
+                try:
+                    # Try to load tokenizer from local path first
+                    tokenizer = AutoTokenizer.from_pretrained(
+                        self.request.model_path,
+                        trust_remote_code=self.request.trust_remote_code,
+                        use_fast=self.request.use_fast_tokenizer,
+                        padding_side=self.request.padding_side
+                    )
+                    logger.info("Loaded tokenizer from local path")
+
+                    # Load model from local path
+                    model = AutoModelForCausalLM.from_pretrained(
+                        self.request.model_path,
+                        **model_kwargs
+                    )
+                    logger.info("Loaded model from local path")
+                    
+                    # Ensure model is on the correct device if not using device_map
+                    if model_kwargs.get("device_map") is None and hasattr(model, "to"):
+                        # Handle device placement
+                        if self.request.device == "auto":
+                            device = "cuda" if torch.cuda.is_available() else "cpu"
+                        else:
+                            device = self.request.device
+                        
+                        model = model.to(device)
+                        logger.info(f"Moved model to device: {device}")
+                    
+                    return model, tokenizer
+                except Exception as e:
+                    logger.warning(f"Failed to load from local path: {e}")
+                    raise ModelLoadError(f"Failed to load model from local path: {str(e)}")
+            else:
+                # Download from HuggingFace
+                logger.info("Attempting to download from HuggingFace: " + self.request.model_name)
+                
+                try:
+                    # Download and save tokenizer
+                    tokenizer = AutoTokenizer.from_pretrained(
+                        self.request.model_name,
+                        trust_remote_code=self.request.trust_remote_code,
+                        use_fast=self.request.use_fast_tokenizer,
+                        padding_side=self.request.padding_side
+                    )
+                    if self.request.model_path:
+                        tokenizer.save_pretrained(self.request.model_path)
+                        logger.info(f"Tokenizer downloaded and saved to {self.request.model_path}")
+
+                    # Download and save config
+                    if self.request.model_path:
+                        from transformers import AutoConfig
+                        config = AutoConfig.from_pretrained(
+                            self.request.model_name,
+                            trust_remote_code=self.request.trust_remote_code
+                        )
+                        config.save_pretrained(self.request.model_path)
+                        logger.info(f"Config downloaded and saved to {self.request.model_path}")
+
+                    # Download model weights
+                    logger.info("Downloading model weights (this may take a while)...")
+                    model = AutoModelForCausalLM.from_pretrained(
+                        self.request.model_name,
+                        **model_kwargs
+                    )
+                    
+                    # Save the model if we have a path
+                    if self.request.model_path:
+                        model.save_pretrained(self.request.model_path)
+                        logger.info(f"Model weights saved to {self.request.model_path}")
+                    
+                    return model, tokenizer
+                except Exception as e:
+                    raise ModelLoadError(f"Failed to download model: {str(e)}")
+
         except Exception as e:
-            self.log_error(e, "Failed to load Transformers model")
-            if isinstance(e, (ModelLoadError, ModelDownloadError)):
-                raise
-            raise ModelLoadError(str(e))
+            raise ModelLoadError(f"Failed to load transformers model: {str(e)}")
 
-    def _download_and_load_model(self) -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
-        """Download and load model from HuggingFace."""
-        logger.info(f"Attempting to download from HuggingFace: {self.request.model_name}")
-        
-        try:
-            # Load tokenizer
-            tokenizer = self._load_tokenizer(self.request.model_name)
-            tokenizer.save_pretrained(self.model_path)
-            logger.info(f"Tokenizer downloaded and saved to {self.model_path}")
-
-            # Load config
-            config = self._load_config(self.request.model_name)
-            config.save_pretrained(self.model_path)
-            logger.info(f"Config downloaded and saved to {self.model_path}")
-
-            # Load model
-            logger.info("Downloading model weights (this may take a while)...")
-            model = self._load_model_with_config(self.request.model_name, config)
-            model.save_pretrained(self.model_path)
-            logger.info(f"Model downloaded and saved to {self.model_path}")
-
-            return model, tokenizer
-
-        except Exception as e:
-            if "401" in str(e) and not self.request.hf_token:
-                raise ModelDownloadError(
-                    f"Model {self.request.model_name} requires authentication. Please provide a HuggingFace token.")
-            raise ModelDownloadError(f"Failed to download model: {str(e)}")
-
-    def _load_local_model(self) -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
-        """Load model from local storage."""
-        if not self.model_path.exists():
-            raise ModelLoadError(
-                f"Model path does not exist and is not a valid HuggingFace model ID: {self.model_path}")
-
-        # Load config
-        config = self._load_config(self.model_path)
-        
-        # Load model
-        model = self._load_model_with_config(self.model_path, config)
-        
-        # Load tokenizer
-        tokenizer = self._load_tokenizer(
-            self.request.tokenizer_path or self.model_path
-        )
-
-        # Move model to device if needed
-        if self.request.device != "cuda" and not (self.request.load_in_8bit or self.request.load_in_4bit):
-            model = model.to(self.request.device)
-
-        return model, tokenizer
-
-    def _load_tokenizer(self, path: Union[str, Path]) -> PreTrainedTokenizer:
-        """Load tokenizer with specified settings."""
-        try:
-            return AutoTokenizer.from_pretrained(
-                path,
-                trust_remote_code=self.request.trust_remote_code,
-                use_fast=self.request.use_fast_tokenizer,
-                padding_side=self.request.padding_side,
-                revision=self.request.revision,
-                token=self.request.hf_token
-            )
-        except Exception as e:
-            if self.request.hf_token:
-                raise
-            # Try without token for public models
-            return AutoTokenizer.from_pretrained(
-                path,
-                trust_remote_code=self.request.trust_remote_code,
-                use_fast=self.request.use_fast_tokenizer,
-                padding_side=self.request.padding_side,
-                revision=self.request.revision
-            )
-
-    def _load_config(self, path: Union[str, Path]) -> AutoConfig:
-        """Load model configuration."""
-        return AutoConfig.from_pretrained(
-            path,
-            trust_remote_code=self.request.trust_remote_code,
-            revision=self.request.revision,
-            token=self.request.hf_token
-        )
-
-    def _load_model_with_config(self, path: Union[str, Path], config: AutoConfig) -> PreTrainedModel:
-        """Load model with configuration and parameters."""
-        return AutoModelForCausalLM.from_pretrained(
-            path,
-            config=config,
-            token=self.request.hf_token,
-            **self._get_load_params()
-        )
-
-    def _get_load_params(self) -> Dict[str, Any]:
+    def _get_model_kwargs(self) -> Dict[str, Any]:
         """Get model loading parameters."""
         # Get the compute dtype
         compute_dtype = torch.bfloat16 if self.request.compute_dtype == "bfloat16" else torch.float16
         
+        # Determine device map
+        device_map = None
+        if self.request.device == "cuda":
+            if torch.cuda.is_available():
+                device_map = "auto"
+            else:
+                logger.warning("CUDA requested but not available, falling back to CPU")
+                self.request.device = "cpu"
+        
+        # Base parameters without gradient checkpointing
         load_params = {
             "low_cpu_mem_usage": True,
-            "torch_dtype": compute_dtype,  # Keep as torch.dtype for loading
+            "torch_dtype": compute_dtype,
             "trust_remote_code": self.request.trust_remote_code,
             "use_flash_attention_2": self.request.use_flash_attention,
-            "device_map": "auto" if self.request.device == "cuda" else None,
+            "device_map": device_map,
             "revision": self.request.revision,
         }
 
-        # Add gradient checkpointing for supported architectures
-        if not any(x in self.request.model_name.lower() for x in ["phi", "falcon"]):
+        # Only add gradient checkpointing for explicitly supported models
+        model_name_lower = self.request.model_name.lower()
+        if ("llama" in model_name_lower or 
+            "mistral" in model_name_lower or 
+            "mpt" in model_name_lower):
             load_params["use_gradient_checkpointing"] = True
 
         # Configure quantization
@@ -218,7 +205,7 @@ class TransformersLoader(BaseLoader):
         """Get the current model configuration."""
         # Set flag to get JSON serializable params
         self._serializing_for_response = True
-        load_params = self._get_load_params()
+        load_params = self._get_model_kwargs()
         delattr(self, '_serializing_for_response')
         
         config = {

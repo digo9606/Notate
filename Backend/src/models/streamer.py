@@ -6,6 +6,10 @@ import torch
 import time
 import asyncio
 import json
+import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 class StopNowException(Exception):
     pass
@@ -126,12 +130,24 @@ class TextGenerator:
         self.tokenizer = tokenizer
         self.device = device
         self.stop_signal = False
+        
+        # Log CUDA status if available
+        if hasattr(torch.cuda, 'is_available') and torch.cuda.is_available():
+            logger.info("CUDA is available in TextGenerator")
+            logger.info(f"Model GPU layers: {getattr(self.model, 'n_gpu_layers', 'unknown')}")
+            logger.info(f"CUDA Memory allocated: {torch.cuda.memory_allocated() / 1024**2:.2f}MB")
+            logger.info(f"CUDA Memory reserved: {torch.cuda.memory_reserved() / 1024**2:.2f}MB")
 
     def _create_llama_completion(self, prompt: str, max_new_tokens: int, temperature: float,
                                top_p: float, top_k: int, repetition_penalty: float,
                                stream: bool = True):
         """Helper method to create llama.cpp completions"""
-        return self.model.create_completion(
+        # Log CUDA status before generation
+        if hasattr(torch.cuda, 'is_available') and torch.cuda.is_available():
+            logger.info(f"Pre-generation CUDA Memory: {torch.cuda.memory_allocated() / 1024**2:.2f}MB")
+            logger.info(f"Using GPU layers: {getattr(self.model, 'n_gpu_layers', 'unknown')}")
+            
+        result = self.model.create_completion(
             prompt=prompt,
             max_tokens=max_new_tokens,
             temperature=temperature,
@@ -140,6 +156,12 @@ class TextGenerator:
             repeat_penalty=repetition_penalty,
             stream=stream
         )
+        
+        # Log CUDA status after generation
+        if hasattr(torch.cuda, 'is_available') and torch.cuda.is_available():
+            logger.info(f"Post-generation CUDA Memory: {torch.cuda.memory_allocated() / 1024**2:.2f}MB")
+            
+        return result
 
     def generate(self,
                 prompt: str,
