@@ -192,6 +192,12 @@ export async function ensurePythonAndVenv(backendPath: string) {
 
     // Check if llama-cpp-python is already installed with correct configuration
     try {
+      // First install build dependencies for all platforms
+      log.info("Installing build dependencies for llama-cpp-python");
+      execSync(`"${venvPython}" -m pip install setuptools wheel scikit-build-core cmake ninja`);
+      // Install required dependencies first
+      execSync(`"${venvPython}" -m pip install typing-extensions numpy diskcache msgpack`);
+
       if (hasNvidiaGpu && cudaAvailable) {
         // First check for tensor cores capability
         let hasTensorCores = false;
@@ -210,10 +216,6 @@ export async function ensurePythonAndVenv(backendPath: string) {
         process.env.CUDA_PATH = process.env.CUDA_PATH || "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1";
         
         log.info("Installing llama-cpp-python with CUDA support");
-        // First install build dependencies
-        execSync(`"${venvPython}" -m pip install setuptools wheel scikit-build-core cmake ninja`);
-        // Install required dependencies first
-        execSync(`"${venvPython}" -m pip install typing-extensions numpy diskcache msgpack`);
         // Install llama-cpp-python with CUDA
         execSync(`"${venvPython}" -m pip install --no-cache-dir --verbose llama-cpp-python`);
         
@@ -228,6 +230,18 @@ export async function ensurePythonAndVenv(backendPath: string) {
         log.info("Successfully installed CUDA-enabled llama-cpp-python");
       } else {
         log.info("Installing CPU-only llama-cpp-python");
+        // For Windows, we need to ensure we have a C++ compiler
+        if (process.platform === "win32") {
+          try {
+            execSync("cl.exe");
+          } catch (error: unknown) {
+            log.error("Microsoft Visual C++ compiler not found:", error instanceof Error ? error.message : String(error));
+            log.info("Installing llama-cpp-python from wheel instead");
+            execSync(`"${venvPython}" -m pip install --no-cache-dir --only-binary :all: llama-cpp-python`);
+            log.info("Successfully installed llama-cpp-python from wheel");
+            return { venvPython, hasNvidiaGpu };
+          }
+        }
         execSync(`"${venvPython}" -m pip install --no-cache-dir llama-cpp-python`);
       }
     } catch (e) {
