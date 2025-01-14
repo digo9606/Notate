@@ -69,48 +69,108 @@ async function generateTitleOpenAI(input: string, userId: number) {
 }
 
 async function generateTitleLocalOpenAI(input: string, userId: number) {
-  const openai = new OpenAI({
-    baseURL: "http://localhost:47372",
-    apiKey: "not-needed",
-  });
-
   try {
-    const llmTitleRequest = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a title generator. Your only task is to generate a short, concise title (5 words or less) based on the given message. IMPORTANT: Return ONLY the title, with no additional text, conversation, or explanation. Example input: 'Hi there!' Example output: 'Friendly Greeting'. Example input: 'What's the weather like?' Example output: 'Weather Question'.",
-        },
-        {
-          role: "user",
-          content: input,
-        },
-      ],
-      max_tokens: 20,
-      stream: false, // Set to false for title generation
+    console.log("Generating title for input:", input);
+    const response = await fetch("http://localhost:47372/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "local-model",
+        messages: [
+          {
+            role: "system",
+            content: "Generate a short title (5 words or less) for this message. Return ONLY the title, with no prefix like 'Title:' or 'Note:'.",
+          },
+          {
+            role: "user",
+            content: input,
+          },
+        ],
+        max_tokens: 20,
+        temperature: 0.3,
+        stream: true,
+      }),
     });
 
-    // Handle the response which might be a string with a "data: " prefix
-    let parsedResponse = llmTitleRequest;
-    if (typeof llmTitleRequest === "string") {
-      const jsonStr = (llmTitleRequest as string).replace(/^data: /, "").trim();
-      parsedResponse = JSON.parse(jsonStr);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const content = parsedResponse?.choices?.[0]?.message?.content;
-    if (!content) {
-      console.warn(
-        "Empty or invalid response from local model:",
-        parsedResponse
-      );
+    if (!response.body) {
+      throw new Error("No response body received");
+    }
+
+    const reader = response.body.getReader();
+    let accumulatedText = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      // Convert the Uint8Array to a string
+      const chunk = new TextDecoder().decode(value);
+      console.log("Received chunk:", chunk);
+
+      // Extract content from the chunk
+      const lines = chunk.split('\n');
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              accumulatedText += content;
+            }
+          } catch (e) {
+            console.log("Failed to parse chunk:", e);
+          }
+        }
+      }
+    }
+
+    console.log("Final accumulated text:", accumulatedText);
+    
+    // Extract the actual title from the accumulated text
+    let title = accumulatedText
+      .split('\n')[0]                    // Take first line
+      .replace(/^Title:\s*/i, '')        // Remove "Title:" prefix
+      .replace(/^Note:\s*/i, '')         // Remove "Note:" prefix
+      .replace(/["']/g, '')              // Remove quotes
+      .trim();
+    
+    // If we got a multi-line response, try to find a line that looks like a title
+    if (!title || title.length > 50) {
+      const lines = accumulatedText.split('\n');
+      for (const line of lines) {
+        const cleanLine = line
+          .replace(/^Title:\s*/i, '')
+          .replace(/^Note:\s*/i, '')
+          .replace(/["']/g, '')
+          .trim();
+        if (cleanLine && cleanLine.length <= 50 && !cleanLine.toLowerCase().includes('note:')) {
+          title = cleanLine;
+          break;
+        }
+      }
+    }
+    
+    console.log("Extracted title:", title);
+    
+    if (!title || title.length > 50) {
       return "Untitled Conversation";
     }
 
-    return content.trim().split("\n")[0];
+    return title;
   } catch (error) {
     console.error("Error generating title:", error);
+    if (error instanceof Error) {
+      console.error("Error details:", error.message);
+      console.error("Error stack:", error.stack);
+    }
     return "Untitled Conversation";
   }
 }
