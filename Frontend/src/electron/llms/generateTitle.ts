@@ -68,7 +68,7 @@ async function generateTitleOpenAI(input: string, userId: number) {
   return generatedTitle;
 }
 
-async function generateTitleLocalOpenAI(input: string, userId: number) {
+async function generateTitleLocalOpenAI(input: string) {
   try {
     console.log("Generating title for input:", input);
     const response = await fetch("http://localhost:47372/chat/completions", {
@@ -81,7 +81,8 @@ async function generateTitleLocalOpenAI(input: string, userId: number) {
         messages: [
           {
             role: "system",
-            content: "You are a title generator. Output format: First line must be TITLE: followed by a short title (3-5 words). Do not explain or add any other text.",
+            content:
+              "You are a title generator. Output format: First line must be TITLE: followed by a short title (3-5 words). Do not explain or add any other text.",
           },
           {
             role: "user",
@@ -114,11 +115,11 @@ async function generateTitleLocalOpenAI(input: string, userId: number) {
       console.log("Received chunk:", chunk);
 
       // Extract content from the chunk
-      const lines = chunk.split('\n');
+      const lines = chunk.split("\n");
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
+        if (line.startsWith("data: ")) {
           const data = line.slice(6);
-          if (data === '[DONE]') continue;
+          if (data === "[DONE]") continue;
           try {
             const parsed = JSON.parse(data);
             const content = parsed.choices?.[0]?.delta?.content;
@@ -133,38 +134,40 @@ async function generateTitleLocalOpenAI(input: string, userId: number) {
     }
 
     console.log("Final accumulated text:", accumulatedText);
-    
+
     // Extract title using various patterns
     let title = "";
-    const lines = accumulatedText.split('\n').filter(line => line.trim().length > 0); // Remove empty lines
-    
+    const lines = accumulatedText
+      .split("\n")
+      .filter((line) => line.trim().length > 0); // Remove empty lines
+
     if (lines.length > 0) {
       // Take the first non-empty line as the title
       const firstLine = lines[0].trim();
-      
+
       // If it starts with common prefixes, remove them
       title = firstLine
-        .replace(/^TITLE:\s*/i, '')
-        .replace(/^Title:\s*/i, '')
-        .replace(/^Note:\s*/i, '')
-        .replace(/^Human\s+/i, '')  // Remove "Human" prefix
-        .replace(/^AI\s+/i, '')     // Remove "AI" prefix
-        .replace(/^Assistant\s+/i, '')  // Remove "Assistant" prefix
-        .replace(/:\s*/, ' ')       // Replace colons with space
-        .replace(/["']/g, '')       // Remove quotes
-        .replace(/^[-*•]/g, '')     // Remove bullet points
-        .replace(/\s+/g, ' ')       // Normalize whitespace
+        .replace(/^TITLE:\s*/i, "")
+        .replace(/^Title:\s*/i, "")
+        .replace(/^Note:\s*/i, "")
+        .replace(/^Human\s+/i, "") // Remove "Human" prefix
+        .replace(/^AI\s+/i, "") // Remove "AI" prefix
+        .replace(/^Assistant\s+/i, "") // Remove "Assistant" prefix
+        .replace(/:\s*/, " ") // Replace colons with space
+        .replace(/["']/g, "") // Remove quotes
+        .replace(/^[-*•]/g, "") // Remove bullet points
+        .replace(/\s+/g, " ") // Normalize whitespace
         .trim();
-        
+
       // If the title is too long, try to extract a shorter version
       if (title.length > 50) {
-        const words = title.split(' ').slice(0, 5).join(' '); // Take first 5 words
-        title = words.length <= 50 ? words : title.slice(0, 47) + '...';
+        const words = title.split(" ").slice(0, 5).join(" "); // Take first 5 words
+        title = words.length <= 50 ? words : title.slice(0, 47) + "...";
       }
     }
 
     console.log("Extracted title:", title);
-    
+
     if (!title || title.length === 0) {
       return "Untitled Conversation";
     }
@@ -334,7 +337,7 @@ export async function generateTitle(
       return generateTitleXAI(input, userId);
     case "local":
       console.log("Local");
-      return generateTitleLocalOpenAI(input, userId);
+      return generateTitleLocalOpenAI(input);
     case "ollama":
       console.log("Ollama");
       return generateOllamaTitle(input, model || "llama3.2");
