@@ -169,7 +169,9 @@ export async function ensurePythonAndVenv(backendPath: string) {
     log.info("NumPy 1.24.3 installed successfully");
 
     // Install FastAPI and dependencies with version constraints to prevent NumPy upgrade
-    const fastApiCommand = `"${venvPython}" -m pip install --no-cache-dir "fastapi>=0.109.0" "pydantic>=2.5.0" "starlette>=0.36.0" "uvicorn[standard]>=0.27.0" "python-multipart>=0.0.7" "email-validator>=2.1.0" "httpx>=0.26.0,<0.28.0" "numpy==1.24.3" "PyJWT==2.10.1"`;
+    const fastApiCommand = process.platform === "darwin" 
+      ? `"${venvPython}" -m pip install --no-cache-dir "fastapi==0.115.6" "pydantic>=2.9.0,<3.0.0"  "uvicorn[standard]==0.27.0" "python-multipart==0.0.7" "email-validator==2.1.0" "httpx>=0.26.0,<0.28.0" "numpy==1.24.3" "PyJWT==2.10.1"`
+      : `"${venvPython}" -m pip install --no-cache-dir "fastapi>=0.115.6" "pydantic>=2.5.0" "uvicorn[standard]>=0.27.0" "python-multipart>=0.0.7" "email-validator>=2.1.0" "httpx>=0.26.0,<0.28.0" "numpy==1.24.3" "PyJWT==2.10.1"`;
     execSync(fastApiCommand);
     log.info("FastAPI and dependencies installed successfully");
 
@@ -197,8 +199,8 @@ export async function ensurePythonAndVenv(backendPath: string) {
           const gpuInfo = execSync('nvidia-smi --query-gpu=gpu_name --format=csv,noheader').toString().toLowerCase();
           hasTensorCores = gpuInfo.includes('rtx') || gpuInfo.includes('titan') || gpuInfo.includes('a100') || gpuInfo.includes('a6000');
           log.info(`GPU supports tensor cores: ${hasTensorCores}`);
-        } catch (e) {
-          log.info('Could not determine tensor cores capability');
+        } catch (error) {
+          log.info('Could not determine tensor cores capability:', error);
         }
 
         // Set environment variables for CUDA build
