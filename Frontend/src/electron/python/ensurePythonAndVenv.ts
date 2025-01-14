@@ -154,6 +154,31 @@ export async function ensurePythonAndVenv(backendPath: string) {
           continue;
         }
       }
+
+      // If CUDA is not available on Linux, try to install it
+      if (!cudaAvailable && process.platform === "linux") {
+        log.info("CUDA not found on Linux, attempting to install CUDA toolkit...");
+        const packageManager = getLinuxPackageManager();
+        
+        try {
+          await runWithPrivileges([
+            // Update package list
+            `${packageManager.command} update`,
+            // Install CUDA toolkit and development tools
+            `${packageManager.installCommand} nvidia-cuda-toolkit build-essential`
+          ]);
+          
+          // Verify installation
+          const nvccVersion = execSync("nvcc --version").toString();
+          if (nvccVersion) {
+            log.info("CUDA toolkit installed successfully");
+            cudaAvailable = true;
+          }
+        } catch (error) {
+          log.error("Failed to install CUDA toolkit:", error);
+          // Continue without CUDA support
+        }
+      }
     } catch (error) {
       log.info("Failed to detect CUDA installation details", error);
     }
