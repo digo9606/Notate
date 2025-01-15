@@ -362,7 +362,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
               // Copy the built package from toolbox venv to host venv, handling Python version correctly
               log.info("Copying llama-cpp-python from toolbox to host venv");
               execSync(`toolbox run --container ${containerName} bash -c '\\
-                PYTHON_VERSION=$(python3 -c "import sys; print('{}.{}'.format(sys.version_info.major, sys.version_info.minor))") && \\
+                PYTHON_VERSION=$(python3 -c "import sys; v=sys.version_info; print(str(v.major) + \\".\\" + str(v.minor))") && \\
                 mkdir -p "${venvPath}/lib/python\\$PYTHON_VERSION/site-packages/" && \\
                 cp -r /opt/venv/lib/python\\$PYTHON_VERSION/site-packages/llama_cpp* "${venvPath}/lib/python\\$PYTHON_VERSION/site-packages/"'`);
               
