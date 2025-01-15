@@ -56,6 +56,8 @@ interface SysSettingsContextType {
     model_type: string,
     user_id: string
   ) => Promise<void>;
+  ollamaModels: OllamaModel[];
+  setOllamaModels: React.Dispatch<React.SetStateAction<OllamaModel[]>>;
 }
 
 const SysSettingsContext = createContext<SysSettingsContextType | undefined>(
@@ -69,6 +71,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [localModels, setLocalModels] = useState<Model[]>([]);
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
   const [isOllamaRunning, setIsOllamaRunning] = useState<boolean>(false);
+  const [ollamaModels, setOllamaModels] = useState<OllamaModel[]>([]);
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
   const [settings, setSettings] = useState<UserSettings>({});
   const [users, setUsers] = useState<User[]>([]);
@@ -83,6 +86,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [platform, setPlatform] = useState<"win32" | "darwin" | "linux" | null>(
     null
   );
+
   const [systemSpecs, setSystemSpecs] = useState<{
     cpu: string;
     vram: string;
@@ -92,8 +96,10 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     vram: "Unknown",
     GPU_Manufacturer: "Unknown",
   });
+
   const totalVRAM = parseInt(systemSpecs.vram);
   const [maxTokens, setMaxTokens] = useState(4096);
+
   const checkFFMPEG = async () => {
     try {
       const result = await window.electron.checkIfFFMPEGInstalled();
@@ -151,6 +157,16 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       "provider",
       "local"
     );
+    await window.electron.updateUserSettings(
+      Number(user_id),
+      "model_type",
+      model_type
+    );
+    await window.electron.updateUserSettings(
+      Number(user_id),
+      "model_location",
+      model_location
+    );
     if (result.status === "success") {
       toast({
         title: "Model loading",
@@ -181,8 +197,14 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         localModelDir
       )) as unknown as {
         dirPath: string;
-        models: string[];
+        models: Model[];
       };
+      console.log(data);
+
+      const filteredModels = data.models.filter(
+        (model: Model) => !model.name.startsWith("manifests")
+      );
+      console.log(filteredModels);
 
       setLocalModels(
         Array.isArray(data.models)
@@ -325,6 +347,8 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         setLocalModelDir,
         loadModelsFromDirectory,
         handleRunModel,
+        ollamaModels,
+        setOllamaModels,
       }}
     >
       {children}

@@ -10,22 +10,6 @@ import { BrowserWindow } from "electron";
 
 let currentDownloadController: AbortController | null = null;
 
-interface DownloadProgress {
-  type: "progress";
-  data: {
-    message: string;
-    fileName?: string;
-    fileNumber?: number;
-    totalFiles?: number;
-    fileProgress?: number;
-    totalProgress: number;
-    currentSize?: string;
-    totalSize?: string;
-    currentStep?: string;
-    speed?: string;
-  };
-}
-
 async function downloadModel(payload: {
   modelId: string;
   dirPath: string;
@@ -193,45 +177,59 @@ async function downloadModel(payload: {
         let lastBytes = 0;
 
         while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+          try {
+            const { done, value } = await reader.read();
+            
+            // Add check for abort signal
+            if (signal.aborted) {
+              reader.cancel();
+              fileStream.destroy();
+              throw new Error('Download cancelled');
+            }
 
-          receivedLength += value.length;
-          downloadedSize += value.length;
-          fileStream.write(value);
+            if (done) break;
 
-          // Calculate speed every 500ms
-          const now = Date.now();
-          const timeDiff = now - lastUpdate;
-          if (timeDiff >= 500) {
-            const bytesDiff = receivedLength - lastBytes;
-            const speed = calculateSpeed(bytesDiff, timeDiff);
-            lastUpdate = now;
-            lastBytes = receivedLength;
+            receivedLength += value.length;
+            downloadedSize += value.length;
+            fileStream.write(value);
 
-            // Update progress
-            const totalProgress = Math.round(
-              (downloadedSize / totalSize) * 100
-            );
-            const fileProgress = Math.round((receivedLength / file.size) * 100);
+            // Calculate speed every 500ms
+            const now = Date.now();
+            const timeDiff = now - lastUpdate;
+            if (timeDiff >= 500) {
+              const bytesDiff = receivedLength - lastBytes;
+              const speed = calculateSpeed(bytesDiff, timeDiff);
+              lastUpdate = now;
+              lastBytes = receivedLength;
 
-            sendProgress({
-              type: "progress",
-              data: {
-                message: `Downloading file ${index + 1} of ${
-                  downloadableFiles.length
-                }`,
-                fileName,
-                fileNumber: index + 1,
-                totalFiles: downloadableFiles.length,
-                fileProgress,
-                totalProgress,
-                currentSize: formatSize(downloadedSize),
-                totalSize: formatSize(totalSize),
-                currentStep: "downloading",
-                speed,
-              },
-            });
+              // Update progress
+              const totalProgress = Math.round(
+                (downloadedSize / totalSize) * 100
+              );
+              const fileProgress = Math.round((receivedLength / file.size) * 100);
+
+              sendProgress({
+                type: "progress",
+                data: {
+                  message: `Downloading file ${index + 1} of ${
+                    downloadableFiles.length
+                  }`,
+                  fileName,
+                  fileNumber: index + 1,
+                  totalFiles: downloadableFiles.length,
+                  fileProgress,
+                  totalProgress,
+                  currentSize: formatSize(downloadedSize),
+                  totalSize: formatSize(totalSize),
+                  currentStep: "downloading",
+                  speed,
+                },
+              });
+            }
+          } catch (error) {
+            reader.cancel();
+            fileStream.destroy();
+            throw error;
           }
         }
 
@@ -244,8 +242,9 @@ async function downloadModel(payload: {
       }
     }
 
-    // If all files failed, throw error
+    // If all files failed, throw error and remove the directory
     if (failedFiles.length === downloadableFiles.length) {
+      fs.rmSync(payload.dirPath, { recursive: true, force: true });
       throw new Error("Failed to download any files from the model");
     }
 
@@ -275,7 +274,6 @@ async function downloadModel(payload: {
       });
     }
 
-    currentDownloadController = null;
     return payload;
   } catch (error) {
     console.error("Error downloading model:", error);
@@ -283,7 +281,14 @@ async function downloadModel(payload: {
     if (fs.existsSync(payload.dirPath)) {
       fs.rmSync(payload.dirPath, { recursive: true, force: true });
     }
+    
+    // Add specific handling for cancellation
+    if (error instanceof Error && error.message === 'Download cancelled') {
+      throw new Error('Download cancelled by user');
+    }
     throw error;
+  } finally {
+    currentDownloadController = null;
   }
 }
 

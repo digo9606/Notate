@@ -147,7 +147,10 @@ electron.contextBridge.exposeInMainWorld("electron", {
       type: string;
     }>,
   getDirModels: (dirPath: string) =>
-    ipcInvoke("getDirModels", { dirPath }) as unknown as Promise<string[]>,
+    ipcInvoke("getDirModels", { dirPath }) as unknown as Promise<{
+      dirPath: string;
+      models: Model[];
+    }>,
   getOpenRouterModel: (userId: number) =>
     ipcInvoke("getOpenRouterModel", { userId }) as unknown as Promise<{
       model: string;
@@ -157,7 +160,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
     dirPath: string;
     hfToken?: string;
   }) => ipcInvoke("downloadModel", payload) as unknown as Promise<void>,
-  cancelDownload: () => ipcInvoke("cancelDownload") as unknown as Promise<{ success: boolean }>,
+  cancelDownload: () =>
+    ipcInvoke("cancelDownload") as unknown as Promise<{ success: boolean }>,
   addOpenRouterModel: (userId: number, model: string) =>
     ipcInvoke("addOpenRouterModel", {
       userId,
@@ -207,7 +211,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
   }) => ipcInvoke("loadModel", payload) as unknown as Promise<void>,
   fetchOllamaModels: () =>
     ipcInvoke("fetchOllamaModels") as unknown as Promise<{
-      models: string[];
+      models: OllamaModel[];
     }>,
   changeUser: () => ipcInvoke("changeUser"),
   quit: () => ipcInvoke("quit"),

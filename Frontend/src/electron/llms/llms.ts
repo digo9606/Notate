@@ -8,6 +8,7 @@ import { generateTitle } from "./generateTitle.js";
 import { vectorstoreQuery } from "../embedding/vectorstoreQuery.js";
 import { LocalModelProvider } from "./providers/localModel.js";
 import { OpenRouterProvider } from "./providers/openrouter.js";
+import { OllamaProvider } from "./providers/ollama.js";
 import log from "electron-log";
 import os from "os";
 
@@ -162,6 +163,9 @@ export async function chatRequest(
         break;
       case "local":
         provider = LocalModelProvider;
+        break;
+      case "ollama":
+        provider = OllamaProvider;
         break;
       default:
         throw new Error(

@@ -40,6 +40,8 @@ export function useAppInitialization() {
     setPlatform,
     setLocalModelDir,
     setLocalModels,
+    setOllamaModels,
+    isOllamaRunning,
   } = useSysSettings();
 
   // Initial setup that doesn't depend on activeUser
@@ -85,8 +87,6 @@ export function useAppInitialization() {
         setOpenRouterModels(models.models);
       }
     };
-
-    fetchOpenRouterModels();
     const fetchSettings = async () => {
       if (activeUser) {
         const settings = await window.electron.getUserSettings(activeUser.id);
@@ -97,17 +97,40 @@ export function useAppInitialization() {
             settings.model_dir
           )) as unknown as { dirPath: string; models: Model[] };
           setLocalModels(models.models);
+          if (
+            settings.provider === "local" &&
+            settings.model &&
+            settings.model_type
+          ) {
+            await window.electron.loadModel({
+              model_location: settings.model_location as string,
+              model_name: settings.model,
+              model_type: settings.model_type as string,
+              user_id: activeUser.id,
+            });
+          }
         }
       }
     };
 
+    const fetchOllamaModels = async () => {
+      if (activeUser && isOllamaRunning) {
+        const models = await window.electron.fetchOllamaModels();
+        const filteredModels = models.models.filter((model) => {
+          return !model.name.includes("granite-embedding");
+        });
+        setOllamaModels(filteredModels);
+      }
+    };
     if (activeUser) {
+      fetchOpenRouterModels();
       fetchSettings();
       getUserConversations();
       fetchApiKey();
       fetchPrompts();
       fetchDevAPIKeys();
       fetchCollections();
+      fetchOllamaModels();
     }
   }, [activeUser]);
 

@@ -28,7 +28,7 @@ class LlamaCppLoader(BaseLoader):
         """Load a llama.cpp model and return the model and tokenizer."""
         try:
             import torch
-            from llama_cpp import Llama, LlamaCache
+            from llama_cpp import Llama
 
             # Force CUDA environment variables before anything else
             if torch.cuda.is_available():

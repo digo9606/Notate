@@ -1,3 +1,4 @@
+import log from "electron-log";
 import fs from "fs";
 import path from "path";
 
@@ -23,24 +24,24 @@ export async function getDirModels(payload: {
     try {
       // Process each publisher/author directory
       for (const publisher of contents) {
-        if (publisher.startsWith('.')) continue;
-        
+        if (publisher.startsWith(".")) continue;
+
         const publisherPath = path.join(dirPath, publisher);
         if (!fs.statSync(publisherPath).isDirectory()) continue;
 
         // First check for GGUF files directly in the publisher directory
         const publisherFiles = fs.readdirSync(publisherPath);
         for (const file of publisherFiles) {
-          if (file.endsWith('.gguf')) {
+          if (file.endsWith(".gguf")) {
             const modelPath = path.join(publisherPath, file);
             const stats = fs.statSync(modelPath);
-            
+
             // Remove the .gguf extension for the model name
-            const modelName = file.replace('.gguf', '');
-            
+            const modelName = file.replace(".gguf", "");
+
             models.push({
               name: `${publisher}/${modelName}`,
-              type: 'llama.cpp',
+              type: "llama.cpp",
               model_location: modelPath,
               modified_at: stats.mtime.toISOString(),
               size: stats.size,
@@ -51,31 +52,36 @@ export async function getDirModels(payload: {
 
         // Then check subdirectories for other model types
         for (const item of publisherFiles) {
-          if (item.startsWith('.')) continue;
-          
+          if (item.startsWith(".")) continue;
+
           const itemPath = path.join(publisherPath, item);
           if (!fs.statSync(itemPath).isDirectory()) continue;
 
           const stats = fs.statSync(itemPath);
-          
+
           // Check for common model files to determine type
           const files = fs.readdirSync(itemPath);
-          let modelType = 'unknown';
-          
-          if (files.some(f => f.endsWith('.gguf'))) {
-            modelType = 'llama.cpp';
-          } else if (files.some(f => f === 'config.json' || f === 'pytorch_model.bin')) {
-            modelType = 'Transformers';
+          let modelType = "unknown";
+
+          if (files.some((f) => f.endsWith(".gguf"))) {
+            modelType = "llama.cpp";
+          } else if (
+            files.some((f) => f === "config.json" || f === "pytorch_model.bin")
+          ) {
+            modelType = "Transformers";
           }
-          
-          models.push({
-            name: `${publisher}/${item}`,
-            type: modelType,
-            model_location: itemPath,
-            modified_at: stats.mtime.toISOString(),
-            size: stats.size,
-            digest: "",
-          });
+          if (modelType !== "unknown") {
+            log.info(`Found model: ${publisher}/${item}`);
+            if (item === "granite-embedding") continue;
+            models.push({
+              name: `${publisher}/${item}`,
+              type: modelType,
+              model_location: itemPath,
+              modified_at: stats.mtime.toISOString(),
+              size: stats.size,
+              digest: "",
+            });
+          }
         }
       }
     } catch (err) {
@@ -99,14 +105,18 @@ export async function getDirModels(payload: {
         const entries = fs.readdirSync(registryPath, { withFileTypes: true });
 
         for (const entry of entries) {
-          if (entry.isDirectory() && !entry.name.startsWith(".")) {
-            console.log("Found model:", entry.name);
+          if (
+            entry.isDirectory() &&
+            !entry.name.startsWith(".") &&
+            !entry.name.includes("embedding")
+          ) {
+            log.info("Found model:", entry.name);
             const modelPath = path.join(registryPath, entry.name);
             const stats = fs.statSync(modelPath);
-            
+
             models.push({
               name: entry.name,
-              type: 'ollama',
+              type: "ollama",
               model_location: modelPath,
               modified_at: stats.mtime.toISOString(),
               size: stats.size,
@@ -131,13 +141,18 @@ export async function getDirModels(payload: {
                   console.log("Found HF model:", subEntry.name);
                   const modelPath = path.join(dir, entry.name, subEntry.name);
                   const stats = fs.statSync(modelPath);
-                  
+
                   const ollamaModelName = `${entry.name}/${subEntry.name}`;
-                  
+
                   models.push({
                     name: ollamaModelName,
-                    type: 'ollama',
-                    model_location: path.join(manifestsDir, "hf.co", entry.name, subEntry.name),
+                    type: "ollama",
+                    model_location: path.join(
+                      manifestsDir,
+                      "hf.co",
+                      entry.name,
+                      subEntry.name
+                    ),
                     modified_at: stats.mtime.toISOString(),
                     size: stats.size,
                     digest: "",

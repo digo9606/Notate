@@ -336,7 +336,10 @@ interface Window {
       model_type?: string;
       user_id: number;
     }) => Promise<{ model_info: Model }>;
-    getDirModels: (dirPath: string) => Promise<string[]>;
+    getDirModels: (dirPath: string) => Promise<{
+      dirPath: string;
+      models: Model[];
+    }>;
     pullModel: (model: string) => Promise<void>;
     changeUser: () => Promise<void>;
     quit: () => Promise<void>;
@@ -382,7 +385,7 @@ interface Window {
       title: string;
       error?: string;
     }>;
-    fetchOllamaModels: () => Promise<{ models: string[] }>;
+    fetchOllamaModels: () => Promise<{ models: OllamaModel[] }>;
     abortChatRequest: (requestId: number) => void;
     onMessageChunk: (callback: (chunk: string) => void) => void;
     offMessageChunk: (callback: (chunk: string) => void) => void;
@@ -511,14 +514,20 @@ interface Window {
       callback: (event: Electron.IpcRendererEvent, message: string) => void
     ) => void;
     on: (
-      channel: "ingest-progress" | "ollama-progress" | "download-model-progress",
+      channel:
+        | "ingest-progress"
+        | "ollama-progress"
+        | "download-model-progress",
       func: (
         event: Electron.IpcRendererEvent,
         message: string | OllamaProgressEvent | DownloadModelProgress
       ) => void
     ) => void;
     removeListener: (
-      channel: "ingest-progress" | "ollama-progress" | "download-model-progress",
+      channel:
+        | "ingest-progress"
+        | "ollama-progress"
+        | "download-model-progress",
       func: (
         event: Electron.IpcRendererEvent,
         message: string | OllamaProgressEvent | DownloadModelProgress
@@ -737,3 +746,23 @@ type CustomProgressData = {
     percent_complete?: string;
   };
 };
+
+interface DownloadProgress {
+  type: "progress";
+  data: {
+    message: string;
+    fileName?: string;
+    fileNumber?: number;
+    totalFiles?: number;
+    fileProgress?: number;
+    totalProgress: number;
+    currentSize?: string;
+    totalSize?: string;
+    currentStep?: string;
+    speed?: string;
+  };
+}
+interface OllamaModel {
+  name: string;
+  type: string;
+}
