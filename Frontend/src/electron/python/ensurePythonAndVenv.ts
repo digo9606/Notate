@@ -252,33 +252,59 @@ export async function ensurePythonAndVenv(backendPath: string) {
             if (packageManager.command === "dnf") {
               log.info("Fedora system detected, setting up CUDA in toolbox...");
               
-              // Create and setup Fedora 39 toolbox for CUDA
+              // Create and setup Fedora toolbox for CUDA
               const toolboxSetupCommands = [];
+
+              // Get the Fedora version from the host system
+              let fedoraVersion;
+              try {
+                const fedoraInfo = execSync("cat /etc/fedora-release").toString();
+                const versionMatch = fedoraInfo.match(/\d+/);
+                fedoraVersion = versionMatch ? versionMatch[0] : "39"; // Fallback to 39 if version can't be detected
+                log.info(`Detected Fedora version: ${fedoraVersion}`);
+              } catch (error) {
+                log.warn("Could not detect Fedora version, using default 39:", error);
+                fedoraVersion = "39";
+              }
+
+              const containerName = `fedora-toolbox-${fedoraVersion}-cuda`;
 
               // Check if container exists
               try {
-                execSync("toolbox list | grep fedora-toolbox-39-cuda", { stdio: 'pipe' });
+                execSync(`toolbox list | grep ${containerName}`, { stdio: 'pipe' });
                 log.info("Toolbox container already exists, skipping creation");
               } catch {
                 // Container doesn't exist, add creation command
                 log.info("Creating new toolbox container");
                 toolboxSetupCommands.push(
-                  "toolbox create --assumeyes --image registry.fedoraproject.org/fedora-toolbox:39 --container fedora-toolbox-39-cuda"
+                  `toolbox create --assumeyes --image registry.fedoraproject.org/fedora-toolbox:${fedoraVersion} --container ${containerName}`
                 );
               }
 
               // Add setup commands
               toolboxSetupCommands.push(
-                `toolbox run --container fedora-toolbox-39-cuda bash -c "
+                `toolbox run --container ${containerName} bash -c "
                   set -e
                   sudo dnf distro-sync -y
                   sudo dnf install -y @c-development @development-tools cmake
-                  sudo dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/fedora39/x86_64/cuda-fedora39.repo
+                  
+                  # Import NVIDIA repository key
+                  sudo rpm --import https://developer.download.nvidia.com/compute/cuda/repos/fedora${fedoraVersion}/x86_64/cuda-fedora${fedoraVersion}.pub
+                  
+                  # Add CUDA repository
+                  sudo dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/fedora${fedoraVersion}/x86_64/cuda-fedora${fedoraVersion}.repo
                   sudo dnf distro-sync -y
+                  
+                  # Install required dependencies first
+                  sudo dnf install -y mesa-libgbm mesa-libEGL
+                  
+                  # Download and install NVIDIA packages
                   sudo dnf download --arch x86_64 nvidia-driver-libs egl-gbm egl-wayland
-                  sudo rpm --install --verbose --hash --excludepath=/usr/lib64/libnvidia-egl-gbm.so.1.1.2 --excludepath=/usr/share/egl/egl_external_platform.d/15_nvidia_gbm.json egl-gbm*.rpm
-                  sudo rpm --install --verbose --hash --excludepath=/usr/share/egl/egl_external_platform.d/10_nvidia_wayland.json egl-wayland*.rpm
-                  sudo rpm --install --verbose --hash --excludepath=/usr/share/glvnd/egl_vendor.d/10_nvidia.json --excludepath=/usr/share/nvidia/nvoptix.bin nvidia-driver-libs*.rpm
+                  sudo rpm --install --verbose --hash --nodeps --excludepath=/usr/lib64/libnvidia-egl-gbm.so.1.1.2 --excludepath=/usr/share/egl/egl_external_platform.d/15_nvidia_gbm.json egl-gbm*.rpm || true
+                  sudo rpm --install --verbose --hash --nodeps --excludepath=/usr/share/egl/egl_external_platform.d/10_nvidia_wayland.json egl-wayland*.rpm || true
+                  sudo rpm --install --verbose --hash --nodeps --excludepath=/usr/share/glvnd/egl_vendor.d/10_nvidia.json --excludepath=/usr/share/nvidia/nvoptix.bin nvidia-driver-libs*.rpm || true
+                  
+                  # Install CUDA toolkit
                   sudo dnf install -y cuda
                   echo 'export PATH=$PATH:/usr/local/cuda/bin' | sudo tee /etc/profile.d/cuda.sh
                   sudo chmod +x /etc/profile.d/cuda.sh
@@ -297,16 +323,16 @@ export async function ensurePythonAndVenv(backendPath: string) {
               }
 
               // Verify CUDA installation in toolbox
-              const nvccVersion = execSync("toolbox run --container fedora-toolbox-39-cuda nvcc --version").toString();
+              const nvccVersion = execSync(`toolbox run --container ${containerName} nvcc --version`).toString();
               if (nvccVersion) {
                 log.info("CUDA toolkit installed successfully in Fedora toolbox");
-                process.env.CUDA_PATH = "/var/lib/toolbox/fedora-toolbox-39-cuda/usr/local/cuda";
+                process.env.CUDA_PATH = `/var/lib/toolbox/${containerName}/usr/local/cuda`;
                 cudaAvailable = true;
               }
 
               // Install llama-cpp-python with CUDA in toolbox
               log.info("Installing llama-cpp-python with CUDA support in toolbox");
-              execSync(`toolbox run --container fedora-toolbox-39-cuda "${venvPython}" -m pip install --no-cache-dir --verbose llama-cpp-python`);
+              execSync(`toolbox run --container ${containerName} "${venvPython}" -m pip install --no-cache-dir --verbose llama-cpp-python`);
               return { venvPython, hasNvidiaGpu };
             }
           } catch (error) {
