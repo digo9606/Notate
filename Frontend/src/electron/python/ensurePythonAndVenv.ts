@@ -297,7 +297,11 @@ export async function ensurePythonAndVenv(backendPath: string) {
 
                   # Download and install CUDA toolkit
                   cd /tmp
-                  wget https://developer.download.nvidia.com/compute/cuda/12.6.2/local_installers/cuda_12.6.2_560.35.03_linux.run
+                  if [ ! -f cuda_12.6.2_560.35.03_linux.run ]; then
+                    wget https://developer.download.nvidia.com/compute/cuda/12.6.2/local_installers/cuda_12.6.2_560.35.03_linux.run
+                  else
+                    echo "CUDA installer already exists, skipping download"
+                  fi
                   sudo sh cuda_12.6.2_560.35.03_linux.run --toolkit --toolkitpath=/usr/local/cuda-12.6 --no-man-page --silent --override
 
                   # Set up symlinks and paths
