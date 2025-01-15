@@ -236,6 +236,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
           const gpuInfo = execSync('nvidia-smi --query-gpu=gpu_name --format=csv,noheader').toString().toLowerCase();
           hasTensorCores = gpuInfo.includes('rtx') || gpuInfo.includes('titan') || gpuInfo.includes('a100') || gpuInfo.includes('a6000');
           log.info(`GPU supports tensor cores: ${hasTensorCores}`);
+          log.info(`Detected GPU: ${gpuInfo.trim()}`);
         } catch (error) {
           log.info('Could not determine tensor cores capability:', error);
         }
@@ -245,146 +246,88 @@ export async function ensurePythonAndVenv(backendPath: string) {
         process.env.FORCE_CMAKE = "1";
         process.env.LLAMA_CUDA = "1";
         
-        // For Fedora Linux, we need to setup CUDA in a toolbox container
-        if (process.platform === "linux") {
-          try {
-            const packageManager = getLinuxPackageManager();
-            if (packageManager.command === "dnf") {
-              log.info("Fedora system detected, setting up CUDA in toolbox...");
-              
-              // Create and setup Fedora toolbox for CUDA
-              const toolboxSetupCommands = [];
-
-              // Get the Fedora version from the host system
-              let fedoraVersion;
-              let cudaRepoVersion;
-              try {
-                const fedoraInfo = execSync("cat /etc/fedora-release").toString();
-                const versionMatch = fedoraInfo.match(/\d+/);
-                fedoraVersion = versionMatch ? versionMatch[0] : "39"; // Fallback to 39 if version can't be detected
-                // Use Fedora 39 CUDA packages for newer versions since NVIDIA hasn't released packages for them yet
-                cudaRepoVersion = parseInt(fedoraVersion) > 39 ? "39" : fedoraVersion;
-                log.info(`Detected Fedora version: ${fedoraVersion}, using CUDA repo version: ${cudaRepoVersion}`);
-              } catch (error) {
-                log.warn("Could not detect Fedora version, using default 39:", error);
-                fedoraVersion = "39";
-                cudaRepoVersion = "39";
-              }
-
-              const containerName = `fedora-toolbox-${fedoraVersion}-cuda`;
-
-              // Check if container exists
-              try {
-                execSync(`toolbox list | grep ${containerName}`, { stdio: 'pipe' });
-                log.info("Toolbox container already exists, skipping creation");
-              } catch {
-                // Container doesn't exist, add creation command
-                log.info("Creating new toolbox container");
-                toolboxSetupCommands.push(
-                  `toolbox create --assumeyes --image registry.fedoraproject.org/fedora-toolbox:${fedoraVersion} --container ${containerName}`
-                );
-              }
-
-              // Check if llama-cpp-python is already built in the toolbox
-              let needsRebuild = true;
-              try {
-                execSync(`toolbox run --container ${containerName} bash -c 'if [ -d "/opt/venv" ]; then \\
-                  source /opt/venv/bin/activate; \\
-                  if python3 -c "import llama_cpp" 2>/dev/null; then \\
-                    if python3 -c "from llama_cpp import Llama; Llama" 2>/dev/null; then \\
-                      echo "CUDA-enabled llama-cpp-python already installed"; \\
-                      exit 0; \\
-                    fi; \\
-                  fi; \\
-                fi; \\
-                exit 1'`);
-                log.info("Found existing CUDA-enabled llama-cpp-python installation");
-                needsRebuild = false;
-              } catch {
-                log.info("Need to build llama-cpp-python with CUDA support");
-                needsRebuild = true;
-              }
-
-              if (needsRebuild) {
-                // Add setup commands
-                toolboxSetupCommands.push(
-                  `toolbox run --container ${containerName} bash -c 'set -e; \\
-                    cd /tmp; \\
-                    sudo dnf distro-sync -y --skip-unavailable || true; \\
-                    sudo dnf install -y gcc13-c++ || true; \\
-                    if [ ! -f cuda_12.6.2_560.35.03_linux.run ]; then \\
-                      wget https://developer.download.nvidia.com/compute/cuda/12.6.2/local_installers/cuda_12.6.2_560.35.03_linux.run; \\
-                    fi; \\
-                    # Install CUDA toolkit with specific options \\
-                    sudo sh cuda_12.6.2_560.35.03_linux.run --toolkit --toolkitpath=/usr/local/cuda-12.6 --no-man-page --silent --override; \\
-                    # Set up proper symlinks \\
-                    sudo rm -f /usr/local/cuda; \\
-                    sudo ln -sf /usr/local/cuda-12.6 /usr/local/cuda; \\
-                    sudo ln -sf /usr/local/cuda/bin /usr/local/bin; \\
-                    sudo ln -sf /usr/local/cuda/lib64 /usr/local/lib64; \\
-                    sudo ln -sf /usr/local/cuda-12.6/nvvm /usr/local/nvvm; \\
-                    # Configure library paths \\
-                    echo "/usr/local/lib64" | sudo tee /etc/ld.so.conf.d/usr-local-x86_64.conf; \\
-                    sudo rm -f /etc/ld.so.conf.d/cuda-*.conf; \\
-                    sudo ldconfig; \\
-                    # Set up Python environment \\
-                    sudo mkdir -p /opt/venv; \\
-                    sudo chown -R $(id -u):$(id -g) /opt/venv; \\
-                    python3 -m venv /opt/venv; \\
-                    source /opt/venv/bin/activate; \\
-                    pip install --upgrade pip setuptools wheel; \\
-                    pip install scikit-build-core cmake ninja typing-extensions numpy diskcache msgpack; \\
-                    # Set CUDA compiler flags and verify installation \\
-                    export NVCC_PREPEND_FLAGS="-ccbin /usr/bin/g++-13"; \\
-                    export PATH=/usr/local/cuda/bin:$PATH; \\
-                    export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH; \\
-                    nvcc --version'`
-                );
-
-                for (const cmd of toolboxSetupCommands) {
-                  try {
-                    execSync(cmd, { stdio: 'inherit' });
-                  } catch (error) {
-                    log.error(`Failed to execute command: ${cmd}`, error);
-                    throw error;
-                  }
-                }
-
-                // Install llama-cpp-python with CUDA in toolbox
-                log.info("Installing llama-cpp-python with CUDA support in toolbox");
-                execSync(`toolbox run --container ${containerName} bash -c 'source /opt/venv/bin/activate && \\
-                  export NVCC_PREPEND_FLAGS="-ccbin /usr/bin/g++-13" && \\
-                  export PATH=/usr/local/cuda/bin:$PATH && \\
-                  export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH && \\
-                  CMAKE_ARGS="-DGGML_CUDA=ON" FORCE_CMAKE=1 LLAMA_CUDA=1 pip install --no-cache-dir --verbose llama-cpp-python'`);
-              }
-
-              // Copy the built package from toolbox venv to host venv, handling Python version correctly
-              log.info("Copying llama-cpp-python from toolbox to host venv");
-              execSync(`toolbox run --container ${containerName} bash -c '\\
-                PYTHON_VERSION=$(python3 -c "import sys; v=sys.version_info; print(str(v.major) + \\".\\" + str(v.minor))") && \\
-                mkdir -p "${venvPath}/lib/python\\$PYTHON_VERSION/site-packages/" && \\
-                cp -r /opt/venv/lib/python\\$PYTHON_VERSION/site-packages/llama_cpp* "${venvPath}/lib/python\\$PYTHON_VERSION/site-packages/"'`);
-              
-              return { venvPython, hasNvidiaGpu };
-            }
-          } catch (error) {
-            log.error("Failed to setup CUDA toolkit in Fedora toolbox:", error);
-            cudaAvailable = false;
-          }
-        } else if (process.platform === "win32") {
+        if (process.platform === "win32") {
+          log.info("Setting up CUDA environment for Windows...");
           process.env.CUDA_PATH = process.env.CUDA_PATH || "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1";
+          log.info(`Using CUDA path: ${process.env.CUDA_PATH}`);
+
+          // Log CUDA environment details
+          try {
+            const nvccVersion = execSync("nvcc --version").toString();
+            log.info("NVCC Version:", nvccVersion);
+          } catch (error) {
+            log.warn("Could not get NVCC version:", error);
+          }
+
+          try {
+            const cudaDevices = execSync("nvidia-smi -L").toString();
+            log.info("CUDA Devices:", cudaDevices);
+          } catch (error) {
+            log.warn("Could not list CUDA devices:", error);
+          }
         }
         
         // Additional CUDA optimization environment variables
         process.env.GGML_CUDA_FORCE_MMQ = "1"; // Force MMQ kernels for lower VRAM usage
         process.env.GGML_CUDA_F16 = "1"; // Enable half-precision for better performance
-        process.env.GGML_CUDA_ENABLE_UNIFIED_MEMORY = "1"; // Enable unified memory on Linux
+        process.env.GGML_CUDA_ENABLE_UNIFIED_MEMORY = "1"; // Enable unified memory
         
-        log.info("Installing llama-cpp-python with CUDA support");
-        execSync(`"${venvPython}" -m pip install --no-cache-dir --verbose llama-cpp-python`);
+        log.info("Starting llama-cpp-python installation with CUDA support...");
+        log.info("This may take several minutes as it needs to compile with CUDA support");
+        log.info("Build environment variables set:");
+        log.info(`CMAKE_ARGS: ${process.env.CMAKE_ARGS}`);
+        log.info(`CUDA_PATH: ${process.env.CUDA_PATH}`);
+        
+        try {
+          log.info("Step 1/3: Installing build dependencies...");
+          execSync(`"${venvPython}" -m pip install --no-cache-dir cmake ninja setuptools wheel`);
+          log.info("Step 2/3: Installing required Python packages...");
+          execSync(`"${venvPython}" -m pip install --no-cache-dir typing-extensions numpy diskcache msgpack`);
+          log.info("Step 3/3: Building and installing llama-cpp-python with CUDA...");
+          log.info("This step may take several minutes. Please be patient...");
+          try {
+            // Use stdio: 'inherit' to show real-time compilation progress
+            execSync(`"${venvPython}" -m pip install --no-cache-dir --verbose llama-cpp-python`, {
+              stdio: 'inherit',
+              env: {
+                ...process.env,
+                FORCE_CMAKE: "1",
+                CMAKE_ARGS: "-DGGML_CUDA=ON",
+                LLAMA_CUDA: "1",
+                VERBOSE: "1",
+                CMAKE_BUILD_PARALLEL_LEVEL: "8" // Use parallel compilation
+              }
+            });
+            log.info("Successfully completed CUDA-enabled llama-cpp-python installation");
+          } catch (error) {
+            // More detailed error logging
+            log.error("Failed during llama-cpp-python installation. Error details:");
+            if (error instanceof Error) {
+              log.error("Error message:", error.message);
+              if ('stderr' in error) {
+                log.error("Build output:", (error as any).stderr?.toString());
+              }
+            }
+            throw new Error("Failed to install llama-cpp-python with CUDA support. Check the logs for details.");
+          }
+          
+          // Verify CUDA installation
+          log.info("Verifying CUDA support...");
+          const checkCuda = `"${venvPython}" -c "from llama_cpp import Llama; import inspect; print('n_gpu_layers' in inspect.signature(Llama.__init__).parameters)"`;
+          const result = execSync(checkCuda).toString().trim();
+          
+          if (result.toLowerCase() !== 'true') {
+            throw new Error('CUDA support not properly enabled');
+          }
+          
+          log.info("Successfully verified CUDA support in llama-cpp-python");
+        } catch (error) {
+          log.error("Failed during llama-cpp-python installation:", error);
+          throw error;
+        }
         
         // Verify CUDA installation
+        log.info("Verifying CUDA support...");
         const checkCuda = `"${venvPython}" -c "from llama_cpp import Llama; import inspect; print('n_gpu_layers' in inspect.signature(Llama.__init__).parameters)"`;
         const result = execSync(checkCuda).toString().trim();
         
@@ -392,7 +335,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
           throw new Error('CUDA support not properly enabled');
         }
         
-        log.info("Successfully installed CUDA-enabled llama-cpp-python");
+        log.info("Successfully verified CUDA support in llama-cpp-python");
       } else {
         log.info("Installing CPU-only llama-cpp-python");
         // For Windows, we need to ensure we have a C++ compiler

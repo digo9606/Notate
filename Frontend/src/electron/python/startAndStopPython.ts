@@ -165,7 +165,7 @@ export async function startPythonServer() {
         depProcess.on("close", async (code: number | null) => {
           log.info(`Dependency process closed with code ${code}`);
           if (code === 0) {
-            updateLoadingStatus("Starting application server...", 80);
+            updateLoadingStatus("Starting application server...", 99);
 
             const startServer = async () => {
               // Create Python process with same options
