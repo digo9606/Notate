@@ -257,14 +257,18 @@ export async function ensurePythonAndVenv(backendPath: string) {
 
               // Get the Fedora version from the host system
               let fedoraVersion;
+              let cudaRepoVersion;
               try {
                 const fedoraInfo = execSync("cat /etc/fedora-release").toString();
                 const versionMatch = fedoraInfo.match(/\d+/);
                 fedoraVersion = versionMatch ? versionMatch[0] : "39"; // Fallback to 39 if version can't be detected
-                log.info(`Detected Fedora version: ${fedoraVersion}`);
+                // Use Fedora 39 CUDA packages for newer versions since NVIDIA hasn't released packages for them yet
+                cudaRepoVersion = parseInt(fedoraVersion) > 39 ? "39" : fedoraVersion;
+                log.info(`Detected Fedora version: ${fedoraVersion}, using CUDA repo version: ${cudaRepoVersion}`);
               } catch (error) {
                 log.warn("Could not detect Fedora version, using default 39:", error);
                 fedoraVersion = "39";
+                cudaRepoVersion = "39";
               }
 
               const containerName = `fedora-toolbox-${fedoraVersion}-cuda`;
@@ -287,28 +291,39 @@ export async function ensurePythonAndVenv(backendPath: string) {
                   set -e
                   sudo dnf distro-sync -y
                   sudo dnf install -y @c-development @development-tools cmake
-                  
-                  # Import NVIDIA repository key
-                  sudo rpm --import https://developer.download.nvidia.com/compute/cuda/repos/fedora${fedoraVersion}/x86_64/cuda-fedora${fedoraVersion}.pub
-                  
-                  # Add CUDA repository
-                  sudo dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/fedora${fedoraVersion}/x86_64/cuda-fedora${fedoraVersion}.repo
-                  sudo dnf distro-sync -y
-                  
-                  # Install required dependencies first
-                  sudo dnf install -y mesa-libgbm mesa-libEGL
-                  
-                  # Download and install NVIDIA packages
-                  sudo dnf download --arch x86_64 nvidia-driver-libs egl-gbm egl-wayland
-                  sudo rpm --install --verbose --hash --nodeps --excludepath=/usr/lib64/libnvidia-egl-gbm.so.1.1.2 --excludepath=/usr/share/egl/egl_external_platform.d/15_nvidia_gbm.json egl-gbm*.rpm || true
-                  sudo rpm --install --verbose --hash --nodeps --excludepath=/usr/share/egl/egl_external_platform.d/10_nvidia_wayland.json egl-wayland*.rpm || true
-                  sudo rpm --install --verbose --hash --nodeps --excludepath=/usr/share/glvnd/egl_vendor.d/10_nvidia.json --excludepath=/usr/share/nvidia/nvoptix.bin nvidia-driver-libs*.rpm || true
-                  
-                  # Install CUDA toolkit
-                  sudo dnf install -y cuda
-                  echo 'export PATH=$PATH:/usr/local/cuda/bin' | sudo tee /etc/profile.d/cuda.sh
-                  sudo chmod +x /etc/profile.d/cuda.sh
-                  source /etc/profile.d/cuda.sh
+
+                  # Add RPM Fusion repositories
+                  sudo dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${fedoraVersion}.noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${fedoraVersion}.noarch.rpm
+
+                  # Install NVIDIA drivers and CUDA support from RPM Fusion
+                  sudo dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda
+
+                  # Install GCC 13 for CUDA compatibility
+                  sudo dnf install -y gcc13-c++
+
+                  # Download and install CUDA toolkit
+                  cd /tmp
+                  wget https://developer.download.nvidia.com/compute/cuda/12.6.2/local_installers/cuda_12.6.2_560.35.03_linux.run
+                  sudo sh cuda_12.6.2_560.35.03_linux.run --toolkit --toolkitpath=/usr/local/cuda-12.6 --no-man-page --no-desktop-menu --override --silent
+
+                  # Set up symlinks and paths
+                  sudo rm -f /usr/local/cuda
+                  sudo ln -s /usr/local/cuda-12.6 /usr/local/cuda
+                  sudo ln -s /usr/local/cuda/bin /usr/local/bin
+                  sudo ln -s /usr/local/cuda/lib64 /usr/local/lib64
+                  sudo ln -s /usr/local/cuda-12.6/nvvm /usr/local/nvvm
+
+                  # Configure library paths
+                  sudo sh -c 'echo "/usr/local/lib64" > /etc/ld.so.conf.d/usr-local-x86_64.conf'
+                  sudo rm -f /etc/ld.so.conf.d/cuda-*.conf
+                  sudo ldconfig -v
+
+                  # Set CUDA compiler flags
+                  export NVCC_PREPEND_FLAGS='-ccbin /usr/bin/g++-13'
+                  export PATH=/usr/local/cuda/bin:$PATH
+                  export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+
+                  # Verify installation
                   nvcc --version
                 "`
               );
@@ -323,7 +338,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
               }
 
               // Verify CUDA installation in toolbox
-              const nvccVersion = execSync(`toolbox run --container ${containerName} nvcc --version`).toString();
+              const nvccVersion = execSync(`toolbox run --container ${containerName} bash -c 'export NVCC_PREPEND_FLAGS="-ccbin /usr/bin/g++-13" && nvcc --version'`).toString();
               if (nvccVersion) {
                 log.info("CUDA toolkit installed successfully in Fedora toolbox");
                 process.env.CUDA_PATH = `/var/lib/toolbox/${containerName}/usr/local/cuda`;
