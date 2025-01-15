@@ -244,10 +244,74 @@ export async function ensurePythonAndVenv(backendPath: string) {
         process.env.CMAKE_ARGS = "-DGGML_CUDA=ON";
         process.env.FORCE_CMAKE = "1";
         process.env.LLAMA_CUDA = "1";
-        process.env.CUDA_PATH = process.env.CUDA_PATH || "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1";
+        
+        // For Fedora Linux, we need to setup CUDA in a toolbox container
+        if (process.platform === "linux") {
+          try {
+            const packageManager = getLinuxPackageManager();
+            if (packageManager.command === "dnf") {
+              log.info("Fedora system detected, setting up CUDA in toolbox...");
+              
+              // Create and setup Fedora 39 toolbox for CUDA
+              const toolboxSetupCommands = [
+                // Create toolbox container
+                "toolbox create --image registry.fedoraproject.org/fedora-toolbox:39 --container fedora-toolbox-39-cuda",
+                // Enter toolbox and run setup commands
+                `toolbox run --container fedora-toolbox-39-cuda bash -c '
+                  # Update package manager
+                  dnf distro-sync -y &&
+                  # Install development tools
+                  dnf install -y @c-development @development-tools cmake &&
+                  # Add CUDA repository
+                  dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/fedora39/x86_64/cuda-fedora39.repo &&
+                  dnf distro-sync -y &&
+                  # Install NVIDIA driver libraries with conflict resolution
+                  dnf download --arch x86_64 nvidia-driver-libs egl-gbm egl-wayland &&
+                  rpm --install --verbose --hash --excludepath=/usr/lib64/libnvidia-egl-gbm.so.1.1.2 --excludepath=/usr/share/egl/egl_external_platform.d/15_nvidia_gbm.json egl-gbm*.rpm &&
+                  rpm --install --verbose --hash --excludepath=/usr/share/egl/egl_external_platform.d/10_nvidia_wayland.json egl-wayland*.rpm &&
+                  rpm --install --verbose --hash --excludepath=/usr/share/glvnd/egl_vendor.d/10_nvidia.json --excludepath=/usr/share/nvidia/nvoptix.bin nvidia-driver-libs*.rpm &&
+                  # Install CUDA meta-package
+                  dnf install -y cuda &&
+                  # Setup environment
+                  echo "export PATH=$PATH:/usr/local/cuda/bin" > /etc/profile.d/cuda.sh &&
+                  chmod +x /etc/profile.d/cuda.sh &&
+                  source /etc/profile.d/cuda.sh &&
+                  # Verify installation
+                  nvcc --version
+                '`
+              ];
+
+              for (const cmd of toolboxSetupCommands) {
+                await runWithPrivileges([cmd]);
+              }
+
+              // Verify CUDA installation in toolbox
+              const nvccVersion = execSync("toolbox run --container fedora-toolbox-39-cuda nvcc --version").toString();
+              if (nvccVersion) {
+                log.info("CUDA toolkit installed successfully in Fedora toolbox");
+                process.env.CUDA_PATH = "/var/lib/toolbox/fedora-toolbox-39-cuda/usr/local/cuda";
+                cudaAvailable = true;
+              }
+
+              // Install llama-cpp-python with CUDA in toolbox
+              log.info("Installing llama-cpp-python with CUDA support in toolbox");
+              execSync(`toolbox run --container fedora-toolbox-39-cuda "${venvPython}" -m pip install --no-cache-dir --verbose llama-cpp-python`);
+              return { venvPython, hasNvidiaGpu };
+            }
+          } catch (error) {
+            log.error("Failed to setup CUDA toolkit in Fedora toolbox:", error);
+            cudaAvailable = false;
+          }
+        } else if (process.platform === "win32") {
+          process.env.CUDA_PATH = process.env.CUDA_PATH || "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1";
+        }
+        
+        // Additional CUDA optimization environment variables
+        process.env.GGML_CUDA_FORCE_MMQ = "1"; // Force MMQ kernels for lower VRAM usage
+        process.env.GGML_CUDA_F16 = "1"; // Enable half-precision for better performance
+        process.env.GGML_CUDA_ENABLE_UNIFIED_MEMORY = "1"; // Enable unified memory on Linux
         
         log.info("Installing llama-cpp-python with CUDA support");
-        // Install llama-cpp-python with CUDA
         execSync(`"${venvPython}" -m pip install --no-cache-dir --verbose llama-cpp-python`);
         
         // Verify CUDA installation
