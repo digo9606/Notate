@@ -257,33 +257,27 @@ export async function ensurePythonAndVenv(backendPath: string) {
                 // Create toolbox container with automatic image download
                 "toolbox create --assumeyes --image registry.fedoraproject.org/fedora-toolbox:39 --container fedora-toolbox-39-cuda",
                 // Enter toolbox and run setup commands
-                `toolbox run --container fedora-toolbox-39-cuda bash -c '
-                  # Update package manager
-                  sudo dnf distro-sync -y &&
-                  # Install development tools
-                  sudo dnf install -y @c-development @development-tools cmake &&
-                  # Add CUDA repository
-                  sudo dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/fedora39/x86_64/cuda-fedora39.repo &&
-                  sudo dnf distro-sync -y &&
-                  # Install NVIDIA driver libraries with conflict resolution
-                  sudo dnf download --arch x86_64 nvidia-driver-libs egl-gbm egl-wayland &&
-                  sudo rpm --install --verbose --hash --excludepath=/usr/lib64/libnvidia-egl-gbm.so.1.1.2 --excludepath=/usr/share/egl/egl_external_platform.d/15_nvidia_gbm.json egl-gbm*.rpm &&
-                  sudo rpm --install --verbose --hash --excludepath=/usr/share/egl/egl_external_platform.d/10_nvidia_wayland.json egl-wayland*.rpm &&
-                  sudo rpm --install --verbose --hash --excludepath=/usr/share/glvnd/egl_vendor.d/10_nvidia.json --excludepath=/usr/share/nvidia/nvoptix.bin nvidia-driver-libs*.rpm &&
-                  # Install CUDA meta-package
-                  sudo dnf install -y cuda &&
-                  # Setup environment
-                  sudo sh -c 'echo "export PATH=$PATH:/usr/local/cuda/bin" > /etc/profile.d/cuda.sh' &&
-                  sudo chmod +x /etc/profile.d/cuda.sh &&
-                  source /etc/profile.d/cuda.sh &&
-                  # Verify installation
+                `toolbox run --container fedora-toolbox-39-cuda bash -c "
+                  set -e
+                  sudo dnf distro-sync -y
+                  sudo dnf install -y @c-development @development-tools cmake
+                  sudo dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/fedora39/x86_64/cuda-fedora39.repo
+                  sudo dnf distro-sync -y
+                  sudo dnf download --arch x86_64 nvidia-driver-libs egl-gbm egl-wayland
+                  sudo rpm --install --verbose --hash --excludepath=/usr/lib64/libnvidia-egl-gbm.so.1.1.2 --excludepath=/usr/share/egl/egl_external_platform.d/15_nvidia_gbm.json egl-gbm*.rpm
+                  sudo rpm --install --verbose --hash --excludepath=/usr/share/egl/egl_external_platform.d/10_nvidia_wayland.json egl-wayland*.rpm
+                  sudo rpm --install --verbose --hash --excludepath=/usr/share/glvnd/egl_vendor.d/10_nvidia.json --excludepath=/usr/share/nvidia/nvoptix.bin nvidia-driver-libs*.rpm
+                  sudo dnf install -y cuda
+                  echo 'export PATH=$PATH:/usr/local/cuda/bin' | sudo tee /etc/profile.d/cuda.sh
+                  sudo chmod +x /etc/profile.d/cuda.sh
+                  source /etc/profile.d/cuda.sh
                   nvcc --version
-                '`
+                "`
               ];
 
               for (const cmd of toolboxSetupCommands) {
                 try {
-                  execSync(cmd);
+                  execSync(cmd, { stdio: 'inherit' });
                 } catch (error) {
                   log.error(`Failed to execute command: ${cmd}`, error);
                   throw error;
