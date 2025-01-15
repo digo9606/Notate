@@ -290,26 +290,33 @@ export async function ensurePythonAndVenv(backendPath: string) {
                 `toolbox run --container ${containerName} bash -c 'set -e; \\
                   cd /tmp; \\
                   sudo dnf distro-sync -y --skip-unavailable || true; \\
-                  sudo dnf install -y @c-development @development-tools cmake gcc13-c++ || true; \\
+                  sudo dnf install -y gcc13-c++ || true; \\
                   if [ ! -f cuda_12.6.2_560.35.03_linux.run ]; then \\
                     wget https://developer.download.nvidia.com/compute/cuda/12.6.2/local_installers/cuda_12.6.2_560.35.03_linux.run; \\
                   fi; \\
+                  # Install CUDA toolkit with specific options \\
                   sudo sh cuda_12.6.2_560.35.03_linux.run --toolkit --toolkitpath=/usr/local/cuda-12.6 --no-man-page --silent --override; \\
+                  # Set up proper symlinks \\
                   sudo rm -f /usr/local/cuda; \\
                   sudo ln -sf /usr/local/cuda-12.6 /usr/local/cuda; \\
                   sudo ln -sf /usr/local/cuda/bin /usr/local/bin; \\
                   sudo ln -sf /usr/local/cuda/lib64 /usr/local/lib64; \\
                   sudo ln -sf /usr/local/cuda-12.6/nvvm /usr/local/nvvm; \\
+                  # Configure library paths \\
                   echo "/usr/local/lib64" | sudo tee /etc/ld.so.conf.d/usr-local-x86_64.conf; \\
                   sudo rm -f /etc/ld.so.conf.d/cuda-*.conf; \\
                   sudo ldconfig; \\
+                  # Set up Python environment \\
                   sudo mkdir -p /opt/venv; \\
                   sudo chown -R $(id -u):$(id -g) /opt/venv; \\
                   python3 -m venv /opt/venv; \\
                   source /opt/venv/bin/activate; \\
                   pip install --upgrade pip setuptools wheel; \\
                   pip install scikit-build-core cmake ninja typing-extensions numpy diskcache msgpack; \\
+                  # Set CUDA compiler flags and verify installation \\
+                  export NVCC_PREPEND_FLAGS="-ccbin /usr/bin/g++-13"; \\
                   export PATH=/usr/local/cuda/bin:$PATH; \\
+                  export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH; \\
                   nvcc --version'`
               );
 
@@ -322,20 +329,16 @@ export async function ensurePythonAndVenv(backendPath: string) {
                 }
               }
 
-              // Verify CUDA installation in toolbox
-              const nvccVersion = execSync(`toolbox run --container ${containerName} bash -c 'export NVCC_PREPEND_FLAGS="-ccbin /usr/bin/g++-13" && nvcc --version'`).toString();
-              if (nvccVersion) {
-                log.info("CUDA toolkit installed successfully in Fedora toolbox");
-                process.env.CUDA_PATH = `/var/lib/toolbox/${containerName}/usr/local/cuda`;
-                cudaAvailable = true;
-              }
-
               // Install llama-cpp-python with CUDA in toolbox
               log.info("Installing llama-cpp-python with CUDA support in toolbox");
-              execSync(`toolbox run --container ${containerName} bash -c 'source /opt/venv/bin/activate && CMAKE_ARGS="-DGGML_CUDA=ON" FORCE_CMAKE=1 LLAMA_CUDA=1 pip install --no-cache-dir --verbose llama-cpp-python'`);
+              execSync(`toolbox run --container ${containerName} bash -c 'source /opt/venv/bin/activate && \\
+                export NVCC_PREPEND_FLAGS="-ccbin /usr/bin/g++-13" && \\
+                export PATH=/usr/local/cuda/bin:$PATH && \\
+                export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH && \\
+                CMAKE_ARGS="-DGGML_CUDA=ON" FORCE_CMAKE=1 LLAMA_CUDA=1 pip install --no-cache-dir --verbose llama-cpp-python'`);
               
               // Copy the built package from toolbox venv to host venv
-              execSync(`toolbox run --container ${containerName} bash -c 'cp -r /opt/venv/lib/python3.10/site-packages/llama_cpp* "${venvPath}/lib/python3.10/site-packages/"'`);
+              execSync(`toolbox run --container ${containerName} bash -c 'cp -r /opt/venv/lib/python3.*/site-packages/llama_cpp* "${venvPath}/lib/python3.*/site-packages/"'`);
               
               return { venvPython, hasNvidiaGpu };
             }
