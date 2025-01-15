@@ -290,7 +290,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
                 `toolbox run --container ${containerName} bash -c 'set -e; \\
                   cd /tmp; \\
                   sudo dnf distro-sync -y --skip-unavailable || true; \\
-                  sudo dnf install -y @c-development @development-tools cmake python3.10 python3.10-devel python3.10-pip gcc13-c++ || true; \\
+                  sudo dnf install -y @c-development @development-tools cmake gcc13-c++ || true; \\
                   if [ ! -f cuda_12.6.2_560.35.03_linux.run ]; then \\
                     wget https://developer.download.nvidia.com/compute/cuda/12.6.2/local_installers/cuda_12.6.2_560.35.03_linux.run; \\
                   fi; \\
@@ -305,7 +305,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
                   sudo ldconfig; \\
                   sudo mkdir -p /opt/venv; \\
                   sudo chown -R $(id -u):$(id -g) /opt/venv; \\
-                  python3.10 -m venv /opt/venv; \\
+                  python3 -m venv /opt/venv; \\
                   source /opt/venv/bin/activate; \\
                   pip install --upgrade pip setuptools wheel; \\
                   pip install scikit-build-core cmake ninja typing-extensions numpy diskcache msgpack; \\
