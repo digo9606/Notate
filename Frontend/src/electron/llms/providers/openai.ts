@@ -1,74 +1,14 @@
 import OpenAI from "openai";
 import db from "../../db.js";
 import { BrowserWindow } from "electron";
-import { sendMessageChunk } from "../llms.js";
-import { encoding_for_model } from "@dqbd/tiktoken";
+import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
+import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 let openai: OpenAI;
 
 async function initializeOpenAI(apiKey: string) {
   openai = new OpenAI({ apiKey });
-}
-
-// Helper function to count tokens in a message
-function countMessageTokens(message: ChatCompletionMessageParam): number {
-  const encoder = encoding_for_model("gpt-3.5-turbo");
-  const content = message.content as string;
-  const tokens = encoder.encode(content);
-  encoder.free(); // Free up memory
-  return tokens.length + 4; // 4 tokens for message format
-}
-
-// Helper function to truncate messages to fit within token limit
-function truncateMessages(
-  messages: ChatCompletionMessageParam[],
-  systemPrompt: ChatCompletionMessageParam,
-  maxOutputTokens: number
-): ChatCompletionMessageParam[] {
-  const maxTotalTokens = 4096; // OpenAI's max context length
-  const reservedTokens = 3; // Few tokens reserved for formatting
-
-  const systemTokens = countMessageTokens(systemPrompt);
-  const availableTokens =
-    maxTotalTokens - systemTokens - maxOutputTokens - reservedTokens;
-
-  const truncatedMessages = [...messages];
-  let totalTokens = messages.reduce(
-    (sum, msg) => sum + countMessageTokens(msg),
-    0
-  );
-
-  // If we're under the limit, return all messages
-  if (totalTokens <= availableTokens) {
-    return truncatedMessages;
-  }
-
-  // Keep the first user message for context and last few messages
-  const preserveCount = 4; // Keep last 4 messages minimum
-
-  while (
-    totalTokens > availableTokens &&
-    truncatedMessages.length > preserveCount
-  ) {
-    // Remove messages from the middle, keeping the first and last few messages
-    const removeIndex = Math.floor(truncatedMessages.length / 2);
-    const removed = truncatedMessages.splice(removeIndex, 1)[0];
-    if (removed) {
-      totalTokens -= countMessageTokens(removed);
-    }
-  }
-
-  // If we still need to remove messages and have more than minimum
-  while (totalTokens > availableTokens && truncatedMessages.length > 2) {
-    // Remove oldest messages after the first one
-    const removed = truncatedMessages.splice(1, 1)[0];
-    if (removed) {
-      totalTokens -= countMessageTokens(removed);
-    }
-  }
-
-  return truncatedMessages;
 }
 
 export async function OpenAIProvider(

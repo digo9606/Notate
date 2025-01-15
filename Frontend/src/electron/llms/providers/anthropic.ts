@@ -1,7 +1,8 @@
 import db from "../../db.js";
 import Anthropic from "@anthropic-ai/sdk";
 import { BrowserWindow } from "electron";
-import { sendMessageChunk, truncateMessages } from "../llms.js";
+import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
+import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 export async function AnthropicProvider(
@@ -65,14 +66,18 @@ export async function AnthropicProvider(
   };
 
   // Truncate messages to fit within token limits
-  const maxOutputTokens = userSettings.maxTokens as number || 4096;
-  const truncatedMessages = truncateMessages(newMessages, sysPrompt, maxOutputTokens);
+  const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
+  const truncatedMessages = truncateMessages(
+    newMessages,
+    sysPrompt,
+    maxOutputTokens
+  );
 
   const stream = (await anthropic.messages.stream(
     {
       temperature: Number(userSettings.temperature),
       system: sysPrompt.content,
-      messages: truncatedMessages.map(msg => ({
+      messages: truncatedMessages.map((msg) => ({
         role: msg.role === "assistant" ? "assistant" : "user",
         content: msg.content as string,
       })),

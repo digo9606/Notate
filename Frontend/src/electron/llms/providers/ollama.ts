@@ -1,6 +1,7 @@
 import { BrowserWindow } from "electron";
 import db from "../../db.js";
-import { sendMessageChunk, truncateMessages } from "../llms.js";
+import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
+import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 export async function LocalProvider(

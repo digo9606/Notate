@@ -1,7 +1,8 @@
 import OpenAI from "openai";
 import db from "../../db.js";
 import { BrowserWindow } from "electron";
-import { sendMessageChunk } from "../llms.js";
+import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
+import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 let openai: OpenAI;
 
 async function initializeOpenRouter(apiKey: string) {
@@ -68,15 +69,21 @@ export async function OpenRouterProvider(
           `\n\nCollection/Store Description: ${dataCollectionInfo?.description}`
         : ""),
   };
-  newMessages.unshift(sysPrompt);
+  const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
+  const truncatedMessages = truncateMessages(
+    newMessages,
+    sysPrompt,
+    maxOutputTokens
+  );
+  truncatedMessages.unshift(sysPrompt);
 
   const stream = await openai.chat.completions.create(
     {
       model: userSettings.model as string,
-      messages: newMessages,
+      messages: truncatedMessages,
       stream: true,
       temperature: Number(userSettings.temperature),
-      max_tokens: userSettings.maxTokens as number || 4096,
+      max_tokens: maxOutputTokens,
     },
     { signal }
   );

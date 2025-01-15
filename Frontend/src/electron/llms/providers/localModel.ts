@@ -1,6 +1,7 @@
 import { BrowserWindow } from "electron";
 import db from "../../db.js";
-import { sendMessageChunk, truncateMessages } from "../llms.js";
+import { truncateMessages } from "../llmHelpers/truncateMessages.js";
+import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import OpenAI from "openai";
 import { getToken } from "../../authentication/token.js";

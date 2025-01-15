@@ -6,7 +6,8 @@ import {
 } from "@google/generative-ai";
 import db from "../../db.js";
 import { BrowserWindow } from "electron";
-import { sendMessageChunk, truncateMessages } from "../llms.js";
+import { truncateMessages } from "../llmHelpers/truncateMessages.js";
+import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 let genAI: GoogleGenerativeAI;

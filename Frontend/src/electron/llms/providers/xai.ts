@@ -1,7 +1,8 @@
 import { BrowserWindow } from "electron";
 import OpenAI from "openai";
 import db from "../../db.js";
-import { sendMessageChunk, truncateMessages } from "../llms.js";
+import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
+import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 let openai: OpenAI;
@@ -60,8 +61,12 @@ export async function XAIProvider(
   };
 
   // Truncate messages to fit within token limits
-  const maxOutputTokens = userSettings.maxTokens as number || 4096;
-  const truncatedMessages = truncateMessages(newMessages, sysPrompt, maxOutputTokens) as ChatCompletionMessageParam[];
+  const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
+  const truncatedMessages = truncateMessages(
+    newMessages,
+    sysPrompt,
+    maxOutputTokens
+  ) as ChatCompletionMessageParam[];
   truncatedMessages.unshift(sysPrompt);
 
   const stream = await openai.chat.completions.create(
@@ -101,7 +106,7 @@ export async function XAIProvider(
       messages: [...messages, newMessage],
       title: currentTitle,
       content: newMessage.content,
-      aborted: false
+      aborted: false,
     };
   } catch (error) {
     if (
@@ -113,7 +118,7 @@ export async function XAIProvider(
         messages: messages,
         title: currentTitle,
         content: "",
-        aborted: true
+        aborted: true,
       };
     }
     throw error;
