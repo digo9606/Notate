@@ -1,11 +1,42 @@
 import { dialog, shell } from "electron";
-import { execSync } from "child_process";
+import { execSync, spawn } from "child_process";
 import path from "path";
 import log from "electron-log";
 import { runWithPrivileges } from "./runWithPrivileges.js";
 import fs from "fs";
 import { getLinuxPackageManager } from "./getLinuxPackageManager.js";
 import { updateLoadingStatus } from "../loadingWindow.js";
+
+function spawnAsync(command: string, args: string[], options: { env?: NodeJS.ProcessEnv; stdio?: 'inherit' | 'pipe' } = {}): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const process = spawn(command, args, options);
+    let stdout = '';
+    let stderr = '';
+
+    process.stdout?.on('data', (data) => {
+      stdout += data.toString();
+      log.info(`[Installation Output] ${data.toString().trim()}`);
+      updateLoadingStatus(data.toString().trim(), -1);
+    });
+
+    process.stderr?.on('data', (data) => {
+      stderr += data.toString();
+      log.warn(`[Installation Error] ${data.toString().trim()}`);
+    });
+
+    process.on('close', (code) => {
+      if (code === 0) {
+        resolve(stdout);
+      } else {
+        reject(new Error(`Process exited with code ${code}\nStderr: ${stderr}`));
+      }
+    });
+
+    process.on('error', (err) => {
+      reject(err);
+    });
+  });
+}
 
 export async function ensurePythonAndVenv(backendPath: string) {
   updateLoadingStatus("Installing Python and Virtual Environment...", 0.5);
@@ -227,246 +258,81 @@ export async function ensurePythonAndVenv(backendPath: string) {
     }
   }
 
-  // Upgrade pip and install dependencies
-  try {
-    execSync(`"${venvPython}" -m pip install --upgrade pip`);
-    log.info("Pip upgraded successfully");
-    updateLoadingStatus("Pip upgraded successfully", 23.5);
-    // Install NumPy first with specific version and prevent upgrades
-    execSync(
-      `"${venvPython}" -m pip install "numpy==1.24.3" --no-deps --no-cache-dir`
-    );
-    log.info("NumPy 1.24.3 installed successfully");
-    updateLoadingStatus("NumPy 1.24.3 installed successfully", 24.5);
-    // Install FastAPI and dependencies with version constraints to prevent NumPy upgrade
-    const fastApiCommand =
-      process.platform === "darwin"
-        ? `"${venvPython}" -m pip install --no-cache-dir "fastapi==0.115.6" "pydantic>=2.9.0,<3.0.0"  "uvicorn[standard]==0.27.0" "python-multipart==0.0.7" "email-validator==2.1.0" "httpx>=0.26.0,<0.28.0" "numpy==1.24.3" "PyJWT==2.10.1"`
-        : `"${venvPython}" -m pip install --no-cache-dir "fastapi>=0.115.6" "pydantic>=2.5.0" "uvicorn[standard]>=0.27.0" "python-multipart>=0.0.7" "email-validator>=2.1.0" "httpx>=0.26.0,<0.28.0" "numpy==1.24.3" "PyJWT==2.10.1"`;
-    execSync(fastApiCommand);
-    log.info("FastAPI and dependencies installed successfully");
-    updateLoadingStatus("FastAPI and dependencies installed successfully", 25.5);
-    // Install PyTorch with appropriate CUDA support
+  // Modify the dependency installation section:
+  async function installDependencies(venvPython: string, hasNvidiaGpu: boolean, cudaAvailable: boolean) {
     try {
+      // Upgrade pip first
+      await spawnAsync(venvPython, ['-m', 'pip', 'install', '--upgrade', 'pip']);
+      log.info("Pip upgraded successfully");
+      updateLoadingStatus("Pip upgraded successfully", 23.5);
+
+      // Install NumPy with specific version
+      await spawnAsync(venvPython, ['-m', 'pip', 'install', 'numpy==1.24.3', '--no-deps', '--no-cache-dir']);
+      log.info("NumPy 1.24.3 installed successfully");
+      updateLoadingStatus("NumPy 1.24.3 installed successfully", 24.5);
+
+      // Install FastAPI and dependencies
+      const fastApiDeps = process.platform === "darwin"
+        ? ['fastapi==0.115.6', 'pydantic>=2.9.0,<3.0.0', 'uvicorn[standard]==0.27.0', 'python-multipart==0.0.7', 'email-validator==2.1.0', 'httpx>=0.26.0,<0.28.0', 'numpy==1.24.3', 'PyJWT==2.10.1']
+        : ['fastapi>=0.115.6', 'pydantic>=2.5.0', 'uvicorn[standard]>=0.27.0', 'python-multipart>=0.0.7', 'email-validator>=2.1.0', 'httpx>=0.26.0,<0.28.0', 'numpy==1.24.3', 'PyJWT==2.10.1'];
+
+      await spawnAsync(venvPython, ['-m', 'pip', 'install', '--no-cache-dir', ...fastApiDeps]);
+      log.info("FastAPI and dependencies installed successfully");
+      updateLoadingStatus("FastAPI and dependencies installed successfully", 25.5);
+
+      // Install PyTorch
       if (hasNvidiaGpu && cudaAvailable) {
         log.info("Installing PyTorch with CUDA support");
-        execSync(
-          `"${venvPython}" -m pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121`
-        );
+        await spawnAsync(venvPython, ['-m', 'pip', 'install', '--no-cache-dir', 'torch', 'torchvision', 'torchaudio', '--index-url', 'https://download.pytorch.org/whl/cu121']);
       } else {
         log.info("Installing CPU-only PyTorch");
-        execSync(
-          `"${venvPython}" -m pip install --no-cache-dir torch torchvision torchaudio`
-        );
+        await spawnAsync(venvPython, ['-m', 'pip', 'install', '--no-cache-dir', 'torch', 'torchvision', 'torchaudio']);
       }
       log.info("PyTorch installed successfully");
       updateLoadingStatus("PyTorch installed successfully", 26.5);
+
+      // Install llama-cpp-python if needed
+      if (process.platform === "darwin" || hasNvidiaGpu) {
+        await installLlamaCpp(venvPython, hasNvidiaGpu, cudaAvailable);
+      }
+
+      return { venvPython, hasNvidiaGpu };
     } catch (error) {
-      log.error("Failed to install PyTorch", error);
-      updateLoadingStatus("Failed to install PyTorch", 27.5);
-      throw new Error("Failed to install PyTorch");
+      log.error("Failed to install dependencies", error);
+      throw error;
     }
-
-    // Check if llama-cpp-python is already installed with correct configuration
-    try {
-      // Skip llama-cpp-python installation for non-Mac CPU systems
-      if (process.platform !== "darwin" && !hasNvidiaGpu) {
-        log.info(
-          "Skipping llama-cpp-python installation for non-Mac CPU system"
-        );
-        updateLoadingStatus(
-          "Skipping llama-cpp-python installation for non-Mac CPU system",
-          28.5
-        );
-        return { venvPython, hasNvidiaGpu };
-      }
-
-      // First install build dependencies for all platforms
-      log.info("Installing build dependencies for llama-cpp-python");
-      execSync(
-        `"${venvPython}" -m pip install setuptools wheel scikit-build-core cmake ninja`
-      );
-      updateLoadingStatus("Installing build dependencies for llama-cpp-python", 29.5);
-      // Install required dependencies first
-      execSync(
-        `"${venvPython}" -m pip install typing-extensions numpy diskcache msgpack`
-      );
-      updateLoadingStatus("Installing required dependencies", 30.5);
-
-      if (hasNvidiaGpu && cudaAvailable) {
-        // First check for tensor cores capability
-        let hasTensorCores = false;
-        try {
-          const gpuInfo = execSync(
-            "nvidia-smi --query-gpu=gpu_name --format=csv,noheader"
-          )
-            .toString()
-            .toLowerCase();
-          hasTensorCores =
-            gpuInfo.includes("rtx") ||
-            gpuInfo.includes("titan") ||
-            gpuInfo.includes("a100") ||
-            gpuInfo.includes("a6000");
-          log.info(`GPU supports tensor cores: ${hasTensorCores}`);
-          log.info(`Detected GPU: ${gpuInfo.trim()}`);
-        } catch (error) {
-          log.info("Could not determine tensor cores capability:", error);
-        }
-
-        // Set environment variables for CUDA build
-        process.env.CMAKE_ARGS = "-DGGML_CUDA=ON";
-        process.env.FORCE_CMAKE = "1";
-        process.env.LLAMA_CUDA = "1";
-
-        if (process.platform === "win32") {
-          log.info("Setting up CUDA environment for Windows...");
-          process.env.CUDA_PATH =
-            process.env.CUDA_PATH ||
-            "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1";
-          log.info(`Using CUDA path: ${process.env.CUDA_PATH}`);
-
-          // Log CUDA environment details
-          try {
-            const nvccVersion = execSync("nvcc --version").toString();
-            log.info("NVCC Version:", nvccVersion);
-          } catch (error) {
-            log.warn("Could not get NVCC version:", error);
-          }
-
-          try {
-            const cudaDevices = execSync("nvidia-smi -L").toString();
-            log.info("CUDA Devices:", cudaDevices);
-          } catch (error) {
-            log.warn("Could not list CUDA devices:", error);
-          }
-        }
-
-        // Additional CUDA optimization environment variables
-        process.env.GGML_CUDA_FORCE_MMQ = "1"; // Force MMQ kernels for lower VRAM usage
-        process.env.GGML_CUDA_F16 = "1"; // Enable half-precision for better performance
-        process.env.GGML_CUDA_ENABLE_UNIFIED_MEMORY = "1"; // Enable unified memory
-
-        log.info("Starting llama-cpp-python installation with CUDA support...");
-        log.info(
-          "This may take several minutes as it needs to compile with CUDA support"
-        );
-        log.info("Build environment variables set:");
-        log.info(`CMAKE_ARGS: ${process.env.CMAKE_ARGS}`);
-        log.info(`CUDA_PATH: ${process.env.CUDA_PATH}`);
-
-        try {
-          log.info("Step 1/3: Installing build dependencies...");
-          execSync(
-            `"${venvPython}" -m pip install --no-cache-dir cmake ninja setuptools wheel`
-          );
-          log.info("Step 2/3: Installing required Python packages...");
-          execSync(
-            `"${venvPython}" -m pip install --no-cache-dir typing-extensions numpy diskcache msgpack`
-          );
-          log.info(
-            "Step 3/3: Building and installing llama-cpp-python with CUDA..."
-          );
-          log.info("This step may take several minutes. Please be patient...");
-          try {
-            // Use stdio: 'inherit' to show real-time compilation progress
-            execSync(
-              `"${venvPython}" -m pip install --no-cache-dir --verbose llama-cpp-python`,
-              {
-                stdio: "inherit",
-                env: {
-                  ...process.env,
-                  FORCE_CMAKE: "1",
-                  CMAKE_ARGS: "-DGGML_CUDA=ON",
-                  LLAMA_CUDA: "1",
-                  VERBOSE: "1",
-                  CMAKE_BUILD_PARALLEL_LEVEL: "8", // Use parallel compilation
-                },
-              }
-            );
-            log.info(
-              "Successfully completed CUDA-enabled llama-cpp-python installation"
-            );
-          } catch (error) {
-            // More detailed error logging
-            log.error(
-              "Failed during llama-cpp-python installation. Error details:"
-            );
-            if (error instanceof Error) {
-              log.error("Error message:", error.message);
-              if ("stderr" in error) {
-                log.error(
-                  "Build output:",
-                  (error as { stderr: string }).stderr?.toString()
-                );
-              }
-            }
-            throw new Error(
-              "Failed to install llama-cpp-python with CUDA support. Check the logs for details."
-            );
-          }
-
-          // Verify CUDA installation
-          log.info("Verifying CUDA support...");
-          const checkCuda = `"${venvPython}" -c "from llama_cpp import Llama; import inspect; print('n_gpu_layers' in inspect.signature(Llama.__init__).parameters)"`;
-          const result = execSync(checkCuda).toString().trim();
-
-          if (result.toLowerCase() !== "true") {
-            throw new Error("CUDA support not properly enabled");
-          }
-
-          log.info("Successfully verified CUDA support in llama-cpp-python");
-        } catch (error) {
-          log.error("Failed during llama-cpp-python installation:", error);
-          throw error;
-        }
-
-        // Verify CUDA installation
-        log.info("Verifying CUDA support...");
-        const checkCuda = `"${venvPython}" -c "from llama_cpp import Llama; import inspect; print('n_gpu_layers' in inspect.signature(Llama.__init__).parameters)"`;
-        const result = execSync(checkCuda).toString().trim();
-
-        if (result.toLowerCase() !== "true") {
-          throw new Error("CUDA support not properly enabled");
-        }
-
-        log.info("Successfully verified CUDA support in llama-cpp-python");
-      } else {
-        log.info("Installing CPU-only llama-cpp-python");
-        // For Windows, we need to ensure we have a C++ compiler
-        if (process.platform === "win32") {
-          try {
-            execSync("cl.exe");
-          } catch (error: unknown) {
-            log.error(
-              "Microsoft Visual C++ compiler not found:",
-              error instanceof Error ? error.message : String(error)
-            );
-            log.info("Installing llama-cpp-python from wheel instead");
-            execSync(
-              `"${venvPython}" -m pip install --no-cache-dir --only-binary :all: llama-cpp-python`
-            );
-            log.info("Successfully installed llama-cpp-python from wheel");
-            return { venvPython, hasNvidiaGpu };
-          }
-        }
-        execSync(
-          `"${venvPython}" -m pip install --no-cache-dir llama-cpp-python`
-        );
-      }
-    } catch (e) {
-      log.error("Failed to install llama-cpp-python", e);
-      throw new Error("Failed to install llama-cpp-python");
-    }
-
-    // Set environment variables for runtime
-    process.env.USE_CUDA = hasNvidiaGpu && cudaAvailable ? "1" : "0";
-    process.env.LLAMA_CUDA_FORCE_MMQ = "1";
-    process.env.GGML_CUDA_NO_PINNED = "1";
-    process.env.GGML_CUDA_FORCE_MMQ = "1";
-
-    return { venvPython, hasNvidiaGpu };
-  } catch (error) {
-    log.error("Failed to upgrade pip or install dependencies", error);
-    throw new Error("Failed to upgrade pip or install dependencies");
   }
+
+  async function installLlamaCpp(venvPython: string, hasNvidiaGpu: boolean, cudaAvailable: boolean) {
+    // Install build dependencies
+    await spawnAsync(venvPython, ['-m', 'pip', 'install', 'setuptools', 'wheel', 'scikit-build-core', 'cmake', 'ninja']);
+    await spawnAsync(venvPython, ['-m', 'pip', 'install', 'typing-extensions', 'numpy', 'diskcache', 'msgpack']);
+
+    if (hasNvidiaGpu && cudaAvailable) {
+      process.env.CMAKE_ARGS = "-DGGML_CUDA=ON";
+      process.env.FORCE_CMAKE = "1";
+      process.env.LLAMA_CUDA = "1";
+      process.env.GGML_CUDA_FORCE_MMQ = "1";
+      process.env.GGML_CUDA_F16 = "1";
+      process.env.GGML_CUDA_ENABLE_UNIFIED_MEMORY = "1";
+
+      log.info("Installing llama-cpp-python with CUDA support");
+      await spawnAsync(venvPython, ['-m', 'pip', 'install', '--no-cache-dir', '--verbose', 'llama-cpp-python'], {
+        env: {
+          ...process.env,
+          FORCE_CMAKE: "1",
+          CMAKE_ARGS: "-DGGML_CUDA=ON",
+          LLAMA_CUDA: "1",
+          VERBOSE: "1",
+          CMAKE_BUILD_PARALLEL_LEVEL: "8",
+        }
+      });
+    } else {
+      log.info("Installing CPU-only llama-cpp-python");
+      await spawnAsync(venvPython, ['-m', 'pip', 'install', '--no-cache-dir', 'llama-cpp-python']);
+    }
+  }
+
+  // When you reach the dependency installation part, call the new async function:
+  return await installDependencies(venvPython, hasNvidiaGpu, cudaAvailable);
 }
