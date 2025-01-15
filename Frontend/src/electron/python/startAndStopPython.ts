@@ -11,6 +11,9 @@ import { getSecret } from "../authentication/devApi.js";
 import { ensurePythonAndVenv } from "./ensurePythonAndVenv.js";
 import { extractFromAsar } from "./extractFromAsar.js";
 import { killProcessOnPort } from "./killProcessOnPort.js";
+
+
+
 log.transports.file.level = "info";
 log.transports.file.resolvePathFn = () =>
   path.join(app.getPath("userData"), "logs/main.log");

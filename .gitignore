@@ -12,6 +12,7 @@ database.sqlite
 Backend/__pycache__
 Backend/.pytest_cache
 Backend/venv
+Backend/venvs
 models/*
 
 .DS_Store

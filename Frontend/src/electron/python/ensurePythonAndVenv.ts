@@ -5,8 +5,10 @@ import log from "electron-log";
 import { runWithPrivileges } from "./runWithPrivileges.js";
 import fs from "fs";
 import { getLinuxPackageManager } from "./getLinuxPackageManager.js";
+import { updateLoadingStatus } from "../loadingWindow.js";
 
 export async function ensurePythonAndVenv(backendPath: string) {
+  updateLoadingStatus("Installing Python and Virtual Environment...", 0.5);
   const venvPath = path.join(backendPath, "venv");
   const pythonCommands =
     process.platform === "win32"
@@ -22,17 +24,24 @@ export async function ensurePythonAndVenv(backendPath: string) {
   for (const cmd of pythonCommands) {
     try {
       log.info(`Trying Python command: ${cmd}`);
+      updateLoadingStatus(`Trying Python command: ${cmd}`, 1.5);
       const version = execSync(`${cmd} --version`).toString().trim();
       log.info(`Version output: ${version}`);
+      updateLoadingStatus(`Version output: ${version}`, 3.5);
       if (version.includes("3.10")) {
         pythonCommand = cmd;
         pythonVersion = version;
         log.info(`Found valid Python command: ${cmd} with version ${version}`);
+        updateLoadingStatus(
+          `Found valid Python command: ${cmd} with version ${version}`,
+          4.5
+        );
         break;
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
         log.info(`Failed to execute ${cmd}: ${error.message}`);
+        updateLoadingStatus(`Failed to execute ${cmd}: ${error.message}`, 5.5);
       }
       continue;
     }
@@ -40,6 +49,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
 
   if (!pythonCommand) {
     log.error("Python 3.10 is not installed or not in PATH");
+    updateLoadingStatus("Python 3.10 is not installed or not in PATH", 6.5);
     const response = await dialog.showMessageBox({
       type: "question",
       buttons: ["Install Python 3.10", "Cancel"],
@@ -51,13 +61,19 @@ export async function ensurePythonAndVenv(backendPath: string) {
     });
 
     if (response.response === 0) {
+      updateLoadingStatus("Opening Python download page...", 7.5);
       await shell.openExternal(
         "https://www.python.org/downloads/release/python-31010/"
+      );
+      updateLoadingStatus(
+        "Please restart the application after installing Python 3.10",
+        8.5
       );
       throw new Error(
         "Please restart the application after installing Python 3.10"
       );
     } else {
+      updateLoadingStatus("Installation cancelled", 8.5);
       throw new Error(
         "Python 3.10 is required to run this application. Installation was cancelled."
       );
@@ -65,7 +81,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
   }
 
   log.info(`Using ${pythonVersion}`);
-
+  updateLoadingStatus(`Using ${pythonVersion}`, 9.5);
   const venvPython =
     process.platform === "win32"
       ? path.join(venvPath, "Scripts", "python.exe")
@@ -74,41 +90,55 @@ export async function ensurePythonAndVenv(backendPath: string) {
   // Create virtual environment if it doesn't exist
   if (!fs.existsSync(venvPath)) {
     log.info("Creating virtual environment with Python 3.10...");
-
+    updateLoadingStatus(
+      "Creating virtual environment with Python 3.10...",
+      10.5
+    );
     if (process.platform === "linux") {
       try {
         const packageManager = getLinuxPackageManager();
         log.info(`Using package manager: ${packageManager.command}`);
-
+        updateLoadingStatus(
+          `Using package manager: ${packageManager.command}`,
+          11.5
+        );
         const pythonFullPath = execSync(`which ${pythonCommand}`)
           .toString()
           .trim();
         log.info(`Full Python path: ${pythonFullPath}`);
-
+        updateLoadingStatus(`Full Python path: ${pythonFullPath}`, 12.5);
         await runWithPrivileges([
           packageManager.installCommand,
           `${pythonFullPath} -m venv "${venvPath}"`,
           `chown -R ${process.env.USER}:${process.env.USER} "${venvPath}"`,
         ]);
-
+        updateLoadingStatus("Virtual environment created successfully", 13.5);
         log.info("Virtual environment created successfully");
       } catch (error: unknown) {
         if (error instanceof Error) {
           log.error("Failed to create virtual environment", error);
+          updateLoadingStatus("Failed to create virtual environment", 14.5);
           throw error;
         }
+        updateLoadingStatus(
+          "Unknown error while creating virtual environment",
+          15.5
+        );
         throw new Error("Unknown error while creating virtual environment");
       }
     } else {
       try {
         execSync(`${pythonCommand} -m venv "${venvPath}"`);
         log.info("Virtual environment created successfully");
+        updateLoadingStatus("Virtual environment created successfully", 11.5);
       } catch (error: unknown) {
         if (error instanceof Error) {
           log.error("Failed to create virtual environment", error);
+          updateLoadingStatus("Failed to create virtual environment", 12.5);
           throw new Error("Failed to create virtual environment");
         } else {
           log.error("Unknown error in ensurePythonAndVenv", error);
+          updateLoadingStatus("Unknown error in ensurePythonAndVenv", 13.5);
           throw new Error("Unknown error in ensurePythonAndVenv");
         }
       }
@@ -120,18 +150,25 @@ export async function ensurePythonAndVenv(backendPath: string) {
   let cudaAvailable = false;
   try {
     if (process.platform === "linux" || process.platform === "win32") {
+      updateLoadingStatus("Checking for NVIDIA GPU and CUDA...", 15.5);
       execSync("nvidia-smi");
       hasNvidiaGpu = true;
+      updateLoadingStatus("NVIDIA GPU and CUDA detected", 16.5);
     } else if (process.platform === "darwin") {
       hasNvidiaGpu = false;
     }
   } catch {
     log.info("No NVIDIA GPU detected, will use CPU-only packages");
+    updateLoadingStatus(
+      "No NVIDIA GPU detected, will use CPU-only packages",
+      17.5
+    );
     hasNvidiaGpu = false;
   }
 
   if (hasNvidiaGpu) {
     try {
+      updateLoadingStatus("Checking for CUDA installation...", 22.5);
       const cudaCheckCommands = [
         "nvcc --version",
         process.platform === "win32"
@@ -194,13 +231,13 @@ export async function ensurePythonAndVenv(backendPath: string) {
   try {
     execSync(`"${venvPython}" -m pip install --upgrade pip`);
     log.info("Pip upgraded successfully");
-
+    updateLoadingStatus("Pip upgraded successfully", 23.5);
     // Install NumPy first with specific version and prevent upgrades
     execSync(
       `"${venvPython}" -m pip install "numpy==1.24.3" --no-deps --no-cache-dir`
     );
     log.info("NumPy 1.24.3 installed successfully");
-
+    updateLoadingStatus("NumPy 1.24.3 installed successfully", 24.5);
     // Install FastAPI and dependencies with version constraints to prevent NumPy upgrade
     const fastApiCommand =
       process.platform === "darwin"
@@ -208,7 +245,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
         : `"${venvPython}" -m pip install --no-cache-dir "fastapi>=0.115.6" "pydantic>=2.5.0" "uvicorn[standard]>=0.27.0" "python-multipart>=0.0.7" "email-validator>=2.1.0" "httpx>=0.26.0,<0.28.0" "numpy==1.24.3" "PyJWT==2.10.1"`;
     execSync(fastApiCommand);
     log.info("FastAPI and dependencies installed successfully");
-
+    updateLoadingStatus("FastAPI and dependencies installed successfully", 25.5);
     // Install PyTorch with appropriate CUDA support
     try {
       if (hasNvidiaGpu && cudaAvailable) {
@@ -223,8 +260,10 @@ export async function ensurePythonAndVenv(backendPath: string) {
         );
       }
       log.info("PyTorch installed successfully");
+      updateLoadingStatus("PyTorch installed successfully", 26.5);
     } catch (error) {
       log.error("Failed to install PyTorch", error);
+      updateLoadingStatus("Failed to install PyTorch", 27.5);
       throw new Error("Failed to install PyTorch");
     }
 
@@ -235,6 +274,10 @@ export async function ensurePythonAndVenv(backendPath: string) {
         log.info(
           "Skipping llama-cpp-python installation for non-Mac CPU system"
         );
+        updateLoadingStatus(
+          "Skipping llama-cpp-python installation for non-Mac CPU system",
+          28.5
+        );
         return { venvPython, hasNvidiaGpu };
       }
 
@@ -243,10 +286,12 @@ export async function ensurePythonAndVenv(backendPath: string) {
       execSync(
         `"${venvPython}" -m pip install setuptools wheel scikit-build-core cmake ninja`
       );
+      updateLoadingStatus("Installing build dependencies for llama-cpp-python", 29.5);
       // Install required dependencies first
       execSync(
         `"${venvPython}" -m pip install typing-extensions numpy diskcache msgpack`
       );
+      updateLoadingStatus("Installing required dependencies", 30.5);
 
       if (hasNvidiaGpu && cudaAvailable) {
         // First check for tensor cores capability
