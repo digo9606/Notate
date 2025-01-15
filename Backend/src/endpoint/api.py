@@ -30,68 +30,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def generate_stream(request: GenerateRequest) -> AsyncGenerator[str, None]:
-    """Generate text stream from the model"""
-    if not model_manager.is_model_loaded():
-        raise HTTPException(
-            status_code=400, detail="No model is currently loaded")
-
-    try:
-        model = model_manager.current_model
-        generator = TextGenerator(
-            model, model_manager.current_tokenizer, model_manager.device)
-
-        # Set up stopping criteria
-        stopping_criteria = [StopOnInterrupt()]
-
-        if request.stream:
-            stream_iterator = generator.generate(
-                prompt=request.prompt,
-                max_new_tokens=request.max_tokens,
-                temperature=request.temperature,
-                top_p=request.top_p,
-                top_k=request.top_k,
-                repetition_penalty=request.repetition_penalty,
-                stopping_criteria=stopping_criteria,
-                stream=True
-            )
-
-            async for chunk in stream_iterator:
-                yield chunk
-
-        else:
-            # Non-streaming response
-            response = generator.generate(
-                prompt=request.prompt,
-                max_new_tokens=request.max_tokens,
-                temperature=request.temperature,
-                top_p=request.top_p,
-                top_k=request.top_k,
-                repetition_penalty=request.repetition_penalty,
-                stopping_criteria=stopping_criteria,
-                stream=False
-            )
-            yield f"data: {json.dumps(response)}\n\n"
-            yield "data: [DONE]\n\n"
-
-    except Exception as e:
-        error_response = {
-            "id": f"chatcmpl-{uuid.uuid4()}",
-            "object": "chat.completion.chunk",
-            "created": int(time.time()),
-            "model": model_manager.model_name,
-            "choices": [{
-                "index": 0,
-                "delta": {
-                    "content": f"Error: {str(e)}"
-                },
-                "finish_reason": "error"
-            }]
-        }
-        yield f"data: {json.dumps(error_response)}\n\n"
-        yield "data: [DONE]\n\n"
-
-
 async def chat_completion_stream(request: ChatCompletionRequest) -> AsyncGenerator[str, None]:
     """Stream chat completion from the model"""
     try:
@@ -99,18 +37,11 @@ async def chat_completion_stream(request: ChatCompletionRequest) -> AsyncGenerat
         if not model:
             yield f"data: {json.dumps({'error': 'No model loaded'})}\n\n"
             return
+        print(request.messages)
+        # Convert messages to prompts
 
-        # Convert messages to prompt
-        prompt = ""
         try:
-            # Add system instruction about response format
-            prompt += """System: You are a helpful AI assistant. Follow these rules:
-1. Do not generate additional questions or conversation turns
-2. Respond only to the current question
-3. Stop immediately once you've sufficiently answered the question
-Remember: Be direct and stay focused on the current question only.
-"""
-
+            prompt = ""  # Initialize prompt variable
             # Format messages without explicit User/Assistant markers
             for msg in request.messages:
                 if msg.role == "system":

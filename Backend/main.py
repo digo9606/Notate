@@ -4,15 +4,14 @@ from src.authentication.token import verify_token
 from src.data.database.checkAPIKey import check_api_key
 from src.data.dataFetch.youtube import youtube_transcript
 from src.endpoint.deleteStore import delete_vectorstore_collection
-from src.endpoint.models import EmbeddingRequest, QueryRequest, GenerateRequest, VectorStoreQueryRequest, DeleteCollectionRequest, YoutubeTranscriptRequest, WebCrawlRequest, ModelLoadRequest
+from src.endpoint.models import EmbeddingRequest, QueryRequest, ChatCompletionRequest, VectorStoreQueryRequest, DeleteCollectionRequest, YoutubeTranscriptRequest, WebCrawlRequest, ModelLoadRequest
 from src.endpoint.embed import embed
 from src.endpoint.vectorQuery import query_vectorstore
 from src.endpoint.devApiCall import rag_call, llm_call, vector_call
 from src.endpoint.transcribe import transcribe_audio
 from src.endpoint.webcrawl import webcrawl
-from src.endpoint.api import generate_stream
 from src.models.manager import model_manager
-from fastapi import FastAPI, Depends, File, UploadFile, HTTPException
+from fastapi import FastAPI, Depends, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 import asyncio
@@ -24,7 +23,6 @@ import threading
 import uvicorn
 import json
 from src.endpoint.api import chat_completion_stream
-from src.endpoint.models import ChatCompletionRequest
 
 app = FastAPI()
 embedding_task = None
@@ -336,8 +334,6 @@ async def cancel_crawl(user_id: str = Depends(verify_token)):
         return {"status": "success", "message": "Crawl process cancelled"}
     return {"status": "error", "message": "No crawl process running"}
 # Add the chat completion endpoint
-
-
 
 
 if __name__ == "__main__":

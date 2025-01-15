@@ -4,6 +4,7 @@ import requests
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 from tqdm import tqdm
+import sys
 
 from src.models.loaders.base import BaseLoader
 from src.endpoint.models import ModelLoadRequest
@@ -106,27 +107,45 @@ class LlamaCppLoader(BaseLoader):
         # Special handling for Ollama paths
         if '.ollama' in str(model_path):
             logger.info("Detected Ollama model path")
-            # First check for the model file in the models directory
-            ollama_dir = Path(os.path.expandvars('%USERPROFILE%\\.ollama\\models'))
-            if not ollama_dir.exists():
-                ollama_dir = Path(os.path.expanduser('~/.ollama/models'))
             
-            if ollama_dir.exists():
+            # Determine Ollama directory based on OS
+            if sys.platform == 'darwin':  # macOS specific path
+                ollama_dir = Path(os.path.expanduser('~/.ollama'))
+                logger.info(f"Using macOS Ollama directory: {ollama_dir}")
+            else:  # Windows and Linux
+                ollama_dir = Path(os.path.expandvars('%USERPROFILE%\\.ollama'))
+                if not ollama_dir.exists():
+                    ollama_dir = Path(os.path.expanduser('~/.ollama'))
+            
+            if not ollama_dir.exists():
+                raise ModelLoadError(f"Ollama directory not found at: {ollama_dir}")
+            
+            # Extract model name from path
+            model_name = self.request.model_name
+            if not model_name and 'registry.ollama.ai/library/' in str(model_path):
+                model_name = str(model_path).split('registry.ollama.ai/library/')[-1].split('/')[0]
+            logger.info(f"Using model name: {model_name}")
+            
+            # First check for the model file in the models directory
+            models_dir = ollama_dir / 'models'
+            logger.info(f"Checking Ollama models directory: {models_dir}")
+            
+            if models_dir.exists():
                 # First try to find a .gguf file
-                gguf_files = list(ollama_dir.glob("**/*.gguf"))
+                gguf_files = list(models_dir.glob("**/*.gguf"))
                 if gguf_files:
                     logger.info(f"Found Ollama GGUF file: {gguf_files[0]}")
                     return gguf_files[0]
                 
-                # Then try to find a blob file that matches the model name
-                model_name = model_path.name
-                if 'registry.ollama.ai/library/' in str(model_path):
-                    model_name = str(model_path).split('registry.ollama.ai/library/')[-1]
+                # Look for manifest
+                manifest_dir = models_dir / 'manifests' / 'registry.ollama.ai' / 'library' / model_name
+                manifest_path = manifest_dir / 'latest'
+                logger.info(f"Looking for manifest at: {manifest_path}")
                 
-                manifest_dir = ollama_dir / 'manifests' / 'registry.ollama.ai' / 'library' / model_name
-                if manifest_dir.exists():
-                    with open(manifest_dir / 'latest', 'r') as f:
+                if manifest_path.exists():
+                    with open(manifest_path, 'r') as f:
                         manifest = f.read()
+                        logger.info(f"Manifest content: {manifest}")
                         import json
                         try:
                             manifest_data = json.loads(manifest)
@@ -134,41 +153,24 @@ class LlamaCppLoader(BaseLoader):
                                 if layer.get('mediaType') == 'application/vnd.ollama.image.model':
                                     blob_hash = layer.get('digest', '').replace('sha256:', 'sha256-')
                                     if blob_hash:
-                                        blob_path = ollama_dir / 'blobs' / blob_hash
-                                        if blob_path.exists():
-                                            logger.info(f"Found Ollama model blob: {blob_path}")
-                                            
-                                            # Create a temporary directory for converted models if it doesn't exist
-                                            temp_models_dir = Path('models') / 'temp_ollama'
-                                            temp_models_dir.mkdir(parents=True, exist_ok=True)
-                                            
-                                            # Create a GGUF file name from the model name
-                                            gguf_name = f"{model_name.replace('/', '_')}.gguf"
-                                            gguf_path = temp_models_dir / gguf_name
-                                            
-                                            # Only copy if the file doesn't exist or is older than the blob
-                                            if not gguf_path.exists() or blob_path.stat().st_mtime > gguf_path.stat().st_mtime:
-                                                logger.info(f"Copying Ollama blob to GGUF: {gguf_path}")
-                                                import shutil
-                                                shutil.copy2(blob_path, gguf_path)
-                                            else:
-                                                logger.info(f"Using existing GGUF file: {gguf_path}")
-                                            
-                                            # Force CUDA environment variables
-                                            import torch
-                                            if torch.cuda.is_available():
-                                                os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-                                                os.environ['LLAMA_CUDA_FORCE'] = '1'
-                                                os.environ['LLAMA_FORCE_GPU'] = '1'
-                                                os.environ['LLAMA_CPU_DISABLE'] = '1'
-                                                logger.info("CUDA environment variables set for Ollama model")
-                                            
-                                            return gguf_path
-                        except json.JSONDecodeError:
+                                        # Check both blobs and models directories for the file
+                                        possible_paths = [
+                                            models_dir / 'blobs' / blob_hash,
+                                            ollama_dir / 'blobs' / blob_hash
+                                        ]
+                                        
+                                        for blob_path in possible_paths:
+                                            logger.info(f"Checking for blob at: {blob_path}")
+                                            if blob_path.exists():
+                                                logger.info(f"Found Ollama model blob: {blob_path}")
+                                                return blob_path
+                                                
+                        except json.JSONDecodeError as e:
+                            logger.error(f"Failed to parse manifest: {e}")
                             pass
             
-            logger.warning(f"No Ollama model files found in: {ollama_dir}")
-            raise ModelLoadError(f"Could not find Ollama model files in {ollama_dir}")
+            logger.warning(f"No Ollama model files found in: {models_dir}")
+            raise ModelLoadError(f"Could not find Ollama model files in {models_dir}")
 
         # Check for existing GGUF files in the directory
         if model_dir.exists():
