@@ -1,12 +1,12 @@
 import logging
-from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 
 from src.models.loaders.base import BaseLoader
 from src.models.exceptions import ModelLoadError
 from transformers import AutoTokenizer
 
 logger = logging.getLogger(__name__)
+
 
 class TensorRTLoader(BaseLoader):
     """Loader for TensorRT-LLM models."""
@@ -15,7 +15,7 @@ class TensorRTLoader(BaseLoader):
         """Load a TensorRT-LLM model."""
         try:
             import tensorrt_llm
-            from tensorrt_llm.runtime import ModelConfig, SamplingConfig
+            from tensorrt_llm.runtime import ModelConfig
         except ImportError:
             raise ModelLoadError(
                 "tensorrt-llm is not installed. Please install it from the TensorRT-LLM repository")

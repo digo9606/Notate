@@ -1,12 +1,12 @@
 import logging
-from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 
 from src.models.loaders.base import BaseLoader
 from src.models.exceptions import ModelLoadError
 from transformers import AutoTokenizer
 
 logger = logging.getLogger(__name__)
+
 
 class ExLlamaV2Loader(BaseLoader):
     """Loader for ExLlamaV2 models."""
@@ -21,13 +21,15 @@ class ExLlamaV2Loader(BaseLoader):
                 "exllamav2 is not installed. Please install it from the ExLlamaV2 repository")
 
         if not self.model_path.exists():
-            raise ModelLoadError(f"Model path does not exist: {self.model_path}")
+            raise ModelLoadError(
+                f"Model path does not exist: {self.model_path}")
 
         # Clear CUDA cache
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
             logger.info(f"CUDA Device: {torch.cuda.get_device_name(0)}")
-            logger.info(f"CUDA Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**2:.0f}MB")
+            logger.info(
+                f"CUDA Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**2:.0f}MB")
 
         if not torch.cuda.is_available():
             raise ModelLoadError("GPU is required for ExLlama2")
@@ -35,7 +37,7 @@ class ExLlamaV2Loader(BaseLoader):
         # Force CUDA device
         torch.set_default_device('cuda')
         torch.set_default_tensor_type('torch.cuda.FloatTensor')
-        
+
         config = ExLlamaV2Config()
         config.model_dir = str(self.model_path)
         config.max_seq_len = self.request.max_seq_len or 2048
@@ -50,9 +52,11 @@ class ExLlamaV2Loader(BaseLoader):
         model.load()
         for param in model.parameters():
             param.data = param.data.cuda()
-            
-        logger.info(f"Model loaded on GPU. CUDA Memory: {torch.cuda.memory_allocated() / 1024**2:.0f}MB")
-        logger.info(f"Device for first parameter: {next(model.parameters()).device}")
+
+        logger.info(
+            f"Model loaded on GPU. CUDA Memory: {torch.cuda.memory_allocated() / 1024**2:.0f}MB")
+        logger.info(
+            f"Device for first parameter: {next(model.parameters()).device}")
 
         tokenizer = ExLlamaV2Tokenizer(config)
         logger.info("Model and tokenizer loaded successfully")

@@ -44,10 +44,12 @@ logger = logging.getLogger(__name__)
 
 
 @app.post("/chat/completions")
-async def chat_completion(request: ChatCompletionRequest) -> StreamingResponse:
+async def chat_completion(request: ChatCompletionRequest, user_id: str = Depends(verify_token)) -> StreamingResponse:
     """Stream chat completion from the model"""
     print("Chat completion request received")
-
+    if user_id is None:
+        return {"status": "error", "message": "Unauthorized"}
+    print("Authorized")
     print(request)
     return StreamingResponse(
         chat_completion_stream(request),

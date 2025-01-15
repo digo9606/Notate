@@ -2,7 +2,6 @@ import platform
 from typing import Tuple
 
 
-
 def check_platform_compatibility(model_type: str) -> Tuple[bool, str]:
     """
     Check if the model type is compatible with the current platform

@@ -1,21 +1,17 @@
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 import torch
 from transformers import (
-    AutoModel,
-    AutoModelForCausalLM,
-    AutoTokenizer,
     BitsAndBytesConfig,
-    AutoConfig,
     PreTrainedModel,
-    PreTrainedTokenizer
 )
 
 from src.models.loaders.base import BaseLoader
-from src.models.exceptions import ModelLoadError, ModelDownloadError
+from src.models.exceptions import ModelLoadError
 
 logger = logging.getLogger(__name__)
+
 
 class TransformersLoader(BaseLoader):
     """
@@ -26,9 +22,8 @@ class TransformersLoader(BaseLoader):
     def load(self) -> Tuple[Any, Any]:
         """Load a transformers model and return the model and tokenizer."""
         try:
-            import torch
-            from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-            
+            from transformers import AutoModelForCausalLM, AutoTokenizer
+
             logger.info(f"Loading model: {self.request.model_name}")
             logger.info(f"Model type: {self.request.model_type}")
             logger.info(f"Model path: {self.request.model_path}")
@@ -36,10 +31,11 @@ class TransformersLoader(BaseLoader):
 
             # Configure model loading parameters
             model_kwargs = self._get_model_kwargs()
-            
+
             # If we have a local path, use it directly
             if self.request.model_path and Path(self.request.model_path).exists():
-                logger.info(f"Loading model from local path: {self.request.model_path}")
+                logger.info(
+                    f"Loading model from local path: {self.request.model_path}")
                 try:
                     # Try to load tokenizer from local path first
                     tokenizer = AutoTokenizer.from_pretrained(
@@ -56,7 +52,7 @@ class TransformersLoader(BaseLoader):
                         **model_kwargs
                     )
                     logger.info("Loaded model from local path")
-                    
+
                     # Ensure model is on the correct device if not using device_map
                     if model_kwargs.get("device_map") is None and hasattr(model, "to"):
                         # Handle device placement
@@ -64,18 +60,20 @@ class TransformersLoader(BaseLoader):
                             device = "cuda" if torch.cuda.is_available() else "cpu"
                         else:
                             device = self.request.device
-                        
+
                         model = model.to(device)
                         logger.info(f"Moved model to device: {device}")
-                    
+
                     return model, tokenizer
                 except Exception as e:
                     logger.warning(f"Failed to load from local path: {e}")
-                    raise ModelLoadError(f"Failed to load model from local path: {str(e)}")
+                    raise ModelLoadError(
+                        f"Failed to load model from local path: {str(e)}")
             else:
                 # Download from HuggingFace
-                logger.info("Attempting to download from HuggingFace: " + self.request.model_name)
-                
+                logger.info(
+                    "Attempting to download from HuggingFace: " + self.request.model_name)
+
                 try:
                     # Download and save tokenizer
                     tokenizer = AutoTokenizer.from_pretrained(
@@ -86,7 +84,8 @@ class TransformersLoader(BaseLoader):
                     )
                     if self.request.model_path:
                         tokenizer.save_pretrained(self.request.model_path)
-                        logger.info(f"Tokenizer downloaded and saved to {self.request.model_path}")
+                        logger.info(
+                            f"Tokenizer downloaded and saved to {self.request.model_path}")
 
                     # Download and save config
                     if self.request.model_path:
@@ -96,41 +95,46 @@ class TransformersLoader(BaseLoader):
                             trust_remote_code=self.request.trust_remote_code
                         )
                         config.save_pretrained(self.request.model_path)
-                        logger.info(f"Config downloaded and saved to {self.request.model_path}")
+                        logger.info(
+                            f"Config downloaded and saved to {self.request.model_path}")
 
                     # Download model weights
-                    logger.info("Downloading model weights (this may take a while)...")
+                    logger.info(
+                        "Downloading model weights (this may take a while)...")
                     model = AutoModelForCausalLM.from_pretrained(
                         self.request.model_name,
                         **model_kwargs
                     )
-                    
+
                     # Save the model if we have a path
                     if self.request.model_path:
                         model.save_pretrained(self.request.model_path)
-                        logger.info(f"Model weights saved to {self.request.model_path}")
-                    
+                        logger.info(
+                            f"Model weights saved to {self.request.model_path}")
+
                     return model, tokenizer
                 except Exception as e:
                     raise ModelLoadError(f"Failed to download model: {str(e)}")
 
         except Exception as e:
-            raise ModelLoadError(f"Failed to load transformers model: {str(e)}")
+            raise ModelLoadError(
+                f"Failed to load transformers model: {str(e)}")
 
     def _get_model_kwargs(self) -> Dict[str, Any]:
         """Get model loading parameters."""
         # Get the compute dtype
         compute_dtype = torch.bfloat16 if self.request.compute_dtype == "bfloat16" else torch.float16
-        
+
         # Determine device map
         device_map = None
         if self.request.device == "cuda":
             if torch.cuda.is_available():
                 device_map = "auto"
             else:
-                logger.warning("CUDA requested but not available, falling back to CPU")
+                logger.warning(
+                    "CUDA requested but not available, falling back to CPU")
                 self.request.device = "cpu"
-        
+
         # Base parameters without gradient checkpointing
         load_params = {
             "low_cpu_mem_usage": True,
@@ -143,9 +147,9 @@ class TransformersLoader(BaseLoader):
 
         # Only add gradient checkpointing for explicitly supported models
         model_name_lower = self.request.model_name.lower()
-        if ("llama" in model_name_lower or 
-            "mistral" in model_name_lower or 
-            "mpt" in model_name_lower):
+        if ("llama" in model_name_lower or
+            "mistral" in model_name_lower or
+                "mpt" in model_name_lower):
             load_params["use_gradient_checkpointing"] = True
 
         # Configure quantization
@@ -165,7 +169,7 @@ class TransformersLoader(BaseLoader):
         # For model loading, return the original params with torch.dtype
         if not hasattr(self, '_serializing_for_response'):
             return load_params
-            
+
         # For JSON response, convert torch.dtype to string
         response_params = load_params.copy()
         response_params["torch_dtype"] = str(compute_dtype)
@@ -207,21 +211,21 @@ class TransformersLoader(BaseLoader):
         self._serializing_for_response = True
         load_params = self._get_model_kwargs()
         delattr(self, '_serializing_for_response')
-        
+
         config = {
             "model_type": "Transformers",
             "model_name": self.request.model_name,
             "device": self.request.device,
             "load_params": load_params
         }
-        
+
         if self.model_path.exists():
             try:
                 model_config = self._load_config(self.model_path)
                 config["model_config"] = model_config.to_dict()
             except Exception as e:
                 logger.warning(f"Could not load model config: {str(e)}")
-        
+
         return self._make_json_serializable(config)
 
     def _make_json_serializable(self, obj: Any) -> Any:

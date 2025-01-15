@@ -1,42 +1,12 @@
 import { dialog, shell } from "electron";
-import { execSync, spawn } from "child_process";
+import { execSync } from "child_process";
 import path from "path";
 import log from "electron-log";
 import { runWithPrivileges } from "./runWithPrivileges.js";
 import fs from "fs";
 import { getLinuxPackageManager } from "./getLinuxPackageManager.js";
 import { updateLoadingStatus } from "../loadingWindow.js";
-
-function spawnAsync(command: string, args: string[], options: { env?: NodeJS.ProcessEnv; stdio?: 'inherit' | 'pipe' } = {}): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const process = spawn(command, args, options);
-    let stdout = '';
-    let stderr = '';
-
-    process.stdout?.on('data', (data) => {
-      stdout += data.toString();
-      log.info(`[Installation Output] ${data.toString().trim()}`);
-      updateLoadingStatus(data.toString().trim(), -1);
-    });
-
-    process.stderr?.on('data', (data) => {
-      stderr += data.toString();
-      log.warn(`[Installation Error] ${data.toString().trim()}`);
-    });
-
-    process.on('close', (code) => {
-      if (code === 0) {
-        resolve(stdout);
-      } else {
-        reject(new Error(`Process exited with code ${code}\nStderr: ${stderr}`));
-      }
-    });
-
-    process.on('error', (err) => {
-      reject(err);
-    });
-  });
-}
+import { installDependencies } from "./installDependencies.js";
 
 export async function ensurePythonAndVenv(backendPath: string) {
   updateLoadingStatus("Installing Python and Virtual Environment...", 0.5);
@@ -255,81 +225,6 @@ export async function ensurePythonAndVenv(backendPath: string) {
       }
     } catch (error) {
       log.info("Failed to detect CUDA installation details", error);
-    }
-  }
-
-  // Modify the dependency installation section:
-  async function installDependencies(venvPython: string, hasNvidiaGpu: boolean, cudaAvailable: boolean) {
-    try {
-      // Upgrade pip first
-      await spawnAsync(venvPython, ['-m', 'pip', 'install', '--upgrade', 'pip']);
-      log.info("Pip upgraded successfully");
-      updateLoadingStatus("Pip upgraded successfully", 23.5);
-
-      // Install NumPy with specific version
-      await spawnAsync(venvPython, ['-m', 'pip', 'install', 'numpy==1.24.3', '--no-deps', '--no-cache-dir']);
-      log.info("NumPy 1.24.3 installed successfully");
-      updateLoadingStatus("NumPy 1.24.3 installed successfully", 24.5);
-
-      // Install FastAPI and dependencies
-      const fastApiDeps = process.platform === "darwin"
-        ? ['fastapi==0.115.6', 'pydantic>=2.9.0,<3.0.0', 'uvicorn[standard]==0.27.0', 'python-multipart==0.0.7', 'email-validator==2.1.0', 'httpx>=0.26.0,<0.28.0', 'numpy==1.24.3', 'PyJWT==2.10.1']
-        : ['fastapi>=0.115.6', 'pydantic>=2.5.0', 'uvicorn[standard]>=0.27.0', 'python-multipart>=0.0.7', 'email-validator>=2.1.0', 'httpx>=0.26.0,<0.28.0', 'numpy==1.24.3', 'PyJWT==2.10.1'];
-
-      await spawnAsync(venvPython, ['-m', 'pip', 'install', '--no-cache-dir', ...fastApiDeps]);
-      log.info("FastAPI and dependencies installed successfully");
-      updateLoadingStatus("FastAPI and dependencies installed successfully", 25.5);
-
-      // Install PyTorch
-      if (hasNvidiaGpu && cudaAvailable) {
-        log.info("Installing PyTorch with CUDA support");
-        await spawnAsync(venvPython, ['-m', 'pip', 'install', '--no-cache-dir', 'torch', 'torchvision', 'torchaudio', '--index-url', 'https://download.pytorch.org/whl/cu121']);
-      } else {
-        log.info("Installing CPU-only PyTorch");
-        await spawnAsync(venvPython, ['-m', 'pip', 'install', '--no-cache-dir', 'torch', 'torchvision', 'torchaudio']);
-      }
-      log.info("PyTorch installed successfully");
-      updateLoadingStatus("PyTorch installed successfully", 26.5);
-
-      // Install llama-cpp-python if needed
-      if (process.platform === "darwin" || hasNvidiaGpu) {
-        await installLlamaCpp(venvPython, hasNvidiaGpu, cudaAvailable);
-      }
-
-      return { venvPython, hasNvidiaGpu };
-    } catch (error) {
-      log.error("Failed to install dependencies", error);
-      throw error;
-    }
-  }
-
-  async function installLlamaCpp(venvPython: string, hasNvidiaGpu: boolean, cudaAvailable: boolean) {
-    // Install build dependencies
-    await spawnAsync(venvPython, ['-m', 'pip', 'install', 'setuptools', 'wheel', 'scikit-build-core', 'cmake', 'ninja']);
-    await spawnAsync(venvPython, ['-m', 'pip', 'install', 'typing-extensions', 'numpy', 'diskcache', 'msgpack']);
-
-    if (hasNvidiaGpu && cudaAvailable) {
-      process.env.CMAKE_ARGS = "-DGGML_CUDA=ON";
-      process.env.FORCE_CMAKE = "1";
-      process.env.LLAMA_CUDA = "1";
-      process.env.GGML_CUDA_FORCE_MMQ = "1";
-      process.env.GGML_CUDA_F16 = "1";
-      process.env.GGML_CUDA_ENABLE_UNIFIED_MEMORY = "1";
-
-      log.info("Installing llama-cpp-python with CUDA support");
-      await spawnAsync(venvPython, ['-m', 'pip', 'install', '--no-cache-dir', '--verbose', 'llama-cpp-python'], {
-        env: {
-          ...process.env,
-          FORCE_CMAKE: "1",
-          CMAKE_ARGS: "-DGGML_CUDA=ON",
-          LLAMA_CUDA: "1",
-          VERBOSE: "1",
-          CMAKE_BUILD_PARALLEL_LEVEL: "8",
-        }
-      });
-    } else {
-      log.info("Installing CPU-only llama-cpp-python");
-      await spawnAsync(venvPython, ['-m', 'pip', 'install', '--no-cache-dir', 'llama-cpp-python']);
     }
   }
 

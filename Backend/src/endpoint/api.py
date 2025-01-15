@@ -1,15 +1,12 @@
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.responses import StreamingResponse, JSONResponse
 from typing import AsyncGenerator
 import json
-import asyncio
-from src.endpoint.models import GenerateRequest, ModelLoadRequest, ChatCompletionRequest
+from src.endpoint.models import ChatCompletionRequest
 from transformers import TextIteratorStreamer
 from threading import Thread
 import logging
 import os
 from src.models.manager import model_manager
-from src.models.streamer import TextGenerator, StopOnInterrupt, StreamIterator
+from src.models.streamer import TextGenerator, StopOnInterrupt
 import uuid
 import time
 import torch

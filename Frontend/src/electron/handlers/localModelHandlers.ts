@@ -56,14 +56,15 @@ async function downloadModel(payload: {
       const existingFiles = fs.readdirSync(payload.dirPath);
       if (existingFiles.length > 0) {
         // Check for common model files
-        const hasModelFiles = existingFiles.some(file => 
-          file.endsWith('.gguf') || 
-          file.endsWith('.bin') || 
-          file.endsWith('.safetensors') ||
-          file === 'config.json' ||
-          file === 'tokenizer.json'
+        const hasModelFiles = existingFiles.some(
+          (file) =>
+            file.endsWith(".gguf") ||
+            file.endsWith(".bin") ||
+            file.endsWith(".safetensors") ||
+            file === "config.json" ||
+            file === "tokenizer.json"
         );
-        
+
         if (hasModelFiles) {
           console.log("Model already exists in:", payload.dirPath);
           sendProgress({
@@ -71,8 +72,8 @@ async function downloadModel(payload: {
             data: {
               message: "Model already exists",
               totalProgress: 100,
-              currentStep: "complete"
-            }
+              currentStep: "complete",
+            },
           });
           return payload;
         }
@@ -95,8 +96,8 @@ async function downloadModel(payload: {
       data: {
         message: "Fetching model information...",
         totalProgress: 0,
-        currentStep: "init"
-      }
+        currentStep: "init",
+      },
     });
 
     currentDownloadController = new AbortController();
@@ -114,16 +115,19 @@ async function downloadModel(payload: {
 
     // Filter out zero-size files and sort by size (largest first)
     const downloadableFiles = files
-      .filter(file => file.size > 0)
+      .filter((file) => file.size > 0)
       .sort((a, b) => b.size - a.size);
 
     // Calculate total size
-    const totalSize = downloadableFiles.reduce((acc, file) => acc + file.size, 0);
+    const totalSize = downloadableFiles.reduce(
+      (acc, file) => acc + file.size,
+      0
+    );
     let downloadedSize = 0;
 
     // Format size to human readable
     const formatSize = (bytes: number) => {
-      const units = ['B', 'KB', 'MB', 'GB'];
+      const units = ["B", "KB", "MB", "GB"];
       let size = bytes;
       let unitIndex = 0;
       while (size >= 1024 && unitIndex < units.length - 1) {
@@ -149,7 +153,9 @@ async function downloadModel(payload: {
       sendProgress({
         type: "progress",
         data: {
-          message: `Downloading file ${index + 1} of ${downloadableFiles.length}`,
+          message: `Downloading file ${index + 1} of ${
+            downloadableFiles.length
+          }`,
           fileName,
           fileNumber: index + 1,
           totalFiles: downloadableFiles.length,
@@ -158,15 +164,17 @@ async function downloadModel(payload: {
           currentSize: formatSize(downloadedSize),
           totalSize: formatSize(totalSize),
           currentStep: "downloading",
-          speed: "Starting..."
-        }
+          speed: "Starting...",
+        },
       });
 
       try {
         const fileResponse = await fetch(downloadUrl, { headers, signal });
 
         if (!fileResponse.ok) {
-          console.warn(`Failed to download ${fileName}: ${fileResponse.statusText}`);
+          console.warn(
+            `Failed to download ${fileName}: ${fileResponse.statusText}`
+          );
           failedFiles.push(fileName);
           continue;
         }
@@ -202,13 +210,17 @@ async function downloadModel(payload: {
             lastBytes = receivedLength;
 
             // Update progress
-            const totalProgress = Math.round((downloadedSize / totalSize) * 100);
+            const totalProgress = Math.round(
+              (downloadedSize / totalSize) * 100
+            );
             const fileProgress = Math.round((receivedLength / file.size) * 100);
-            
+
             sendProgress({
               type: "progress",
               data: {
-                message: `Downloading file ${index + 1} of ${downloadableFiles.length}`,
+                message: `Downloading file ${index + 1} of ${
+                  downloadableFiles.length
+                }`,
                 fileName,
                 fileNumber: index + 1,
                 totalFiles: downloadableFiles.length,
@@ -217,8 +229,8 @@ async function downloadModel(payload: {
                 currentSize: formatSize(downloadedSize),
                 totalSize: formatSize(totalSize),
                 currentStep: "downloading",
-                speed
-              }
+                speed,
+              },
             });
           }
         }
@@ -247,8 +259,8 @@ async function downloadModel(payload: {
           totalProgress: 100,
           currentStep: "complete",
           currentSize: formatSize(downloadedSize),
-          totalSize: formatSize(totalSize)
-        }
+          totalSize: formatSize(totalSize),
+        },
       });
     } else {
       sendProgress({
@@ -258,8 +270,8 @@ async function downloadModel(payload: {
           totalProgress: 100,
           currentStep: "complete",
           currentSize: formatSize(totalSize),
-          totalSize: formatSize(totalSize)
-        }
+          totalSize: formatSize(totalSize),
+        },
       });
     }
 
@@ -277,9 +289,7 @@ async function downloadModel(payload: {
 
 export function setupLocalModelHandlers() {
   ipcMainDatabaseHandle("getDirModels", async (payload) => {
-    console.log("getDirModels", payload);
     const models = await getDirModels(payload);
-    console.log("models", models);
     return { dirPath: payload.dirPath, models };
   });
 

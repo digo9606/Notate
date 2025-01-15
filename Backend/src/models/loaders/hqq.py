@@ -1,6 +1,5 @@
 import logging
-from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 import requests
 from tqdm import tqdm
 
@@ -9,6 +8,7 @@ from src.models.exceptions import ModelLoadError, ModelDownloadError
 from transformers import AutoTokenizer
 
 logger = logging.getLogger(__name__)
+
 
 class HQQLoader(BaseLoader):
     """Loader for HQQ quantized models."""
@@ -32,14 +32,16 @@ class HQQLoader(BaseLoader):
                 self._download_model()
 
             if not self.model_path.exists():
-                raise ModelLoadError(f"Model path does not exist: {self.model_path}")
+                raise ModelLoadError(
+                    f"Model path does not exist: {self.model_path}")
 
             logger.info(f"Loading HQQ model from {self.model_path}")
             model = AutoHQQHFModel.from_quantized(str(self.model_path))
             logger.info("Model loaded successfully")
 
             logger.info(f"Setting HQQ backend to {self.request.hqq_backend}")
-            HQQLinear.set_backend(getattr(HQQBackend, self.request.hqq_backend))
+            HQQLinear.set_backend(
+                getattr(HQQBackend, self.request.hqq_backend))
             logger.info("HQQ backend set successfully")
 
             logger.info("Loading tokenizer")
@@ -72,7 +74,7 @@ class HQQLoader(BaseLoader):
 
             # Required files for HQQ models
             required_files = ['qmodel.pt', 'config.json',
-                            'tokenizer.model', 'tokenizer_config.json', 'tokenizer.json']
+                              'tokenizer.model', 'tokenizer_config.json', 'tokenizer.json']
             logger.info(f"Required files: {required_files}")
 
             # Download each required file

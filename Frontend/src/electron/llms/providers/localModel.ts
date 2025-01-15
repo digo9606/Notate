@@ -3,13 +3,14 @@ import db from "../../db.js";
 import { sendMessageChunk, truncateMessages } from "../llms.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import OpenAI from "openai";
+import { getToken } from "../../authentication/token.js";
 
 let openai: OpenAI;
 
-function initializeLocalOpenAI() {
+function initializeLocalOpenAI(apiKey: string) {
   openai = new OpenAI({
     baseURL: "http://127.0.0.1:47372",
-    apiKey: "not-needed"
+    apiKey: apiKey,
   });
 }
 
@@ -31,8 +32,9 @@ export async function LocalModelProvider(
   },
   signal?: AbortSignal
 ) {
+  const apiKey = await getToken({ userId: activeUser.id.toString() });
   if (!openai) {
-    initializeLocalOpenAI();
+    initializeLocalOpenAI(apiKey);
   }
 
   // Sort messages by timestamp to ensure proper chronological order
@@ -86,8 +88,12 @@ export async function LocalModelProvider(
   };
 
   // Truncate messages to fit within token limits
-  const maxOutputTokens = userSettings.maxTokens as number || 4096;
-  const truncatedMessages = truncateMessages(newMessages, sysPrompt, maxOutputTokens);
+  const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
+  const truncatedMessages = truncateMessages(
+    newMessages,
+    sysPrompt,
+    maxOutputTokens
+  );
   truncatedMessages.unshift(sysPrompt);
 
   console.log("Final messages to send:", truncatedMessages);
@@ -102,14 +108,14 @@ export async function LocalModelProvider(
   try {
     const stream = await openai.chat.completions.create(
       {
-        model: "local-model", // This will be ignored by your endpoint
+        model: "local-model",
         messages: truncatedMessages,
         stream: true,
         temperature: Number(userSettings.temperature) || 0.7,
         max_tokens: Number(maxOutputTokens),
         top_p: Number(userSettings.top_p) || 0.95,
         presence_penalty: 0.1,
-        frequency_penalty: 0.1
+        frequency_penalty: 0.1,
       },
       { signal }
     );
@@ -144,7 +150,6 @@ export async function LocalModelProvider(
       content: "",
       aborted: false,
     };
-
   } catch (error) {
     if (mainWindow) {
       mainWindow.webContents.send("streamEnd");
@@ -164,4 +169,4 @@ export async function LocalModelProvider(
     }
     throw error;
   }
-} 
+}
