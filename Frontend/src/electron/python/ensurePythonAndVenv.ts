@@ -292,12 +292,6 @@ export async function ensurePythonAndVenv(backendPath: string) {
                   sudo dnf distro-sync -y
                   sudo dnf install -y @c-development @development-tools cmake
 
-                  # Add RPM Fusion repositories
-                  sudo dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${fedoraVersion}.noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${fedoraVersion}.noarch.rpm
-
-                  # Install NVIDIA drivers and CUDA support from RPM Fusion
-                  sudo dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda
-
                   # Install GCC 13 for CUDA compatibility
                   sudo dnf install -y gcc13-c++
 
