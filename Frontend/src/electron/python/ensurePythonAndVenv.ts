@@ -290,7 +290,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
                 `toolbox run --container ${containerName} bash -c "
                   set -e
                   sudo dnf distro-sync -y
-                  sudo dnf install -y @c-development @development-tools cmake
+                  sudo dnf install -y @c-development @development-tools cmake python3.10 python3.10-devel python3.10-pip
 
                   # Install GCC 13 for CUDA compatibility
                   sudo dnf install -y gcc13-c++
@@ -321,6 +321,12 @@ export async function ensurePythonAndVenv(backendPath: string) {
                   export PATH=/usr/local/cuda/bin:$PATH
                   export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 
+                  # Create virtual environment inside the container
+                  python3.10 -m venv /opt/venv
+                  source /opt/venv/bin/activate
+                  pip install --upgrade pip setuptools wheel
+                  pip install scikit-build-core cmake ninja typing-extensions numpy diskcache msgpack
+
                   # Verify installation
                   nvcc --version
                 "`
@@ -343,9 +349,13 @@ export async function ensurePythonAndVenv(backendPath: string) {
                 cudaAvailable = true;
               }
 
-              // Install llama-cpp-python with CUDA in toolbox
+              // Install llama-cpp-python with CUDA in toolbox using the container's venv
               log.info("Installing llama-cpp-python with CUDA support in toolbox");
-              execSync(`toolbox run --container ${containerName} "${venvPython}" -m pip install --no-cache-dir --verbose llama-cpp-python`);
+              execSync(`toolbox run --container ${containerName} bash -c 'source /opt/venv/bin/activate && CMAKE_ARGS="-DGGML_CUDA=ON" FORCE_CMAKE=1 LLAMA_CUDA=1 pip install --no-cache-dir --verbose llama-cpp-python'`);
+              
+              // Copy the built package from toolbox venv to host venv
+              execSync(`toolbox run --container ${containerName} bash -c 'cp -r /opt/venv/lib/python3.10/site-packages/llama_cpp* "${venvPath}/lib/python3.10/site-packages/"'`);
+              
               return { venvPython, hasNvidiaGpu };
             }
           } catch (error) {
