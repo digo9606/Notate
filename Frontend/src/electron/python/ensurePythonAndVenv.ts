@@ -288,11 +288,11 @@ export async function ensurePythonAndVenv(backendPath: string) {
               // Check if llama-cpp-python is already built in the toolbox
               let needsRebuild = true;
               try {
-                execSync(`toolbox run --container ${containerName} bash -c '\\
+                execSync(`toolbox run --container ${containerName} bash -c 'set -e; \\
                   if [ -d "/opt/venv" ] && [ -d "/opt/venv/lib/python*/site-packages/llama_cpp" ]; then \\
                     source /opt/venv/bin/activate && \\
-                    python3 -c "from llama_cpp import Llama; import inspect; assert \\'n_gpu_layers\\' in inspect.signature(Llama.__init__).parameters" && \\
-                    echo "CUDA-enabled llama-cpp-python already installed"; \\
+                    python3 -c "from llama_cpp import Llama; import inspect; print(str('\\'n_gpu_layers\\' in inspect.signature(Llama.__init__).parameters').lower())" | grep -q true && \\
+                    echo "CUDA-enabled llama-cpp-python already installed" && \\
                     exit 0; \\
                   else \\
                     exit 1; \\
