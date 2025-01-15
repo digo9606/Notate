@@ -253,10 +253,22 @@ export async function ensurePythonAndVenv(backendPath: string) {
               log.info("Fedora system detected, setting up CUDA in toolbox...");
               
               // Create and setup Fedora 39 toolbox for CUDA
-              const toolboxSetupCommands = [
-                // Create toolbox container with automatic image download
-                "toolbox create --assumeyes --image registry.fedoraproject.org/fedora-toolbox:39 --container fedora-toolbox-39-cuda",
-                // Enter toolbox and run setup commands
+              const toolboxSetupCommands = [];
+
+              // Check if container exists
+              try {
+                execSync("toolbox list | grep fedora-toolbox-39-cuda", { stdio: 'pipe' });
+                log.info("Toolbox container already exists, skipping creation");
+              } catch {
+                // Container doesn't exist, add creation command
+                log.info("Creating new toolbox container");
+                toolboxSetupCommands.push(
+                  "toolbox create --assumeyes --image registry.fedoraproject.org/fedora-toolbox:39 --container fedora-toolbox-39-cuda"
+                );
+              }
+
+              // Add setup commands
+              toolboxSetupCommands.push(
                 `toolbox run --container fedora-toolbox-39-cuda bash -c "
                   set -e
                   sudo dnf distro-sync -y
@@ -273,7 +285,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
                   source /etc/profile.d/cuda.sh
                   nvcc --version
                 "`
-              ];
+              );
 
               for (const cmd of toolboxSetupCommands) {
                 try {
