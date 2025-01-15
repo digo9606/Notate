@@ -254,27 +254,27 @@ export async function ensurePythonAndVenv(backendPath: string) {
               
               // Create and setup Fedora 39 toolbox for CUDA
               const toolboxSetupCommands = [
-                // Create toolbox container
-                "toolbox create --image registry.fedoraproject.org/fedora-toolbox:39 --container fedora-toolbox-39-cuda",
+                // Create toolbox container with automatic image download
+                "toolbox create --assumeyes --image registry.fedoraproject.org/fedora-toolbox:39 --container fedora-toolbox-39-cuda",
                 // Enter toolbox and run setup commands
                 `toolbox run --container fedora-toolbox-39-cuda bash -c '
                   # Update package manager
-                  dnf distro-sync -y &&
+                  sudo dnf distro-sync -y &&
                   # Install development tools
-                  dnf install -y @c-development @development-tools cmake &&
+                  sudo dnf install -y @c-development @development-tools cmake &&
                   # Add CUDA repository
-                  dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/fedora39/x86_64/cuda-fedora39.repo &&
-                  dnf distro-sync -y &&
+                  sudo dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/fedora39/x86_64/cuda-fedora39.repo &&
+                  sudo dnf distro-sync -y &&
                   # Install NVIDIA driver libraries with conflict resolution
-                  dnf download --arch x86_64 nvidia-driver-libs egl-gbm egl-wayland &&
-                  rpm --install --verbose --hash --excludepath=/usr/lib64/libnvidia-egl-gbm.so.1.1.2 --excludepath=/usr/share/egl/egl_external_platform.d/15_nvidia_gbm.json egl-gbm*.rpm &&
-                  rpm --install --verbose --hash --excludepath=/usr/share/egl/egl_external_platform.d/10_nvidia_wayland.json egl-wayland*.rpm &&
-                  rpm --install --verbose --hash --excludepath=/usr/share/glvnd/egl_vendor.d/10_nvidia.json --excludepath=/usr/share/nvidia/nvoptix.bin nvidia-driver-libs*.rpm &&
+                  sudo dnf download --arch x86_64 nvidia-driver-libs egl-gbm egl-wayland &&
+                  sudo rpm --install --verbose --hash --excludepath=/usr/lib64/libnvidia-egl-gbm.so.1.1.2 --excludepath=/usr/share/egl/egl_external_platform.d/15_nvidia_gbm.json egl-gbm*.rpm &&
+                  sudo rpm --install --verbose --hash --excludepath=/usr/share/egl/egl_external_platform.d/10_nvidia_wayland.json egl-wayland*.rpm &&
+                  sudo rpm --install --verbose --hash --excludepath=/usr/share/glvnd/egl_vendor.d/10_nvidia.json --excludepath=/usr/share/nvidia/nvoptix.bin nvidia-driver-libs*.rpm &&
                   # Install CUDA meta-package
-                  dnf install -y cuda &&
+                  sudo dnf install -y cuda &&
                   # Setup environment
-                  echo "export PATH=$PATH:/usr/local/cuda/bin" > /etc/profile.d/cuda.sh &&
-                  chmod +x /etc/profile.d/cuda.sh &&
+                  sudo sh -c 'echo "export PATH=$PATH:/usr/local/cuda/bin" > /etc/profile.d/cuda.sh' &&
+                  sudo chmod +x /etc/profile.d/cuda.sh &&
                   source /etc/profile.d/cuda.sh &&
                   # Verify installation
                   nvcc --version
@@ -282,7 +282,12 @@ export async function ensurePythonAndVenv(backendPath: string) {
               ];
 
               for (const cmd of toolboxSetupCommands) {
-                await runWithPrivileges([cmd]);
+                try {
+                  execSync(cmd);
+                } catch (error) {
+                  log.error(`Failed to execute command: ${cmd}`, error);
+                  throw error;
+                }
               }
 
               // Verify CUDA installation in toolbox
