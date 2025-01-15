@@ -289,45 +289,69 @@ export async function ensurePythonAndVenv(backendPath: string) {
               toolboxSetupCommands.push(
                 `toolbox run --container ${containerName} bash -c "
                   set -e
-                  sudo dnf distro-sync -y
-                  sudo dnf install -y @c-development @development-tools cmake python3.10 python3.10-devel python3.10-pip
+                  
+                  # Update package lists and handle unavailable packages
+                  sudo dnf distro-sync -y --skip-unavailable || true
+                  
+                  # Install development tools and Python with error handling
+                  for pkg in @c-development @development-tools cmake python3.10 python3.10-devel python3.10-pip gcc13-c++; do
+                    sudo dnf install -y --skip-unavailable $pkg || echo "Warning: Failed to install $pkg"
+                  done
 
-                  # Install GCC 13 for CUDA compatibility
-                  sudo dnf install -y gcc13-c++
-
-                  # Download and install CUDA toolkit
+                  # Download and install CUDA toolkit with error checking
                   cd /tmp
                   if [ ! -f cuda_12.6.2_560.35.03_linux.run ]; then
-                    wget https://developer.download.nvidia.com/compute/cuda/12.6.2/local_installers/cuda_12.6.2_560.35.03_linux.run
+                    wget https://developer.download.nvidia.com/compute/cuda/12.6.2/local_installers/cuda_12.6.2_560.35.03_linux.run || {
+                      echo "Failed to download CUDA toolkit"
+                      exit 1
+                    }
                   else
                     echo "CUDA installer already exists, skipping download"
                   fi
-                  sudo sh cuda_12.6.2_560.35.03_linux.run --toolkit --toolkitpath=/usr/local/cuda-12.6 --no-man-page --silent --override
 
-                  # Set up symlinks and paths
-                  sudo rm -f /usr/local/cuda
-                  sudo ln -s /usr/local/cuda-12.6 /usr/local/cuda
-                  sudo ln -s /usr/local/cuda/bin /usr/local/bin
-                  sudo ln -s /usr/local/cuda/lib64 /usr/local/lib64
-                  sudo ln -s /usr/local/cuda-12.6/nvvm /usr/local/nvvm
+                  # Install CUDA toolkit with error handling
+                  if ! sudo sh cuda_12.6.2_560.35.03_linux.run --toolkit --toolkitpath=/usr/local/cuda-12.6 --no-man-page --silent --override; then
+                    echo "Failed to install CUDA toolkit"
+                    exit 1
+                  fi
 
-                  # Configure library paths
-                  sudo sh -c 'echo "/usr/local/lib64" > /etc/ld.so.conf.d/usr-local-x86_64.conf'
-                  sudo rm -f /etc/ld.so.conf.d/cuda-*.conf
-                  sudo ldconfig -v
+                  # Set up symlinks and paths with error checking
+                  sudo rm -f /usr/local/cuda || true
+                  sudo ln -sf /usr/local/cuda-12.6 /usr/local/cuda
+                  sudo ln -sf /usr/local/cuda/bin /usr/local/bin
+                  sudo ln -sf /usr/local/cuda/lib64 /usr/local/lib64
+                  sudo ln -sf /usr/local/cuda-12.6/nvvm /usr/local/nvvm
+
+                  # Configure library paths with error handling
+                  echo "/usr/local/lib64" | sudo tee /etc/ld.so.conf.d/usr-local-x86_64.conf
+                  sudo rm -f /etc/ld.so.conf.d/cuda-*.conf || true
+                  sudo ldconfig || true
 
                   # Set CUDA compiler flags
                   export NVCC_PREPEND_FLAGS='-ccbin /usr/bin/g++-13'
                   export PATH=/usr/local/cuda/bin:$PATH
                   export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 
-                  # Create virtual environment inside the container
-                  python3.10 -m venv /opt/venv
+                  # Create virtual environment with error handling
+                  sudo mkdir -p /opt/venv
+                  sudo chown -R $(id -u):$(id -g) /opt/venv
+                  python3.10 -m venv /opt/venv || {
+                    echo "Failed to create virtual environment"
+                    exit 1
+                  }
                   source /opt/venv/bin/activate
-                  pip install --upgrade pip setuptools wheel
-                  pip install scikit-build-core cmake ninja typing-extensions numpy diskcache msgpack
 
-                  # Verify installation
+                  # Install Python packages with error handling
+                  pip install --upgrade pip setuptools wheel || true
+                  for pkg in scikit-build-core cmake ninja typing-extensions numpy diskcache msgpack; do
+                    pip install $pkg || echo "Warning: Failed to install $pkg"
+                  done
+
+                  # Verify CUDA installation
+                  if ! command -v nvcc &> /dev/null; then
+                    echo "CUDA installation verification failed"
+                    exit 1
+                  fi
                   nvcc --version
                 "`
               );
