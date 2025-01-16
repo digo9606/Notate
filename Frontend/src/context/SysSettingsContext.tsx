@@ -114,6 +114,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       setisFFMPEGInstalled(false);
     }
   };
+
   const fetchSystemSpecs = async () => {
     try {
       const { cpu, vram, GPU_Manufacturer } =
@@ -200,11 +201,6 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         models: Model[];
       };
       console.log(data);
-
-      const filteredModels = data.models.filter(
-        (model: Model) => !model.name.startsWith("manifests")
-      );
-      console.log(filteredModels);
 
       setLocalModels(
         Array.isArray(data.models)

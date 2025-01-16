@@ -116,9 +116,11 @@ export function useAppInitialization() {
     const fetchOllamaModels = async () => {
       if (activeUser && isOllamaRunning) {
         const models = await window.electron.fetchOllamaModels();
-        const filteredModels = models.models.filter((model) => {
-          return !model.name.includes("granite-embedding");
-        });
+        console.log("Ollama models:", models);
+        const filteredModels = (models.models as unknown as string[])
+          .filter((model) => !model.includes("granite"))
+          .map(model => ({ name: model, type: "ollama" }));
+        console.log("Filtered Ollama models:", filteredModels);
         setOllamaModels(filteredModels);
       }
     };

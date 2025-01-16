@@ -71,7 +71,6 @@ export async function getDirModels(payload: {
             modelType = "Transformers";
           }
           if (modelType !== "unknown") {
-            log.info(`Found model: ${publisher}/${item}`);
             if (item === "granite-embedding") continue;
             models.push({
               name: `${publisher}/${item}`,
@@ -110,7 +109,6 @@ export async function getDirModels(payload: {
             !entry.name.startsWith(".") &&
             !entry.name.includes("embedding")
           ) {
-            log.info("Found model:", entry.name);
             const modelPath = path.join(registryPath, entry.name);
             const stats = fs.statSync(modelPath);
 

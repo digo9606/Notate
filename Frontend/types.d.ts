@@ -684,7 +684,8 @@ type Provider =
   | "gemini"
   | "xai"
   | "openrouter"
-  | "local";
+  | "local"
+  | "ollama";
 
 interface OllamaProgressEvent {
   type: "pull" | "verify";

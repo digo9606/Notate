@@ -58,6 +58,7 @@ export default function ChatSettings() {
     handleRunModel,
     maxTokens,
     setMaxTokens,
+    ollamaModels,
   } = useSysSettings();
   const [localMaxTokens, setLocalMaxTokens] = useState<string>("");
 
@@ -113,6 +114,7 @@ export default function ChatSettings() {
     "gemini-1.5-pro": 8192,
     "grok-beta": 8192,
     local: 2048,
+    ollama: 2048,
   };
 
   const modelOptions = {
@@ -132,8 +134,9 @@ export default function ChatSettings() {
     local: Array.isArray(localModels)
       ? localModels.map((model) => model.name)
       : [],
+    ollama: ollamaModels?.map((model) => model.name) || [],
   };
-
+  console.log("Ollama models in ChatSettings:", ollamaModels);
   console.log("Local models in ChatSettings:", localModels);
   console.log("Model options:", modelOptions);
 
@@ -308,9 +311,14 @@ export default function ChatSettings() {
             <Select
               value={settings.model}
               onValueChange={(value) => {
-                const provider = Object.keys(modelOptions).find((key) =>
+                let provider = Object.keys(modelOptions).find((key) =>
                   modelOptions[key as keyof typeof modelOptions].includes(value)
                 ) as Provider;
+
+                // Override provider for Ollama models
+                if (modelOptions.ollama.includes(value)) {
+                  provider = "ollama";
+                }
 
                 console.log("Selected model:", value);
                 console.log("Detected provider:", provider);
@@ -347,6 +355,14 @@ export default function ChatSettings() {
                       activeUser.id.toString()
                     );
                   }
+                } else if (modelOptions.ollama.includes(value)) {
+                  toast({
+                    title: "Ollama model loading",
+                    description: `Loading ${value}...`,
+                  });
+                  if (activeUser) {
+                    window.electron.runOllama(value, activeUser);
+                  }
                 } else {
                   toast({
                     title: "Model set",
@@ -376,6 +392,14 @@ export default function ChatSettings() {
                 <SelectGroup>
                   <SelectLabel className="font-semibold">LOCAL</SelectLabel>
                   {modelOptions.local.map((model) => (
+                    <SelectItem key={model} value={model}>
+                      {model}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel className="font-semibold">OLLAMA</SelectLabel>
+                  {modelOptions.ollama.map((model) => (
                     <SelectItem key={model} value={model}>
                       {model}
                     </SelectItem>
@@ -425,6 +449,11 @@ export default function ChatSettings() {
                   activeUser.id,
                   "model",
                   settings.model ?? ""
+                );
+                window.electron.updateUserSettings(
+                  activeUser.id,
+                  "provider",
+                  settings.provider ?? ""
                 );
               }
               toast({
