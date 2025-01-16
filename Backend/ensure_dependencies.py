@@ -79,7 +79,7 @@ def install_requirements(custom_venv_path=None):
                             and not line.startswith('numpy')]
 
         total_deps = len(requirements)
-        sys.stdout.write(f"Total packages to process: {total_deps}|20\n")
+        sys.stdout.write(f"Total packages to process: {total_deps}|50\n")
         sys.stdout.flush()
 
         installed_packages = get_installed_packages(python_path)
@@ -91,7 +91,7 @@ def install_requirements(custom_venv_path=None):
                 to_install.append(req)
 
         completed_deps = total_deps - len(to_install)
-        progress = 20 + (completed_deps / total_deps) * 30
+        progress = 50 + (completed_deps / total_deps) * 23
         sys.stdout.write(f"Checked installed packages|{progress:.1f}\n")
         sys.stdout.flush()
 
@@ -103,7 +103,7 @@ def install_requirements(custom_venv_path=None):
                 pkg_name = pkg.split('==')[0] if '==' in pkg else pkg
                 result, error = future.result()
                 completed_deps += 1
-                progress = 50 + (completed_deps / total_deps) * 50
+                progress = 73 + (completed_deps / total_deps) * 23
 
                 if error:
                     sys.stdout.write(
@@ -112,7 +112,7 @@ def install_requirements(custom_venv_path=None):
                     sys.stdout.write(f"Installed {pkg_name}|{progress:.1f}\n")
                 sys.stdout.flush()
 
-        sys.stdout.write("Dependencies installed successfully!|100\n")
+        sys.stdout.write("Dependencies installed successfully!|96\n")
         sys.stdout.flush()
 
     except Exception as e:

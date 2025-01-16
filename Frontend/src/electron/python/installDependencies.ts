@@ -12,7 +12,7 @@ export async function installDependencies(
     // Upgrade pip first
     await spawnAsync(venvPython, ["-m", "pip", "install", "--upgrade", "pip"]);
     log.info("Pip upgraded successfully");
-    updateLoadingStatus("Pip upgraded successfully", 23.5);
+    updateLoadingStatus("Pip upgraded successfully", 36.5);
 
     // Install NumPy with specific version
     await spawnAsync(venvPython, [
@@ -24,7 +24,7 @@ export async function installDependencies(
       "--no-cache-dir",
     ]);
     log.info("NumPy 1.24.3 installed successfully");
-    updateLoadingStatus("NumPy 1.24.3 installed successfully", 24.5);
+    updateLoadingStatus("NumPy 1.24.3 installed successfully", 39.5);
 
     // Install FastAPI and dependencies
     const fastApiDeps =
@@ -33,8 +33,6 @@ export async function installDependencies(
             "fastapi==0.115.6",
             "pydantic>=2.9.0,<3.0.0",
             "uvicorn[standard]==0.27.0",
-            "python-multipart==0.0.7",
-            "email-validator==2.1.0",
             "httpx>=0.26.0,<0.28.0",
             "numpy==1.24.3",
             "PyJWT==2.10.1",
@@ -43,8 +41,6 @@ export async function installDependencies(
             "fastapi>=0.115.6",
             "pydantic>=2.5.0",
             "uvicorn[standard]>=0.27.0",
-            "python-multipart>=0.0.7",
-            "email-validator>=2.1.0",
             "httpx>=0.26.0,<0.28.0",
             "numpy==1.24.3",
             "PyJWT==2.10.1",
@@ -60,7 +56,7 @@ export async function installDependencies(
     log.info("FastAPI and dependencies installed successfully");
     updateLoadingStatus(
       "FastAPI and dependencies installed successfully",
-      25.5
+      42.5
     );
 
     // Install PyTorch
@@ -90,7 +86,7 @@ export async function installDependencies(
       ]);
     }
     log.info("PyTorch installed successfully");
-    updateLoadingStatus("PyTorch installed successfully", 26.5);
+    updateLoadingStatus("PyTorch installed successfully", 44.5);
 
     // Install llama-cpp-python if needed
     if (process.platform === "darwin" || hasNvidiaGpu) {

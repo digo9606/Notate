@@ -144,7 +144,7 @@ export async function startPythonServer() {
             } else {
               updateLoadingStatus(
                 text,
-                (installedPackages / totalPackages) * 75
+                (installedPackages / totalPackages) * 35
               );
             }
 
