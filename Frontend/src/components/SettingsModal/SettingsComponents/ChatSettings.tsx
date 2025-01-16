@@ -137,9 +137,6 @@ export default function ChatSettings() {
       : [],
     ollama: ollamaModels?.map((model) => model.name) || [],
   };
-  console.log("Ollama models in ChatSettings:", ollamaModels);
-  console.log("Local models in ChatSettings:", localModels);
-  console.log("Model options:", modelOptions);
 
   const handleAddPrompt = async () => {
     if (activeUser) {

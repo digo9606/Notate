@@ -751,20 +751,21 @@ type CustomProgressData = {
 
 interface DownloadProgress {
   type: "progress";
-  data: {
-    message: string;
-    fileName?: string;
-    fileNumber?: number;
-    totalFiles?: number;
-    fileProgress?: number;
-    totalProgress: number;
-    currentSize?: string;
-    totalSize?: string;
-    currentStep?: string;
-    speed?: string;
-  };
+  data: DownloadProgressData;
 }
 interface OllamaModel {
   name: string;
   type: string;
+}
+interface DownloadProgressData {
+  message: string;
+  fileName?: string;
+  fileNumber?: number;
+  totalFiles?: number;
+  fileProgress?: number;
+  totalProgress: number;
+  currentSize?: string;
+  totalSize?: string;
+  currentStep?: string;
+  speed?: string;
 }

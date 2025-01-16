@@ -1,8 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
 import { useSysSettings } from "@/context/useSysSettings";
 import { useUser } from "@/context/useUser";
 import { useState } from "react";
+
 export default function Ollama() {
   const { settings, setSettings, ollamaModels, setOllamaModels } =
     useSysSettings();
@@ -16,7 +24,6 @@ export default function Ollama() {
       const filteredModels = (models.models as unknown as string[])
         .filter((model) => !model.includes("granite"))
         .map((model) => ({ name: model, type: "ollama" }));
-      console.log("Filtered Ollama models:", filteredModels);
       await window.electron.updateUserSettings(
         activeUser.id,
         "ollamaIntegration",
@@ -65,18 +72,59 @@ export default function Ollama() {
       <div className="flex flex-col gap-2">
         {ollamaModels.length > 0 && (
           <>
-            <div className="w-full">
-              <Input
-                className="w-full"
-                placeholder="Enter Ollama model ID (e.g. llama3.1)"
-                value={ollamaModel}
-                onChange={(e) => setOllamaModel(e.target.value)}
-              />
-            </div>
-            <div className="w-full">
-              <Button variant="secondary" className="w-full" onClick={() => {}}>
-                Add Model
-              </Button>
+            <div className="text-xs text-muted-foreground">
+              <div className="w-full flex flex-col gap-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger className="flex flex-row gap-2 items-center">
+                      <HelpCircle className="w-4 h-4" />
+                      <Input
+                        className="w-full"
+                        placeholder="Enter model ID (e.g. TheBloke/Mistral-7B-v0.1-GGUF)"
+                        value={ollamaModel}
+                        onChange={(e) => setOllamaModel(e.target.value)}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Enter a Ollama model ID (e.g.
+                      TheBloke/Mistral-7B-v0.1-GGUF).
+                      <br />
+                      Hugging Face models can be used by prefixing the model ID{" "}
+                      <br />
+                      with "hf.co/" (e.g. hf.co/TheBloke/Mistral-7B-v0.1-GGUF).
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <div className="w-full flex flex-row gap-2 pt-2">
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => {}}
+                >
+                  Download Model
+                </Button>
+              </div>
+              <div className="w-full flex flex-row gap-2 justify-end pt-1">
+                <a
+                  href="https://ollama.ai/models"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Browse models on Ollama →
+                </a>
+              </div>
+              <div className="w-full flex flex-row gap-2 justify-end pt-1">
+                <a
+                  href="https://huggingface.co/models?pipeline_tag=text-generation&sort=trending"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Browse models on Hugging Face →
+                </a>
+              </div>
             </div>
           </>
         )}

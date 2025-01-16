@@ -15,9 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useUser } from "@/context/useUser";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
-
+import AddLocalModel from "./AddLocalModel";
 const formatDirectoryPath = (path: string | null) => {
   if (!path) return "Not set";
   const parts = path.split("/");
@@ -42,8 +41,6 @@ export default function LocalLLM() {
     setLocalModels,
     setSelectedModel,
     selectedModel,
-    setLocalModel,
-    localModel,
   } = useSysSettings();
 
   const handleSelectDirectory = async () => {
@@ -139,17 +136,8 @@ export default function LocalLLM() {
           )}
         </Button>
       </div>
-      <div className="flex flex-col gap-2">
-        <Input
-          className="w-full"
-          placeholder="Enter model ID (e.g. llama3.1)"
-          value={localModel}
-          onChange={(e) => setLocalModel(e.target.value)}
-        />
-      </div>
-      <Button variant="secondary" className="w-full" onClick={() => {}}>
-        Add Model
-      </Button>
+
+      <AddLocalModel />
     </div>
   );
 }

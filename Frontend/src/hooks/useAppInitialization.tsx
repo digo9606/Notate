@@ -92,7 +92,6 @@ export function useAppInitialization() {
         const filteredModels = (models.models as unknown as string[])
           .filter((model) => !model.includes("granite"))
           .map((model) => ({ name: model, type: "ollama" }));
-        console.log("Filtered Ollama models:", filteredModels);
         await window.electron.updateUserSettings(
           activeUser.id,
           "ollamaIntegration",
