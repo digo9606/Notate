@@ -30,6 +30,8 @@ export default function LLMPanel() {
     localModels,
     selectedProvider,
     setSelectedProvider,
+    totalVRAM,
+    platform,
   } = useSysSettings();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,6 +130,8 @@ export default function LLMPanel() {
     }
   };
 
+  const dontShowLocalOptions = platform === "darwin" || totalVRAM >= 6384;
+
   return (
     <div>
       <div className="flex flex-wrap gap-2">
@@ -135,6 +139,10 @@ export default function LLMPanel() {
           .sort()
           .map((provider) => (
             <Button
+              disabled={
+                (!dontShowLocalOptions && provider === "local") ||
+                (!dontShowLocalOptions && provider === "ollama")
+              }
               key={provider}
               onClick={() => {
                 setSelectedProvider(provider as LLMProvider);
