@@ -90,10 +90,10 @@ export default function AddLocalModel() {
   };
 
   const handleDownload = async () => {
-    if (!activeUser || !localModel.startsWith("hf.co/")) {
+    if (!activeUser) {
       toast({
-        title: "Invalid model name",
-        description: "Model name must start with 'hf.co/'",
+        title: "Invalid User",
+        description: "Please login to download models",
         variant: "destructive",
       });
       return;
