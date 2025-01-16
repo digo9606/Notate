@@ -170,8 +170,8 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     );
     if (result.status === "success") {
       toast({
-        title: "Model loading",
-        description: `Loading ${model_name}...`,
+        title: "Model loaded",
+        description: `Loaded ${model_name}`,
       });
       setLocalModalLoading(false);
     } else {

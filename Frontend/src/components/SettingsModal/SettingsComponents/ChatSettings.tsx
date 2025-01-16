@@ -59,6 +59,7 @@ export default function ChatSettings() {
     maxTokens,
     setMaxTokens,
     ollamaModels,
+    setLocalModalLoading,
   } = useSysSettings();
   const [localMaxTokens, setLocalMaxTokens] = useState<string>("");
 
@@ -310,7 +311,7 @@ export default function ChatSettings() {
             </Label>
             <Select
               value={settings.model}
-              onValueChange={(value) => {
+              onValueChange={async (value) => {
                 let provider = Object.keys(modelOptions).find((key) =>
                   modelOptions[key as keyof typeof modelOptions].includes(value)
                 ) as Provider;
@@ -318,6 +319,10 @@ export default function ChatSettings() {
                 // Override provider for Ollama models
                 if (modelOptions.ollama.includes(value)) {
                   provider = "ollama";
+                }
+
+                if (provider === "ollama") {
+                  setLocalModalLoading(true);
                 }
 
                 console.log("Selected model:", value);
@@ -348,7 +353,7 @@ export default function ChatSettings() {
                     description: `Loading ${value}...`,
                   });
                   if (selectedModelPath && selectedModelType) {
-                    handleRunModel(
+                    await handleRunModel(
                       value,
                       selectedModelPath,
                       selectedModelType,
@@ -361,7 +366,12 @@ export default function ChatSettings() {
                     description: `Loading ${value}...`,
                   });
                   if (activeUser) {
-                    window.electron.runOllama(value, activeUser);
+                    await window.electron.runOllama(value, activeUser);
+                    setLocalModalLoading(false);
+                    toast({
+                      title: "Ollama model loaded",
+                      description: `Ollama model loaded`,
+                    });
                   }
                 } else {
                   toast({
