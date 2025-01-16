@@ -36,7 +36,7 @@ export function IngestProgress({ truncate }: { truncate?: boolean }) {
 
   return (
     <div className="w-full">
-      <div className={`rounded-xl shadow-lg p-1`}>
+      <div className={`rounded-[10px] shadow-lg p-1`}>
         <div className="flex items-center gap-2 w-full">
           <div className="flex-grow min-w-0">
             <p

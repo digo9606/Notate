@@ -33,7 +33,6 @@ export async function installDependencies(
             "fastapi==0.115.6",
             "pydantic>=2.9.0,<3.0.0",
             "uvicorn[standard]==0.27.0",
-            "httpx>=0.26.0,<0.28.0",
             "numpy==1.24.3",
             "PyJWT==2.10.1",
           ]
@@ -41,7 +40,6 @@ export async function installDependencies(
             "fastapi>=0.115.6",
             "pydantic>=2.5.0",
             "uvicorn[standard]>=0.27.0",
-            "httpx>=0.26.0,<0.28.0",
             "numpy==1.24.3",
             "PyJWT==2.10.1",
           ];

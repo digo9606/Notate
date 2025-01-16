@@ -678,14 +678,15 @@ type OpenRouterModel = string;
 
 interface ProgressData extends CustomProgressData, OllamaProgressEvent {}
 
-type Provider =
+type LLMProvider =
   | "openai"
   | "anthropic"
   | "gemini"
   | "xai"
   | "openrouter"
   | "local"
-  | "ollama";
+  | "ollama"
+  | "custom";
 
 interface OllamaProgressEvent {
   type: "pull" | "verify";

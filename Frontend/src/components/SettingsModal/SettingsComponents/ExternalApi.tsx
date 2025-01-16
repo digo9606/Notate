@@ -26,12 +26,13 @@ export default function ExternalApi() {
   } = useUser();
 
   const { setSettings } = useSysSettings();
-  const [selectedProvider, setSelectedProvider] = useState<Provider>("openai");
+  const [selectedProvider, setSelectedProvider] =
+    useState<LLMProvider>("openai");
   const [apiKeyInput, setApiKeyInput] = useState<string>("");
   const [openRouterModel, setOpenRouterModel] = useState<string>("");
   const [showOpenRouterInput, setShowOpenRouterInput] =
     useState<boolean>(false);
-  const handleProviderModelChange = async (provider: Provider) => {
+  const handleProviderModelChange = async (provider: LLMProvider) => {
     setSettings((prev) => ({
       ...prev,
       provider: provider,
@@ -162,7 +163,7 @@ export default function ExternalApi() {
         <div className="col-span-3">
           <Select
             value={selectedProvider}
-            onValueChange={(value: Provider) => setSelectedProvider(value)}
+            onValueChange={(value: LLMProvider) => setSelectedProvider(value)}
           >
             <SelectTrigger id="provider" className="w-full">
               <SelectValue placeholder="Select a provider" />

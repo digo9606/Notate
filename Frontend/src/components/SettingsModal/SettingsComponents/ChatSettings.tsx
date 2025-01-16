@@ -314,7 +314,7 @@ export default function ChatSettings() {
               onValueChange={async (value) => {
                 let provider = Object.keys(modelOptions).find((key) =>
                   modelOptions[key as keyof typeof modelOptions].includes(value)
-                ) as Provider;
+                ) as LLMProvider;
 
                 // Override provider for Ollama models
                 if (modelOptions.ollama.includes(value)) {
