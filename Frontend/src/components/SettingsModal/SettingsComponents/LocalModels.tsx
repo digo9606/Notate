@@ -44,6 +44,9 @@ export default function LocalModels() {
     setLocalModelDir,
     localModelDir,
     handleRunModel,
+    setOllamaModels,
+    settings,
+    setSettings,
   } = useSysSettings();
 
   const handleSelectDirectory = async () => {
@@ -72,8 +75,58 @@ export default function LocalModels() {
     }
   };
 
+  const handleOllamaIntegration = async () => {
+    const startUpOllama = await window.electron.checkOllama();
+    if (activeUser && startUpOllama) {
+      const models = await window.electron.fetchOllamaModels();
+      const filteredModels = (models.models as unknown as string[])
+        .filter((model) => !model.includes("granite"))
+        .map((model) => ({ name: model, type: "ollama" }));
+      console.log("Filtered Ollama models:", filteredModels);
+      await window.electron.updateUserSettings(
+        activeUser.id,
+        "ollamaIntegration",
+        "true"
+      );
+      setOllamaModels(filteredModels);
+    }
+  };
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Button
+          variant={
+            settings.ollamaIntegration === "true" ? "default" : "outline"
+          }
+          className="w-full"
+          onClick={async () => {
+            const newValue =
+              settings.ollamaIntegration === "true" ? "false" : "true";
+            if (activeUser) {
+              setSettings({
+                ...settings,
+                ollamaIntegration: newValue,
+              });
+
+              await window.electron.updateUserSettings(
+                activeUser.id,
+                "ollamaIntegration",
+                newValue
+              );
+
+              if (newValue === "true") {
+                await handleOllamaIntegration();
+              } else {
+                setOllamaModels([]);
+              }
+            }
+          }}
+        >
+          {settings.ollamaIntegration === "true"
+            ? "Ollama Integration Enabled"
+            : "Integrate with Ollama"}
+        </Button>
+      </div>
       <div className="flex items-center justify-between">
         <TooltipProvider>
           <Tooltip delayDuration={200}>
@@ -118,7 +171,6 @@ export default function LocalModels() {
       <Button
         onClick={() => {
           if (activeUser) {
-            // selectedModelPath
             const selectedModelPath = localModels.find(
               (model) => model.name === selectedModel
             )?.model_location;

@@ -5,8 +5,8 @@ import { runOllama } from "../ollama/runOllama.js";
 import { pullModel } from "../ollama/pullModel.js";
 import { checkOllama } from "../ollama/checkOllama.js";
 import db from "../db.js";
-import log from "electron-log";
-
+/* import log from "electron-log";
+ */
 export async function setupOllamaHandlers() {
   ipcMainHandle("getPlatform", async () => {
     return { platform: process.platform as "win32" | "darwin" | "linux" };
@@ -69,7 +69,7 @@ export async function setupOllamaHandlers() {
     }
   );
 
-  const isOllamaRunning = await checkOllama();
+  /*   const isOllamaRunning = await checkOllama();
   if (isOllamaRunning) {
     log.info("Ollama is running, pulling model...");
     try {
@@ -77,5 +77,5 @@ export async function setupOllamaHandlers() {
     } catch (error) {
       log.info("Error pulling model (You probably arent running ollama) :", error);
     }
-  }
+  } */
 }

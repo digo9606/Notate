@@ -7,7 +7,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Settings, Sparkles } from "lucide-react";
+import { Settings } from "lucide-react";
 import { useSysSettings } from "@/context/useSysSettings";
 import { SettingsModal } from "@/components/SettingsModal/SettingsModal";
 import WindowControls from "./MainWindowControl";
@@ -43,7 +43,6 @@ export default function SettingsDialog() {
             </DialogTitle>
             {totalVRAM > 8 && !isOllamaRunning && (
               <div className="animate-sparkle">
-                <Sparkles className="h-4 w-4 text-primary" />
                 Please Download and Run Ollama to use Notate in Local Mode
               </div>
             )}

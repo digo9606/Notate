@@ -16,9 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { providerIcons } from "./providerIcons";
 import { Plus, X } from "lucide-react";
 
-
 export default function ExternalApi() {
-
   const {
     apiKeys,
     activeUser,
@@ -37,7 +35,8 @@ export default function ExternalApi() {
     setSettings((prev) => ({
       ...prev,
       provider: provider,
-      model: defaultProviderModel[provider],
+      model:
+        defaultProviderModel[provider as keyof typeof defaultProviderModel],
     }));
     try {
       if (activeUser) {
@@ -56,7 +55,7 @@ export default function ExternalApi() {
           await window.electron.updateUserSettings(
             activeUser.id,
             "model",
-            defaultProviderModel[provider]
+            defaultProviderModel[provider as keyof typeof defaultProviderModel]
           );
         }
       }

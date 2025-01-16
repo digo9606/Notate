@@ -36,12 +36,10 @@ export function useAppInitialization() {
     setSettingsOpen,
     checkFFMPEG,
     fetchSystemSpecs,
-    checkOllama,
     setPlatform,
     setLocalModelDir,
     setLocalModels,
     setOllamaModels,
-    isOllamaRunning,
   } = useSysSettings();
 
   // Initial setup that doesn't depend on activeUser
@@ -76,7 +74,6 @@ export function useAppInitialization() {
     checkFFMPEG();
     fetchUsers();
     fetchSystemSpecs();
-    checkOllama();
   }, []);
 
   // User-dependent initialization
@@ -87,9 +84,29 @@ export function useAppInitialization() {
         setOpenRouterModels(models.models);
       }
     };
+
+    const handleOllamaIntegration = async () => {
+      const startUpOllama = await window.electron.checkOllama();
+      if (activeUser && startUpOllama) {
+        const models = await window.electron.fetchOllamaModels();
+        const filteredModels = (models.models as unknown as string[])
+          .filter((model) => !model.includes("granite"))
+          .map((model) => ({ name: model, type: "ollama" }));
+        console.log("Filtered Ollama models:", filteredModels);
+        await window.electron.updateUserSettings(
+          activeUser.id,
+          "ollamaIntegration",
+          "true"
+        );
+        setOllamaModels(filteredModels);
+      }
+    };
     const fetchSettings = async () => {
       if (activeUser) {
         const settings = await window.electron.getUserSettings(activeUser.id);
+        if (settings.ollamaIntegration === "true") {
+          handleOllamaIntegration();
+        }
         setSettings(settings);
         if (settings.model_dir) {
           setLocalModelDir(settings.model_dir);
@@ -113,17 +130,6 @@ export function useAppInitialization() {
       }
     };
 
-    const fetchOllamaModels = async () => {
-      if (activeUser && isOllamaRunning) {
-        const models = await window.electron.fetchOllamaModels();
-        console.log("Ollama models:", models);
-        const filteredModels = (models.models as unknown as string[])
-          .filter((model) => !model.includes("granite"))
-          .map(model => ({ name: model, type: "ollama" }));
-        console.log("Filtered Ollama models:", filteredModels);
-        setOllamaModels(filteredModels);
-      }
-    };
     if (activeUser) {
       fetchOpenRouterModels();
       fetchSettings();
@@ -132,7 +138,6 @@ export function useAppInitialization() {
       fetchPrompts();
       fetchDevAPIKeys();
       fetchCollections();
-      fetchOllamaModels();
     }
   }, [activeUser]);
 
