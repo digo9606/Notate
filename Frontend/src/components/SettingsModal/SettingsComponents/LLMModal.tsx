@@ -1,142 +1,36 @@
 "use client";
 
 import { useState } from "react";
-import { FolderOpenIcon, PlusCircle, Loader2 } from "lucide-react";
+import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { useSysSettings } from "@/context/useSysSettings";
 import { useUser } from "@/context/useUser";
 import { providerIcons } from "./providerIcons";
 import { defaultProviderModel } from "./defaultsProviderModels";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-const formatDirectoryPath = (path: string | null) => {
-  if (!path) return "Not set";
-  const parts = path.split("/");
-  const lastTwoParts = parts.slice(-2);
-  return `.../${lastTwoParts.join("/")}`;
-};
+import LocalLLM from "./LLMModels/LocalLLM";
+import Ollama from "./LLMModels/Ollama";
+import External from "./LLMModels/External";
+import Openrouter from "./LLMModels/Openrouter";
+import CustomLLM from "./LLMModels/CustomLLM";
 
 export default function LLMPanel() {
-  const [selectedProvider, setSelectedProvider] = useState<LLMProvider | null>(
-    null
-  );
   const [showUpdateInput, setShowUpdateInput] = useState(false);
   const {
     activeUser,
-    setOpenRouterModels,
-    openRouterModels,
     apiKeys,
     setApiKeys,
     handleResetChat,
+    apiKeyInput,
+    setApiKeyInput,
   } = useUser();
   const {
     setSettings,
-    settings,
-    setOllamaModels,
     ollamaModels,
     localModels,
-    localModelDir,
-    setLocalModelDir,
-    handleRunModel,
-    setLocalModels,
-    localModalLoading,
+    selectedProvider,
+    setSelectedProvider,
   } = useSysSettings();
-  const [customProvider, setCustomProvider] = useState("");
-  const [openRouterModel, setOpenRouterModel] = useState<string>("");
-  const [apiKeyInput, setApiKeyInput] = useState<string>("");
-  const [hasOpenRouter, setHasOpenRouter] = useState<boolean>(
-    openRouterModels.length > 0
-  );
-  const [localModel, setLocalModel] = useState<string>("");
-  const [ollamaModel, setOllamaModel] = useState<string>("");
-  const [selectedModel, setSelectedModel] = useState<Model | null>(null);
-
-  const handleOllamaIntegration = async () => {
-    const startUpOllama = await window.electron.checkOllama();
-    if (activeUser && startUpOllama) {
-      const models = await window.electron.fetchOllamaModels();
-      const filteredModels = (models.models as unknown as string[])
-        .filter((model) => !model.includes("granite"))
-        .map((model) => ({ name: model, type: "ollama" }));
-      console.log("Filtered Ollama models:", filteredModels);
-      await window.electron.updateUserSettings(
-        activeUser.id,
-        "ollamaIntegration",
-        "true"
-      );
-      setOllamaModels(filteredModels);
-    }
-  };
-  const formatModelName = (name: string) => {
-    const parts = name.split("-");
-    if (parts.length <= 2) return name;
-    return `${parts[0]}-${parts[1]}...`;
-  };
-
-  const handleAddOpenRouterModel = async () => {
-    if (!openRouterModel.trim()) {
-      toast({
-        title: "Model Required",
-        description: "Please enter an OpenRouter model ID.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      if (activeUser) {
-        setSettings((prev) => ({
-          ...prev,
-          model: openRouterModel.trim(),
-          provider: "openrouter",
-        }));
-        await window.electron.addOpenRouterModel(
-          activeUser.id,
-          openRouterModel.trim()
-        );
-        setOpenRouterModels((prevModels) => [
-          ...prevModels,
-          openRouterModel.trim(),
-        ]);
-        await window.electron.updateUserSettings(
-          activeUser.id,
-          "model",
-          openRouterModel.trim()
-        );
-        await window.electron.updateUserSettings(
-          activeUser.id,
-          "provider",
-          "openrouter"
-        );
-        toast({
-          title: "Model Added",
-          description: `OpenRouter model ${openRouterModel} has been added successfully.`,
-        });
-        setOpenRouterModel("");
-      }
-    } catch (error) {
-      console.error("Error adding OpenRouter model:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add OpenRouter model. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,297 +70,6 @@ export default function LLMPanel() {
     }
   };
 
-  const handleSelectDirectory = async () => {
-    try {
-      if (!activeUser) return;
-      const dirPath = await window.electron.openDirectory();
-      if (dirPath) {
-        setLocalModelDir(dirPath);
-        window.electron.updateUserSettings(activeUser.id, "model_dir", dirPath);
-        const response = (await window.electron.getDirModels(
-          dirPath
-        )) as unknown as { dirPath: string; models: Model[] };
-        setLocalModels(response.models);
-        toast({
-          title: "Directory selected",
-          description: `Selected directory: ${dirPath}`,
-        });
-      }
-    } catch (error) {
-      console.error("Error selecting directory:", error);
-      toast({
-        title: "Error",
-        description: "Failed to select directory",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const renderInputs = () => {
-    const hasActiveKey = apiKeys.some(
-      (key) => key.provider === selectedProvider
-    );
-
-    switch (selectedProvider) {
-      case "anthropic":
-      case "xai":
-      case "gemini":
-      case "openai":
-        return (
-          <div className="space-y-4">
-            {!hasActiveKey || showUpdateInput ? (
-              <Input
-                id={`${selectedProvider}-api-key`}
-                type="password"
-                placeholder={`Enter your ${selectedProvider.toUpperCase()} API key`}
-                className="input-field"
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-              />
-            ) : (
-              <Button
-                variant="secondary"
-                className="w-full"
-                onClick={() => {
-                  setShowUpdateInput(true);
-                  setApiKeyInput("");
-                }}
-              >
-                Update API Key
-              </Button>
-            )}
-          </div>
-        );
-      case "local":
-        return (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <TooltipProvider>
-                <Tooltip delayDuration={200}>
-                  <TooltipTrigger asChild>
-                    <p className="truncate flex-1">
-                      {formatDirectoryPath(localModelDir)}
-                    </p>
-                  </TooltipTrigger>
-                  <TooltipContent
-                    side="top"
-                    align="start"
-                    className="max-w-[300px] break-all"
-                  >
-                    <p>{localModelDir || "No directory selected"}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <Button
-                onClick={handleSelectDirectory}
-                variant="outline"
-                className="ml-2"
-              >
-                <FolderOpenIcon className="w-4 h-4 mr-2" />
-                Select Directory
-              </Button>
-            </div>
-            <div className="w-full flex flex-row gap-2">
-              <Select value={selectedModel?.name} onValueChange={(value) => setSelectedModel(localModels.find(m => m.name === value) || null)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a local model" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.isArray(localModels) &&
-                    localModels.map((model) => (
-                      <SelectItem
-                        key={model.digest || model.name}
-                        value={model.name}
-                      >
-                        {formatModelName(model.name)} ({model.type})
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              <Button
-                disabled={!selectedModel}
-                variant="secondary"
-                onClick={() => {
-                  if (!activeUser || !selectedModel) return;
-                  const type = selectedModel.type;
-                  const model = selectedModel.name;
-                  const user_id = activeUser.id.toString();
-                  const model_location = selectedModel.model_location;
-                  handleRunModel(model, model_location, type, user_id);
-                }}
-              >
-                {localModalLoading ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  </div>
-                ) : (
-                  "Run"
-                )}
-              </Button>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Input
-                className="w-full"
-                placeholder="Enter model ID (e.g. llama3.1)"
-                value={localModel}
-                onChange={(e) => setLocalModel(e.target.value)}
-              />
-            </div>
-            <Button variant="secondary" className="w-full" onClick={() => {}}>
-              Add Model
-            </Button>
-          </div>
-        );
-      case "ollama":
-        return (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Button
-                variant={
-                  settings.ollamaIntegration === "true" ? "default" : "outline"
-                }
-                className="w-full"
-                onClick={async () => {
-                  const newValue =
-                    settings.ollamaIntegration === "true" ? "false" : "true";
-                  if (activeUser) {
-                    setSettings({
-                      ...settings,
-                      ollamaIntegration: newValue,
-                    });
-
-                    await window.electron.updateUserSettings(
-                      activeUser.id,
-                      "ollamaIntegration",
-                      newValue
-                    );
-
-                    if (newValue === "true") {
-                      await handleOllamaIntegration();
-                    } else {
-                      setOllamaModels([]);
-                    }
-                  }
-                }}
-              >
-                {settings.ollamaIntegration === "true"
-                  ? "Ollama Integration Enabled"
-                  : "Integrate with Ollama"}
-              </Button>
-            </div>
-            <div className="flex flex-col gap-2">
-              {ollamaModels.length > 0 && (
-                <>
-                  <div className="w-full">
-                    <Input
-                      className="w-full"
-                      placeholder="Enter Ollama model ID (e.g. llama3.1)"
-                      value={ollamaModel}
-                      onChange={(e) => setOllamaModel(e.target.value)}
-                    />
-                  </div>
-                  <div className="w-full">
-                    <Button
-                      variant="secondary"
-                      className="w-full"
-                      onClick={() => {}}
-                    >
-                      Add Model
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        );
-      case "openrouter":
-        return (
-          <div className="space-y-2">
-            {!hasOpenRouter && (
-              <>
-                <Input
-                  id="local-model-path"
-                  type="text"
-                  placeholder="Enter your OpenRouter API key"
-                  className="input-field"
-                />
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  onClick={() => {}}
-                >
-                  Save API Key
-                </Button>
-              </>
-            )}
-            {hasOpenRouter && (
-              <>
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  onClick={() => setHasOpenRouter(false)}
-                >
-                  Update API Key
-                </Button>
-                <Input
-                  className="w-full"
-                  placeholder="Enter OpenRouter model ID (e.g. openai/gpt-3.5-turbo)"
-                  value={openRouterModel}
-                  onChange={(e) => setOpenRouterModel(e.target.value)}
-                />
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  onClick={() => handleAddOpenRouterModel()}
-                >
-                  Add Model
-                </Button>
-              </>
-            )}
-          </div>
-        );
-      case "custom":
-        return (
-          <div className="space-y-2">
-            <Label htmlFor="custom-provider-name">Custom Provider Name</Label>
-            <Input
-              id="custom-provider-name"
-              type="text"
-              placeholder="Enter custom provider name"
-              value={customProvider}
-              onChange={(e) => setCustomProvider(e.target.value)}
-              className="input-field"
-            />
-            {!hasActiveKey || showUpdateInput ? (
-              <>
-                <Label htmlFor="custom-api-key">Custom API Key</Label>
-                <Input
-                  id="custom-api-key"
-                  type="password"
-                  placeholder="Enter your custom API key"
-                  className="input-field"
-                  value={apiKeyInput}
-                  onChange={(e) => setApiKeyInput(e.target.value)}
-                />
-              </>
-            ) : (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  setShowUpdateInput(true);
-                  setApiKeyInput("");
-                }}
-              >
-                Update API Key
-              </Button>
-            )}
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
   const handleProviderModelChange = async (provider: LLMProvider) => {
     setSettings((prev) => ({
       ...prev,
@@ -500,6 +103,31 @@ export default function LLMPanel() {
     }
   };
 
+  const renderInputs = () => {
+    switch (selectedProvider) {
+      case "anthropic":
+      case "xai":
+      case "gemini":
+      case "openai":
+        return (
+          <External
+            showUpdateInput={showUpdateInput}
+            setShowUpdateInput={setShowUpdateInput}
+          />
+        );
+      case "local":
+        return <LocalLLM />;
+      case "ollama":
+        return <Ollama />;
+      case "openrouter":
+        return <Openrouter />;
+      case "custom":
+        return <CustomLLM />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div>
       <div className="flex flex-wrap gap-2">
@@ -521,7 +149,7 @@ export default function LLMPanel() {
         ))}
         <Button
           onClick={() => {
-            setSelectedProvider("custom");
+            setSelectedProvider("custom" as LLMProvider);
             setApiKeyInput("");
           }}
           disabled
@@ -549,7 +177,9 @@ export default function LLMPanel() {
                     className="w-full mt-2"
                     type="submit"
                     onClick={(e) => {
-                      handleProviderModelChange(selectedProvider);
+                      handleProviderModelChange(
+                        selectedProvider as LLMProvider
+                      );
                       handleSubmit(e);
                     }}
                   >

@@ -58,6 +58,12 @@ interface SysSettingsContextType {
   ) => Promise<void>;
   ollamaModels: OllamaModel[];
   setOllamaModels: React.Dispatch<React.SetStateAction<OllamaModel[]>>;
+  selectedModel: Model | null;
+  setSelectedModel: React.Dispatch<React.SetStateAction<Model | null>>;
+  selectedProvider: string;
+  setSelectedProvider: React.Dispatch<React.SetStateAction<string>>;
+  localModel: string;
+  setLocalModel: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const SysSettingsContext = createContext<SysSettingsContextType | undefined>(
@@ -67,6 +73,9 @@ const SysSettingsContext = createContext<SysSettingsContextType | undefined>(
 const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const [localModel, setLocalModel] = useState<string>("");
+  const [selectedProvider, setSelectedProvider] = useState<string>("");
+  const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [localModelDir, setLocalModelDir] = useState<string>("");
   const [localModels, setLocalModels] = useState<Model[]>([]);
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
@@ -345,6 +354,12 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         handleRunModel,
         ollamaModels,
         setOllamaModels,
+        selectedModel,
+        setSelectedModel,
+        selectedProvider,
+        setSelectedProvider,
+        localModel,
+        setLocalModel,
       }}
     >
       {children}

@@ -24,7 +24,9 @@ interface UserContextType {
   streamingMessage: string;
   setStreamingMessage: React.Dispatch<React.SetStateAction<string>>;
   filteredConversations: Conversation[];
-  setFilteredConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
+  setFilteredConversations: React.Dispatch<
+    React.SetStateAction<Conversation[]>
+  >;
   isSearchOpen: boolean;
   setIsSearchOpen: React.Dispatch<React.SetStateAction<boolean>>;
   searchTerm: string;
@@ -50,6 +52,8 @@ interface UserContextType {
   fetchMessages: () => Promise<void>;
   openRouterModels: OpenRouterModel[];
   setOpenRouterModels: React.Dispatch<React.SetStateAction<OpenRouterModel[]>>;
+  apiKeyInput: string;
+  setApiKeyInput: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -58,11 +62,14 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [activeUser, setActiveUser] = useState<User | null>(null);
-  const [openRouterModels, setOpenRouterModels] = useState<OpenRouterModel[]>([]);
+  const [openRouterModels, setOpenRouterModels] = useState<OpenRouterModel[]>(
+    []
+  );
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [activeConversation, setActiveConversation] = useState<number | null>(
     null
   );
+  const [apiKeyInput, setApiKeyInput] = useState<string>("");
   const [filteredConversations, setFilteredConversations] = useState<
     Conversation[]
   >([]);
@@ -335,6 +342,8 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       setCurrentRequestId,
       openRouterModels,
       setOpenRouterModels,
+      apiKeyInput,
+      setApiKeyInput,
     }),
     [
       activeUser,
@@ -360,6 +369,8 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       error,
       currentRequestId,
       openRouterModels,
+      apiKeyInput,
+      setApiKeyInput,
     ]
   );
 
