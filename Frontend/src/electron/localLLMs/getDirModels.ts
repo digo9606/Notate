@@ -1,4 +1,3 @@
-import log from "electron-log";
 import fs from "fs";
 import path from "path";
 
@@ -7,7 +6,6 @@ export async function getDirModels(payload: {
 }): Promise<Model[]> {
   const { dirPath } = payload;
 
-  console.log("Checking directory:", dirPath);
   if (!fs.existsSync(dirPath)) {
     console.log("Directory does not exist");
     return [];
@@ -17,8 +15,6 @@ export async function getDirModels(payload: {
 
   // List contents of the directory to debug
   const contents = fs.readdirSync(dirPath);
-  console.log("Directory contents:", contents);
-
   // First try to handle as regular model directory
   if (contents.length > 0) {
     try {
@@ -90,7 +86,6 @@ export async function getDirModels(payload: {
 
   // Then check for Ollama models in manifests directory
   const manifestsDir = path.join(dirPath, "manifests");
-  console.log("Checking manifests directory:", manifestsDir);
 
   if (fs.existsSync(manifestsDir)) {
     try {
@@ -136,7 +131,6 @@ export async function getDirModels(payload: {
               });
               for (const subEntry of subEntries) {
                 if (subEntry.isDirectory() && !subEntry.name.startsWith(".")) {
-                  console.log("Found HF model:", subEntry.name);
                   const modelPath = path.join(dir, entry.name, subEntry.name);
                   const stats = fs.statSync(modelPath);
 
