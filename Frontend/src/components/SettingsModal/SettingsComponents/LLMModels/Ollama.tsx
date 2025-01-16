@@ -10,10 +10,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 export default function Ollama() {
-  const { settings, setSettings, ollamaModels, setOllamaModels } =
-    useSysSettings();
+  const {
+    settings,
+    setSettings,
+    ollamaModels,
+    setOllamaModels,
+    handleRunOllama,
+    localModalLoading,
+  } = useSysSettings();
   const { activeUser } = useUser();
   const [selectedModel, setSelectedModel] = useState("");
   const formatModelName = (name: string) => {
@@ -91,13 +98,21 @@ export default function Ollama() {
           </Select>
           <Button
             variant="secondary"
-            disabled={!selectedModel}
+            disabled={!selectedModel || localModalLoading}
             className=""
             onClick={() => {
-              console.log(selectedModel);
+              if (activeUser) {
+                handleRunOllama(selectedModel, activeUser);
+              }
             }}
           >
-            Run
+            {localModalLoading ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </div>
+            ) : (
+              "Run"
+            )}
           </Button>
         </div>
       )}
