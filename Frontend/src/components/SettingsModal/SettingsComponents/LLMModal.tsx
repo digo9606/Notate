@@ -131,22 +131,25 @@ export default function LLMPanel() {
   return (
     <div>
       <div className="flex flex-wrap gap-2">
-        {Object.keys(providerIcons).map((provider) => (
-          <Button
-            key={provider}
-            onClick={() => {
-              setSelectedProvider(provider as LLMProvider);
-              setApiKeyInput("");
-              setShowUpdateInput(false);
-            }}
-            variant={selectedProvider === provider ? "default" : "outline"}
-            className={`btn-provider ${
-              selectedProvider === provider ? "selected" : ""
-            }`}
-          >
-            {provider}
-          </Button>
-        ))}
+        {Object.keys(providerIcons)
+          .sort()
+          .map((provider) => (
+            <Button
+              key={provider}
+              onClick={() => {
+                setSelectedProvider(provider as LLMProvider);
+                setApiKeyInput("");
+                setShowUpdateInput(false);
+              }}
+              variant={selectedProvider === provider ? "default" : "outline"}
+              className={`btn-provider ${
+                selectedProvider === provider ? "selected" : ""
+              }`}
+            >
+              {providerIcons[provider as keyof typeof providerIcons]}
+              {provider}
+            </Button>
+          ))}
         <Button
           onClick={() => {
             setSelectedProvider("custom" as LLMProvider);
@@ -211,11 +214,13 @@ export default function LLMPanel() {
             ))}
             {ollamaModels.length > 0 && (
               <div className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-background/80 backdrop-blur-sm border shadow-sm hover:shadow-md transition-shadow">
+                {providerIcons.ollama}
                 <span className="ml-1.5">Ollama</span>
               </div>
             )}
             {localModels.length > 0 && (
               <div className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-background/80 backdrop-blur-sm border shadow-sm hover:shadow-md transition-shadow">
+                {providerIcons.local}
                 <span className="ml-1.5">Local</span>
               </div>
             )}
