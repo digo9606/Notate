@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FolderOpenIcon, PlusCircle } from "lucide-react";
+import { FolderOpenIcon, PlusCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,7 +51,9 @@ export default function LLMPanel() {
     localModels,
     localModelDir,
     setLocalModelDir,
+    handleRunModel,
     setLocalModels,
+    localModalLoading,
   } = useSysSettings();
   const [customProvider, setCustomProvider] = useState("");
   const [openRouterModel, setOpenRouterModel] = useState<string>("");
@@ -61,7 +63,7 @@ export default function LLMPanel() {
   );
   const [localModel, setLocalModel] = useState<string>("");
   const [ollamaModel, setOllamaModel] = useState<string>("");
-  const [selectedModel, setSelectedModel] = useState<string>("");
+  const [selectedModel, setSelectedModel] = useState<Model | null>(null);
 
   const handleOllamaIntegration = async () => {
     const startUpOllama = await window.electron.checkOllama();
@@ -264,22 +266,44 @@ export default function LLMPanel() {
                 Select Directory
               </Button>
             </div>
-            <Select value={selectedModel} onValueChange={setSelectedModel}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a local model" />
-              </SelectTrigger>
-              <SelectContent>
-                {Array.isArray(localModels) &&
-                  localModels.map((model) => (
-                    <SelectItem
-                      key={model.digest || model.name}
-                      value={model.name}
-                    >
-                      {formatModelName(model.name)} ({model.type})
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+            <div className="w-full flex flex-row gap-2">
+              <Select value={selectedModel?.name} onValueChange={(value) => setSelectedModel(localModels.find(m => m.name === value) || null)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a local model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.isArray(localModels) &&
+                    localModels.map((model) => (
+                      <SelectItem
+                        key={model.digest || model.name}
+                        value={model.name}
+                      >
+                        {formatModelName(model.name)} ({model.type})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <Button
+                disabled={!selectedModel}
+                variant="secondary"
+                onClick={() => {
+                  if (!activeUser || !selectedModel) return;
+                  const type = selectedModel.type;
+                  const model = selectedModel.name;
+                  const user_id = activeUser.id.toString();
+                  const model_location = selectedModel.model_location;
+                  handleRunModel(model, model_location, type, user_id);
+                }}
+              >
+                {localModalLoading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                ) : (
+                  "Run"
+                )}
+              </Button>
+            </div>
             <div className="flex flex-col gap-2">
               <Input
                 className="w-full"
