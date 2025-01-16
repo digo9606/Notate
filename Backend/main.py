@@ -1,18 +1,19 @@
+import logging
 from src.authentication.api_key_authorization import api_key_auth
 from src.authentication.token import verify_token
 from src.data.database.checkAPIKey import check_api_key
 from src.data.dataFetch.youtube import youtube_transcript
 from src.endpoint.deleteStore import delete_vectorstore_collection
-from src.endpoint.models import EmbeddingRequest, QueryRequest, VectorStoreQueryRequest, DeleteCollectionRequest, YoutubeTranscriptRequest, WebCrawlRequest
+from src.endpoint.models import EmbeddingRequest, QueryRequest, ChatCompletionRequest, VectorStoreQueryRequest, DeleteCollectionRequest, YoutubeTranscriptRequest, WebCrawlRequest, ModelLoadRequest
 from src.endpoint.embed import embed
 from src.endpoint.vectorQuery import query_vectorstore
 from src.endpoint.devApiCall import rag_call, llm_call, vector_call
 from src.endpoint.transcribe import transcribe_audio
 from src.endpoint.webcrawl import webcrawl
-
+from src.models.manager import model_manager
 from fastapi import FastAPI, Depends, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 import asyncio
 import os
 import signal
@@ -21,6 +22,7 @@ import psutil
 import threading
 import uvicorn
 import json
+from src.endpoint.api import chat_completion_stream
 
 app = FastAPI()
 embedding_task = None
@@ -37,6 +39,87 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+logger = logging.getLogger(__name__)
+
+
+@app.post("/chat/completions")
+async def chat_completion(request: ChatCompletionRequest, user_id: str = Depends(verify_token)) -> StreamingResponse:
+    """Stream chat completion from the model"""
+    print("Chat completion request received")
+    if user_id is None:
+        return {"status": "error", "message": "Unauthorized"}
+    print("Authorized")
+    print(request)
+    return StreamingResponse(
+        chat_completion_stream(request),
+        media_type="text/event-stream"
+    )
+
+
+@app.get("/model-info")
+async def get_model_info():
+    """Get information about the currently loaded model"""
+    return JSONResponse(content=model_manager.get_model_info())
+
+
+@app.post("/load-model")
+async def load_model_endpoint(request: ModelLoadRequest):
+    """Load a model with the specified configuration"""
+    print("Loading model")
+    print(request)
+    model_type = request.model_type or "auto"
+    if model_type != "auto":
+        is_compatible, message = model_manager.check_platform_compatibility(
+            model_type)
+        logger.info(f"is_compatible: {is_compatible}, message: {message}")
+        # Return early if platform is not compatible
+        if not is_compatible:
+            response_data = model_manager._make_json_serializable({
+                "status": "error",
+                "message": f"Cannot load model: {message}",
+                "model_info": model_manager.get_model_info()
+            })
+            return JSONResponse(content=response_data)
+    try:
+        model, tokenizer = model_manager.load_model(request)
+        response_data = model_manager._make_json_serializable({
+            "status": "success",
+            "message": f"Successfully loaded model {request.model_name}",
+            "model_info": model_manager.get_model_info()
+        })
+        print(response_data)
+        logger.info(response_data)
+        return JSONResponse(content=response_data)
+    except Exception as e:
+        response_data = model_manager._make_json_serializable({
+            "status": "error",
+            "message": str(e),
+            "model_info": model_manager.get_model_info()
+        })
+        return JSONResponse(status_code=500, content=response_data)
+
+
+@app.post("/unload-model")
+async def unload_model_endpoint():
+    """Unload the currently loaded model"""
+
+    try:
+        model_manager.clear_model()
+        return JSONResponse(content={
+            "status": "success",
+            "message": "Model unloaded successfully",
+            "model_info": model_manager.get_model_info()
+        })
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "message": str(e),
+                "model_info": model_manager.get_model_info()
+            }
+        )
 
 
 @app.post("/webcrawl")
@@ -71,7 +154,8 @@ async def webcrawl_endpoint(data: WebCrawlRequest, user_id: str = Depends(verify
             crawl_task = None
             crawl_event = None
 
-    response = StreamingResponse(event_generator(), media_type="text/event-stream")
+    response = StreamingResponse(
+        event_generator(), media_type="text/event-stream")
     crawl_task = asyncio.create_task(event_generator().__anext__())
     return response
 
@@ -251,6 +335,8 @@ async def cancel_crawl(user_id: str = Depends(verify_token)):
         crawl_event.set()
         return {"status": "success", "message": "Crawl process cancelled"}
     return {"status": "error", "message": "No crawl process running"}
+# Add the chat completion endpoint
+
 
 if __name__ == "__main__":
     print("Starting server...")

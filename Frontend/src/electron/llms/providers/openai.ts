@@ -1,7 +1,10 @@
 import OpenAI from "openai";
 import db from "../../db.js";
 import { BrowserWindow } from "electron";
-import { sendMessageChunk } from "../llms.js";
+import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
+import { truncateMessages } from "../llmHelpers/truncateMessages.js";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+
 let openai: OpenAI;
 
 async function initializeOpenAI(apiKey: string) {
@@ -38,37 +41,74 @@ export async function OpenAIProvider(
     throw new Error("OpenAI instance not initialized");
   }
 
-  const newMessages = messages.map((msg) => ({
-    role: msg.role,
-    content: msg.content,
-  }));
+  const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
+
+  // Sort messages by timestamp to ensure proper chronological order
+  const sortedMessages = [...messages].sort((a, b) => {
+    const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+    const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+    return timeA - timeB; // Oldest first
+  });
+
+  // Add timestamp context to messages
+  const newMessages: ChatCompletionMessageParam[] = sortedMessages.map(
+    (msg, index) => {
+      const isLastMessage = index === sortedMessages.length - 1;
+      const timeStr = msg.timestamp
+        ? new Date(msg.timestamp).toLocaleTimeString()
+        : "";
+      let content = msg.content;
+
+      // Only add context to user messages
+      if (msg.role === "user") {
+        content = `[${timeStr}] ${content}${
+          isLastMessage ? " (most recent message)" : ""
+        }`;
+      }
+
+      return {
+        role: msg.role as "user" | "assistant" | "system",
+        content: content,
+      };
+    }
+  );
+
   let dataCollectionInfo;
   if (collectionId) {
     dataCollectionInfo = db.getCollection(collectionId) as Collection;
   }
-  const sysPrompt: {
-    role: "system";
-    content: string;
-  } = {
+
+  const sysPrompt: ChatCompletionMessageParam = {
     role: "system",
     content:
+      " When asked about previous messages, only consider messages marked as '(most recent message)' as the last message. " +
       prompt +
       (data
         ? "The following is the data that the user has provided via their custom data collection: " +
           `\n\n${JSON.stringify(data)}` +
           `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
           `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
-          `\n\nCollection/Store Description: ${dataCollectionInfo?.description}`
+          `\n\nCollection/Store Description: ${dataCollectionInfo?.description}` +
+          `\n\n*** THIS IS THE END OF THE DATA COLLECTION ***`
         : ""),
   };
-  newMessages.unshift(sysPrompt);
 
+  // Truncate messages to fit within token limits while preserving max output tokens
+  const truncatedMessages = truncateMessages(
+    newMessages,
+    sysPrompt,
+    maxOutputTokens
+  );
+  truncatedMessages.unshift(sysPrompt);
+
+  console.log("Final messages to send:", truncatedMessages);
   const stream = await openai.chat.completions.create(
     {
       model: userSettings.model as string,
-      messages: newMessages,
+      messages: truncatedMessages,
       stream: true,
       temperature: Number(userSettings.temperature),
+      max_tokens: Number(maxOutputTokens),
     },
     { signal }
   );
@@ -99,7 +139,7 @@ export async function OpenAIProvider(
       messages: [...messages, newMessage],
       title: currentTitle,
       content: newMessage.content,
-      aborted: false
+      aborted: false,
     };
   } catch (error) {
     if (
@@ -111,7 +151,7 @@ export async function OpenAIProvider(
         messages: messages,
         title: currentTitle,
         content: "",
-        aborted: true
+        aborted: true,
       };
     }
     throw error;

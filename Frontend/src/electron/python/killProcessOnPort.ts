@@ -24,7 +24,7 @@ export async function killProcessOnPort(port: number): Promise<void> {
       let pid: string | null = null;
       if (process.platform === "win32") {
         // On Windows, try to get all PIDs that might be using the port
-        const lines = stdout.split('\n');
+        const lines = stdout.split("\n");
         for (const line of lines) {
           const match = line.match(/\s+(\d+)\s*$/);
           if (match) {
@@ -38,7 +38,9 @@ export async function killProcessOnPort(port: number): Promise<void> {
                     log.error(`Failed to kill process ${pid}: ${killError}`);
                     reject(killError);
                   } else {
-                    log.info(`Successfully killed process ${pid} on port ${port}`);
+                    log.info(
+                      `Successfully killed process ${pid} on port ${port}`
+                    );
                     resolve(true);
                   }
                 });
@@ -53,7 +55,7 @@ export async function killProcessOnPort(port: number): Promise<void> {
         if (match) {
           pid = match[1];
           // Kill the process
-          const killCommand = `kill ${pid}`;
+          const killCommand = `kill -9 ${pid}`;
           exec(killCommand, (killError) => {
             if (killError) {
               log.error(`Failed to kill process ${pid}: ${killError}`);

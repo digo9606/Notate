@@ -1,7 +1,9 @@
 import { BrowserWindow } from "electron";
 import OpenAI from "openai";
 import db from "../../db.js";
-import { sendMessageChunk } from "../llms.js";
+import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
+import { truncateMessages } from "../llmHelpers/truncateMessages.js";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 let openai: OpenAI;
 
@@ -38,17 +40,14 @@ export async function XAIProvider(
   }
 
   const newMessages = messages.map((msg) => ({
-    role: msg.role,
+    role: msg.role as "user" | "assistant" | "system",
     content: msg.content,
   }));
   let dataCollectionInfo;
   if (collectionId) {
     dataCollectionInfo = db.getCollection(collectionId) as Collection;
   }
-  const sysPrompt: {
-    role: "system";
-    content: string;
-  } = {
+  const sysPrompt: ChatCompletionMessageParam = {
     role: "system",
     content:
       prompt +
@@ -61,14 +60,22 @@ export async function XAIProvider(
         : ""),
   };
 
-  newMessages.unshift(sysPrompt);
+  // Truncate messages to fit within token limits
+  const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
+  const truncatedMessages = truncateMessages(
+    newMessages,
+    sysPrompt,
+    maxOutputTokens
+  ) as ChatCompletionMessageParam[];
+  truncatedMessages.unshift(sysPrompt);
 
   const stream = await openai.chat.completions.create(
     {
       model: "grok-beta",
-      messages: newMessages as Message[],
+      messages: truncatedMessages,
       stream: true,
       temperature: Number(userSettings.temperature),
+      max_tokens: maxOutputTokens,
     },
     { signal }
   );
@@ -99,7 +106,7 @@ export async function XAIProvider(
       messages: [...messages, newMessage],
       title: currentTitle,
       content: newMessage.content,
-      aborted: false
+      aborted: false,
     };
   } catch (error) {
     if (
@@ -111,7 +118,7 @@ export async function XAIProvider(
         messages: messages,
         title: currentTitle,
         content: "",
-        aborted: true
+        aborted: true,
       };
     }
     throw error;

@@ -1,8 +1,10 @@
 import { BrowserWindow } from "electron";
 import db from "../../db.js";
-import { sendMessageChunk } from "../llms.js";
+import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
+import { truncateMessages } from "../llmHelpers/truncateMessages.js";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
-export async function LocalProvider(
+export async function OllamaProvider(
   messages: Message[],
   activeUser: User,
   userSettings: UserSettings,
@@ -21,17 +23,14 @@ export async function LocalProvider(
   signal?: AbortSignal
 ) {
   const newMessages = messages.map((msg) => ({
-    role: msg.role,
+    role: msg.role as "user" | "assistant" | "system",
     content: msg.content,
-  }));
+  })) as ChatCompletionMessageParam[];
   let dataCollectionInfo;
   if (collectionId) {
     dataCollectionInfo = db.getCollection(collectionId) as Collection;
   }
-  const sysPrompt: {
-    role: "system";
-    content: string;
-  } = {
+  const sysPrompt: ChatCompletionMessageParam = {
     role: "system",
     content:
       prompt +
@@ -43,8 +42,14 @@ export async function LocalProvider(
           `\n\nCollection/Store Description: ${dataCollectionInfo?.description}`
         : ""),
   };
- 
-  newMessages.unshift(sysPrompt);
+
+  // Truncate messages to fit within token limits
+  const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
+  const truncatedMessages = truncateMessages(
+    newMessages,
+    sysPrompt,
+    maxOutputTokens
+  );
 
   const response = await fetch("http://localhost:11434/api/chat", {
     method: "POST",
@@ -53,9 +58,13 @@ export async function LocalProvider(
     },
     body: JSON.stringify({
       model: userSettings.model || "llama2",
-      messages: newMessages,
+      messages: truncatedMessages.map((msg) => ({
+        role: msg.role,
+        content: msg.content as string,
+      })),
       stream: true,
       keep_alive: -1,
+      max_tokens: maxOutputTokens,
     }),
   });
 

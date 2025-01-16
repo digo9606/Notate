@@ -27,7 +27,7 @@ export function FileTab() {
     <>
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+        className={`border-2 border-dashed rounded-[10px] p-8 text-center cursor-pointer transition-colors ${
           isDragActive
             ? "border-primary bg-primary/5"
             : "border-muted-foreground/20 hover:border-primary/50"

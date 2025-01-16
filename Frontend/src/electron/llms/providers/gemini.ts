@@ -2,10 +2,13 @@ import {
   GoogleGenerativeAI,
   GenerativeModel,
   ChatSession,
+  Content,
 } from "@google/generative-ai";
 import db from "../../db.js";
 import { BrowserWindow } from "electron";
-import { sendMessageChunk } from "../llms.js";
+import { truncateMessages } from "../llmHelpers/truncateMessages.js";
+import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 let genAI: GoogleGenerativeAI;
 
@@ -48,7 +51,11 @@ export async function GeminiProvider(
 
   const model: GenerativeModel = genAI.getGenerativeModel({
     model: userSettings.model as string,
-    systemInstruction:
+  });
+
+  const sysPrompt: ChatCompletionMessageParam = {
+    role: "system",
+    content:
       prompt +
       (data
         ? "The following is the data that the user has provided via their custom data collection: " +
@@ -57,15 +64,28 @@ export async function GeminiProvider(
           `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
           `\n\nCollection/Store Description: ${dataCollectionInfo?.description}`
         : ""),
-  });
+  };
+
+  const maxOutputTokens = userSettings.maxTokens as number || 4096;
+  const newMessages = messages.map((msg) => ({
+    role: msg.role as "user" | "assistant" | "system",
+    content: msg.content,
+  })) as ChatCompletionMessageParam[];
+
+  // Truncate messages to fit within token limits
+  const truncatedMessages = truncateMessages(newMessages, sysPrompt, maxOutputTokens);
+
   const temperature = Number(userSettings.temperature);
   const chat: ChatSession = model.startChat({
-    history: messages.map((msg) => ({
-      role: msg.role === "assistant" ? "model" : "user",
-      parts: [{ text: msg.content }],
-    })),
+    history: truncatedMessages
+      .filter(msg => msg.role !== "system") // Gemini doesn't support system messages in history
+      .map((msg) => ({
+        role: msg.role === "assistant" ? "model" : "user",
+        parts: [{ text: msg.content as string }],
+      })) as Content[],
     generationConfig: {
       temperature: temperature,
+      maxOutputTokens: maxOutputTokens,
     },
   });
 

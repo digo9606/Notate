@@ -142,8 +142,7 @@ const FileItem: React.FC<FileItemProps> = ({
 
         <Dialog open={showRenameDialog} onOpenChange={setShowRenameDialog}>
           <DialogContent>
-
-          <DialogDescription />
+            <DialogDescription />
             <DialogHeader>
               <DialogTitle>Rename File</DialogTitle>
             </DialogHeader>

@@ -52,10 +52,35 @@
   }
 }
 
-code {
-  white-space: pre-wrap !important;
+/* Enhanced Button Styles */
+.btn-provider {
+  @apply transition-all duration-200 hover:scale-[1.02] active:scale-[0.98];
 }
 
+.btn-provider.selected {
+  @apply ring-2 ring-primary/80 ring-offset-2 ring-offset-background shadow-lg;
+}
+
+/* Enhanced Input Fields */
+.input-field {
+  @apply bg-secondary/5 border border-border/50 rounded-[8px] px-4 py-2.5 
+         focus:ring-2 focus:ring-primary/30 focus:border-primary/50 
+         transition-all duration-200;
+}
+
+/* Card and Container Styles */
+.settings-card {
+  @apply bg-secondary/10 backdrop-blur-sm rounded-[8px] p-6 
+         border border-border/50 shadow-lg 
+         hover:shadow-primary/5 transition-all duration-300;
+}
+
+.provider-section {
+  @apply space-y-4 bg-background/50 rounded-[8px] p-4 
+         border border-border/50 shadow-inner;
+}
+
+/* Animation Effects */
 @keyframes subtle-pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(var(--primary), 0.4);
@@ -72,6 +97,18 @@ code {
   animation: subtle-pulse 2s infinite;
 }
 
+/* Glassmorphism Effects */
+.glass-panel {
+  @apply bg-background/80 backdrop-blur-md border border-white/10 
+         shadow-xl rounded-[8px];
+}
+
+.glass-input {
+  @apply bg-white/5 backdrop-blur-sm border border-white/10 
+         focus:border-primary/50 focus:bg-white/10 transition-all duration-200;
+}
+
+/* Existing Window Control Styles */
 #close {
   background-color: #4a4a4a;
 }
@@ -104,6 +141,7 @@ code {
   background-color: #27c93f;
 }
 
+/* Existing Header Styles */
 .win-header-button {
   -webkit-app-region: no-drag;
   display: inline-flex;
@@ -161,6 +199,7 @@ header {
   margin: 0 0.25rem;
   -webkit-app-region: no-drag;
 }
+
 .clickable-header-section {
   cursor: pointer;
   -webkit-app-region: no-drag;
@@ -172,4 +211,9 @@ header {
 
 .window-controls:hover button span {
   display: block;
+}
+
+/* Code Styles */
+code {
+  white-space: pre-wrap !important;
 }

@@ -58,6 +58,7 @@ interface UserSettings {
   model?: string;
   provider?: string;
   is_local?: boolean;
+  model_dir?: string;
   local_embedding_model?: string;
   [key: string]: string | number | boolean | undefined;
 }
@@ -105,6 +106,18 @@ interface TranscribeAudioOutput {
   error?: string;
 }
 
+interface DownloadModelProgress {
+  type: "progress";
+  data: {
+    message: string;
+    fileName?: string;
+    fileNumber?: number;
+    totalFiles?: number;
+    fileProgress?: number;
+    totalProgress: number;
+  };
+}
+
 interface EventPayloadMapping {
   resetAppState: void;
   statistics: Statistics;
@@ -112,6 +125,7 @@ interface EventPayloadMapping {
   frameWindowAction: FrameWindowAction;
   changeView: View;
   openDevTools: void;
+  openDirectory: string;
   resizeWindow: {
     width: number;
     height: number;
@@ -243,6 +257,12 @@ interface EventPayloadMapping {
     collectionName: string;
     userId: number;
   };
+  loadModel: {
+    model_location: string;
+    model_name: string;
+    model_type?: string;
+    user_id: number;
+  };
   addDevAPIKey: {
     userId: number;
     name: string;
@@ -271,10 +291,55 @@ interface EventPayloadMapping {
   addOpenRouterModel: { userId: number; model: string };
   deleteOpenRouterModel: { userId: number; id: number };
   getOpenRouterModels: { userId: number };
+  getDirModels: { dirPath: string };
+  getModelInfo: {
+    model_location: string;
+    model_name: string;
+    model_type?: string;
+    user_id: number;
+  };
+  unloadModel: {
+    model_location: string;
+    model_name: string;
+    model_type?: string;
+    user_id: number;
+  };
+  downloadModel: {
+    modelId: string;
+    dirPath: string;
+    hfToken?: string;
+  };
+  "download-model-progress": DownloadModelProgress;
+  cancelDownload: { success: boolean };
+}
+
+interface Model {
+  name: string;
+  type: string;
+  model_location: string;
+  modified_at: string;
+  size: number;
+  digest: string;
 }
 
 interface Window {
   electron: {
+    unloadModel: (payload: {
+      model_location: string;
+      model_name: string;
+      model_type?: string;
+      user_id: number;
+    }) => Promise<void>;
+    getModelInfo: (payload: {
+      model_location: string;
+      model_name: string;
+      model_type?: string;
+      user_id: number;
+    }) => Promise<{ model_info: Model }>;
+    getDirModels: (dirPath: string) => Promise<{
+      dirPath: string;
+      models: Model[];
+    }>;
     pullModel: (model: string) => Promise<void>;
     changeUser: () => Promise<void>;
     quit: () => Promise<void>;
@@ -288,6 +353,7 @@ interface Window {
     print: () => Promise<void>;
     chat: () => Promise<void>;
     history: () => Promise<void>;
+    openDirectory: () => Promise<string>;
     cancelEmbed: (payload: { userId: number }) => Promise<void>;
     subscribeStatistics: (
       callback: (statistics: Statistics) => void
@@ -319,7 +385,7 @@ interface Window {
       title: string;
       error?: string;
     }>;
-    fetchOllamaModels: () => Promise<{ models: string[] }>;
+    fetchOllamaModels: () => Promise<{ models: OllamaModel[] }>;
     abortChatRequest: (requestId: number) => void;
     onMessageChunk: (callback: (chunk: string) => void) => void;
     offMessageChunk: (callback: (chunk: string) => void) => void;
@@ -448,17 +514,23 @@ interface Window {
       callback: (event: Electron.IpcRendererEvent, message: string) => void
     ) => void;
     on: (
-      channel: "ingest-progress" | "ollama-progress",
+      channel:
+        | "ingest-progress"
+        | "ollama-progress"
+        | "download-model-progress",
       func: (
         event: Electron.IpcRendererEvent,
-        message: string | OllamaProgressEvent
+        message: string | OllamaProgressEvent | DownloadModelProgress
       ) => void
     ) => void;
     removeListener: (
-      channel: "ingest-progress" | "ollama-progress",
+      channel:
+        | "ingest-progress"
+        | "ollama-progress"
+        | "download-model-progress",
       func: (
         event: Electron.IpcRendererEvent,
-        message: string | OllamaProgressEvent
+        message: string | OllamaProgressEvent | DownloadModelProgress
       ) => void
     ) => void;
     deleteConversation: (
@@ -522,6 +594,12 @@ interface Window {
       max_workers: number;
       status: string;
     }>;
+    downloadModel: (payload: {
+      modelId: string;
+      dirPath: string;
+      hfToken?: string;
+    }) => Promise<void>;
+    cancelDownload: () => Promise<{ success: boolean }>;
     subscribeResetUserState: (callback: () => void) => UnsubscribeFunction;
     transcribeAudio: (
       audioData: ArrayBuffer,
@@ -568,6 +646,12 @@ interface Window {
     addOpenRouterModel: (userId: number, model: string) => Promise<void>;
     deleteOpenRouterModel: (userId: number, id: number) => Promise<void>;
     getOpenRouterModels: (userId: number) => Promise<{ models: string[] }>;
+    loadModel: (payload: {
+      model_location: string;
+      model_name: string;
+      model_type?: string;
+      user_id: number;
+    }) => Promise<void>;
   };
 }
 type Keys = {
@@ -594,13 +678,15 @@ type OpenRouterModel = string;
 
 interface ProgressData extends CustomProgressData, OllamaProgressEvent {}
 
-type Provider =
+type LLMProvider =
   | "openai"
   | "anthropic"
   | "gemini"
   | "xai"
   | "openrouter"
-  | "local";
+  | "local"
+  | "ollama"
+  | "custom";
 
 interface OllamaProgressEvent {
   type: "pull" | "verify";
@@ -609,17 +695,17 @@ interface OllamaProgressEvent {
 
 interface Electron {
   on(
-    channel: "ingest-progress" | "ollama-progress",
+    channel: "ingest-progress" | "ollama-progress" | "download-model-progress",
     func: (
       event: Electron.IpcRendererEvent,
-      message: string | OllamaProgressEvent
+      message: string | OllamaProgressEvent | DownloadModelProgress
     ) => void
   ): void;
   removeListener(
-    channel: "ingest-progress" | "ollama-progress",
+    channel: "ingest-progress" | "ollama-progress" | "download-model-progress",
     func: (
       event: Electron.IpcRendererEvent,
-      message: string | OllamaProgressEvent
+      message: string | OllamaProgressEvent | DownloadModelProgress
     ) => void
   ): void;
 }
@@ -662,3 +748,24 @@ type CustomProgressData = {
     percent_complete?: string;
   };
 };
+
+interface DownloadProgress {
+  type: "progress";
+  data: DownloadProgressData;
+}
+interface OllamaModel {
+  name: string;
+  type: string;
+}
+interface DownloadProgressData {
+  message: string;
+  fileName?: string;
+  fileNumber?: number;
+  totalFiles?: number;
+  fileProgress?: number;
+  totalProgress: number;
+  currentSize?: string;
+  totalSize?: string;
+  currentStep?: string;
+  speed?: string;
+}

@@ -83,7 +83,7 @@ export default function IngestModal({
             </div>
           </div>
         </div>
-        <TabsList className="grid w-full grid-cols-2 h-10 p-1 bg-muted rounded-xl">
+        <TabsList className="grid w-full grid-cols-2 h-10 p-1 bg-muted rounded-[10px]">
           <TabsTrigger
             value="upload"
             className="rounded-l-[6px] data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"

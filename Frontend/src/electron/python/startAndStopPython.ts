@@ -11,6 +11,9 @@ import { getSecret } from "../authentication/devApi.js";
 import { ensurePythonAndVenv } from "./ensurePythonAndVenv.js";
 import { extractFromAsar } from "./extractFromAsar.js";
 import { killProcessOnPort } from "./killProcessOnPort.js";
+
+
+
 log.transports.file.level = "info";
 log.transports.file.resolvePathFn = () =>
   path.join(app.getPath("userData"), "logs/main.log");
@@ -141,7 +144,7 @@ export async function startPythonServer() {
             } else {
               updateLoadingStatus(
                 text,
-                (installedPackages / totalPackages) * 75
+                (installedPackages / totalPackages) * 35
               );
             }
 
@@ -165,7 +168,7 @@ export async function startPythonServer() {
         depProcess.on("close", async (code: number | null) => {
           log.info(`Dependency process closed with code ${code}`);
           if (code === 0) {
-            updateLoadingStatus("Starting application server...", 80);
+            updateLoadingStatus("Starting application server...", 99);
 
             const startServer = async () => {
               // Create Python process with same options

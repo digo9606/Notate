@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain } from "electron";
+import { BrowserWindow, ipcMain, dialog } from "electron";
 import { ipcMainHandle, ipcMainOn, isDev } from "../util.js";
 import { getStaticData } from "../resourceManager.js";
 
@@ -8,6 +8,13 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
   });
 
   ipcMainHandle("getStaticData", async () => await getStaticData());
+
+  ipcMainHandle("openDirectory", async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory']
+    });
+    return result.filePaths[0];
+  });
 
   ipcMainOn("resizeWindow", ({ width, height }) => {
     if (mainWindow) {

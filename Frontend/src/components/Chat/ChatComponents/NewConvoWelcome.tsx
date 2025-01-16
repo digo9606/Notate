@@ -1,13 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { MessageSquare, X } from "lucide-react";
 import notateLogo from "@/assets/icon.png";
-import { useUser } from "@/context/useUser";
+import { useChatInput } from "@/context/useChatInput";
 import { useLibrary } from "@/context/useLibrary";
 import { docSuggestions, suggestions } from "./suggestions";
 import { useMemo } from "react";
 
 export function NewConvoWelcome() {
-  const { handleChatRequest } = useUser();
+  const { handleChatRequest } = useChatInput();
   const { selectedCollection, setSelectedCollection, setShowUpload } =
     useLibrary();
 

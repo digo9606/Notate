@@ -7,7 +7,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Settings, Sparkles } from "lucide-react";
+import { Settings } from "lucide-react";
 import { useSysSettings } from "@/context/useSysSettings";
 import { SettingsModal } from "@/components/SettingsModal/SettingsModal";
 import WindowControls from "./MainWindowControl";
@@ -17,8 +17,6 @@ export default function SettingsDialog() {
     settingsOpen,
     setSettingsOpen,
     platform,
-    totalVRAM,
-    isOllamaRunning,
     isMaximized,
     setIsMaximized,
   } = useSysSettings();
@@ -36,17 +34,12 @@ export default function SettingsDialog() {
             <span className="sr-only">Chat Settings</span>
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-h-[100vh] mt-4 overflow-y-auto p-6">
+        <DialogContent className="max-h-[100vh] w-[80%] mt-4 overflow-y-auto p-6">
           <DialogHeader className="sm:pb-4 pb-2">
             <DialogTitle className="text-xl font-semibold">
               Settings
             </DialogTitle>
-            {totalVRAM > 8 && !isOllamaRunning && (
-              <div className="animate-sparkle">
-                <Sparkles className="h-4 w-4 text-primary" />
-                Please Download and Run Ollama to use Notate in Local Mode
-              </div>
-            )}
+
             <DialogDescription className="text-muted-foreground">
               Configure your application preferences and settings
             </DialogDescription>

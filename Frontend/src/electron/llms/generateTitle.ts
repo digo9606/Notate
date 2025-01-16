@@ -2,6 +2,16 @@ import Anthropic from "@anthropic-ai/sdk";
 import db from "../db.js";
 import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getToken } from "../authentication/token.js";
+
+const titleMessages = (input: string): OpenAI.ChatCompletionMessageParam[] => [
+  {
+    role: "system" as const,
+    content:
+      "Generate a short, concise title (5 words or less) for a conversation based on the following message: Return the Title only and nothing else example response: 'Meeting with John' Return: 'Meeting with John'",
+  },
+  { role: "user" as const, content: input },
+];
 
 async function generateTitleOpenRouter(input: string, userId: number) {
   let apiKey = "";
@@ -19,48 +29,7 @@ async function generateTitleOpenRouter(input: string, userId: number) {
   });
   const llmTitleRequest = await openai.chat.completions.create({
     model: "openai/gpt-3.5-turbo",
-    messages: [
-      {
-        role: "system",
-        content:
-          "Generate a short, concise title (5 words or less) for a conversation based on the following message: Return the Title only and nothing else example response: 'Meeting with John' Return: 'Meeting with John'",
-      },
-      {
-        role: "user",
-        content: input,
-      },
-    ],
-    max_tokens: 20,
-  });
-
-  const generatedTitle = llmTitleRequest.choices[0]?.message?.content?.trim();
-  return generatedTitle;
-}
-
-async function generateTitleOpenAI(input: string, userId: number) {
-  let apiKey = "";
-  try {
-    apiKey = db.getApiKey(userId, "openai");
-  } catch (error) {
-    console.error("Error getting API key:", error);
-  }
-  if (!apiKey) {
-    throw new Error("OpenAI API key not found for the active user");
-  }
-  const openai = new OpenAI({ apiKey });
-  const llmTitleRequest = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      {
-        role: "system",
-        content:
-          "Generate a short, concise title (5 words or less) for a conversation based on the following message: Return the Title only and nothing else example response: 'Meeting with John' Return: 'Meeting with John'",
-      },
-      {
-        role: "user",
-        content: input,
-      },
-    ],
+    messages: titleMessages(input),
     max_tokens: 20,
   });
 
@@ -131,42 +100,20 @@ async function generateTitleXAI(input: string, userId: number) {
     throw new Error("XAI API key not found for the active user");
   }
   const openai = new OpenAI({ apiKey, baseURL: "https://api.x.ai/v1" });
-
+  const messages = titleMessages(input);
   const llmTitleRequest = await openai.chat.completions.create({
     model: "grok-beta",
-    messages: [
-      {
-        role: "system",
-        content:
-          "Generate a short, concise title (5 words or less) for a conversation based on the following message: Return the Title only and nothing else example response: 'Meeting with John' Return: 'Meeting with John'",
-      },
-      {
-        role: "user",
-        content: input,
-      },
-    ],
+    messages: messages,
     max_tokens: 20,
   });
 
   const generatedTitle = llmTitleRequest.choices[0]?.message?.content?.trim();
   return generatedTitle;
 }
-/* http://localhost:11434/api/chat -d '{
-  "model": "llama3.2",
-  "messages": [
-    { "role": "user", "content": "why is the sky blue?" }
-  ]
-}' */
-async function generateTitleLocal(input: string, model: string) {
+
+async function generateOllamaTitle(input: string, model: string) {
   try {
-    const messages = [
-      {
-        role: "system",
-        content:
-          "Generate a short, concise title (5 words or less) for a conversation based on the following message: Return the Title only and nothing else example response: 'Meeting with John' Return: 'Meeting with John'",
-      },
-      { role: "user", content: input },
-    ];
+    const messages = titleMessages(input);
     const response = await fetch("http://localhost:11434/api/chat", {
       method: "POST",
       headers: {
@@ -202,6 +149,56 @@ async function generateTitleLocal(input: string, model: string) {
   }
 }
 
+async function generateTitleOpenAI(input: string, userId: number) {
+  let apiKey = "";
+  try {
+    apiKey = db.getApiKey(userId, "openai");
+  } catch (error) {
+    console.error("Error getting API key:", error);
+  }
+  if (!apiKey) {
+    throw new Error("OpenAI API key not found for the active user");
+  }
+  const openai = new OpenAI({ apiKey });
+  const llmTitleRequest = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: titleMessages(input),
+    max_tokens: 20,
+    temperature: 0.7,
+    top_p: 0.95,
+    presence_penalty: 0.1,
+    frequency_penalty: 0.1,
+  });
+
+  const generatedTitle = llmTitleRequest.choices[0]?.message?.content?.trim();
+  return generatedTitle;
+}
+
+async function generateTitleLocalOpenAI(input: string, userId: number) {
+  const apiKey = await getToken({ userId: userId.toString() });
+  if (!apiKey) {
+    throw new Error("Local OpenAI API key not found for the active user");
+  }
+  const openai = new OpenAI({ apiKey, baseURL: "http://127.0.0.1:47372" });
+  const stream = await openai.chat.completions.create({
+    model: "local-model",
+    messages: titleMessages(input),
+    stream: true,
+    temperature: 0.7,
+    max_tokens: 20,
+    top_p: 0.95,
+    presence_penalty: 0.1,
+    frequency_penalty: 0.1,
+  });
+  let generatedTitle = "";
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content || "";
+    generatedTitle += content;
+  }
+  console.log("Generated title:", generatedTitle);
+  return generatedTitle;
+}
+
 export async function generateTitle(
   input: string,
   userId: number,
@@ -226,7 +223,10 @@ export async function generateTitle(
       return generateTitleXAI(input, userId);
     case "local":
       console.log("Local");
-      return generateTitleLocal(input, model || "llama3.2");
+      return generateTitleLocalOpenAI(input, userId);
+    case "ollama":
+      console.log("Ollama");
+      return generateOllamaTitle(input, model || "llama3.2");
     default:
       return "New Conversation";
   }

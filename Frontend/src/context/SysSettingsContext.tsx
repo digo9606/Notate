@@ -1,13 +1,6 @@
 import React, { createContext, useRef, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 
-interface OllamaModel {
-  name: string;
-  modified_at: string;
-  size: number;
-  digest: string;
-}
-
 interface SysSettingsContextType {
   isOllamaRunning: boolean;
   setIsOllamaRunning: (isOllamaRunning: boolean) => void;
@@ -34,8 +27,8 @@ interface SysSettingsContextType {
   users: User[];
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
   totalVRAM: number;
-  localModels: OllamaModel[];
-  setLocalModels: React.Dispatch<React.SetStateAction<OllamaModel[]>>;
+  localModels: Model[];
+  setLocalModels: React.Dispatch<React.SetStateAction<Model[]>>;
   isRunningModel: boolean;
   setIsRunningModel: React.Dispatch<React.SetStateAction<boolean>>;
   isFFMPEGInstalled: boolean;
@@ -52,6 +45,25 @@ interface SysSettingsContextType {
   fetchLocalModels: () => Promise<void>;
   fetchSystemSpecs: () => Promise<void>;
   checkOllama: () => Promise<void>;
+  maxTokens: number;
+  setMaxTokens: React.Dispatch<React.SetStateAction<number>>;
+  localModelDir: string;
+  setLocalModelDir: React.Dispatch<React.SetStateAction<string>>;
+  loadModelsFromDirectory: (dirPath: string) => Promise<void>;
+  handleRunModel: (
+    model_name: string,
+    model_location: string,
+    model_type: string,
+    user_id: string
+  ) => Promise<void>;
+  ollamaModels: OllamaModel[];
+  setOllamaModels: React.Dispatch<React.SetStateAction<OllamaModel[]>>;
+  selectedModel: Model | null;
+  setSelectedModel: React.Dispatch<React.SetStateAction<Model | null>>;
+  selectedProvider: string;
+  setSelectedProvider: React.Dispatch<React.SetStateAction<string>>;
+  localModel: string;
+  setLocalModel: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const SysSettingsContext = createContext<SysSettingsContextType | undefined>(
@@ -61,9 +73,14 @@ const SysSettingsContext = createContext<SysSettingsContextType | undefined>(
 const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [localModels, setLocalModels] = useState<OllamaModel[]>([]);
+  const [localModel, setLocalModel] = useState<string>("");
+  const [selectedProvider, setSelectedProvider] = useState<string>("");
+  const [selectedModel, setSelectedModel] = useState<Model | null>(null);
+  const [localModelDir, setLocalModelDir] = useState<string>("");
+  const [localModels, setLocalModels] = useState<Model[]>([]);
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
   const [isOllamaRunning, setIsOllamaRunning] = useState<boolean>(false);
+  const [ollamaModels, setOllamaModels] = useState<OllamaModel[]>([]);
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
   const [settings, setSettings] = useState<UserSettings>({});
   const [users, setUsers] = useState<User[]>([]);
@@ -78,6 +95,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [platform, setPlatform] = useState<"win32" | "darwin" | "linux" | null>(
     null
   );
+
   const [systemSpecs, setSystemSpecs] = useState<{
     cpu: string;
     vram: string;
@@ -87,7 +105,9 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     vram: "Unknown",
     GPU_Manufacturer: "Unknown",
   });
+
   const totalVRAM = parseInt(systemSpecs.vram);
+  const [maxTokens, setMaxTokens] = useState(4096);
 
   const checkFFMPEG = async () => {
     try {
@@ -103,6 +123,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       setisFFMPEGInstalled(false);
     }
   };
+
   const fetchSystemSpecs = async () => {
     try {
       const { cpu, vram, GPU_Manufacturer } =
@@ -118,6 +139,60 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const handleRunModel = async (
+    model_name: string,
+    model_location: string,
+    model_type: string,
+    user_id: string
+  ) => {
+    setLocalModalLoading(true);
+    const result = (await window.electron.loadModel({
+      model_location: model_location,
+      model_name: model_name,
+      model_type: model_type,
+      user_id: Number(user_id),
+    })) as unknown as { status: string };
+    setSettings((prev) => ({
+      ...prev,
+      model: model_name,
+      provider: "local",
+    }));
+    await window.electron.updateUserSettings(
+      Number(user_id),
+      "model",
+      model_name
+    );
+    await window.electron.updateUserSettings(
+      Number(user_id),
+      "provider",
+      "local"
+    );
+    await window.electron.updateUserSettings(
+      Number(user_id),
+      "model_type",
+      model_type
+    );
+    await window.electron.updateUserSettings(
+      Number(user_id),
+      "model_location",
+      model_location
+    );
+    if (result.status === "success") {
+      toast({
+        title: "Model loaded",
+        description: `Loaded ${model_name}`,
+      });
+      setLocalModalLoading(false);
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to load model",
+        variant: "destructive",
+      });
+      setLocalModalLoading(false);
+    }
+  };
+
   const checkOllama = async () => {
     const { isOllamaRunning } = await window.electron.checkOllama();
     setIsOllamaRunning(isOllamaRunning);
@@ -128,11 +203,21 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const fetchLocalModels = async () => {
     try {
-      const data = await window.electron.fetchOllamaModels();
+      const data = (await window.electron.getDirModels(
+        localModelDir
+      )) as unknown as {
+        dirPath: string;
+        models: Model[];
+      };
+      console.log(data);
+
       setLocalModels(
         Array.isArray(data.models)
-          ? data.models.map((model: string | OllamaModel) => ({
+          ? data.models.map((model: string | Model) => ({
               name: typeof model === "string" ? model : model.name || "",
+              type: typeof model === "string" ? "" : model.type || "",
+              model_location:
+                typeof model === "string" ? "" : model.model_location || "",
               modified_at:
                 typeof model === "string" ? "" : model.modified_at || "",
               size: typeof model === "string" ? 0 : model.size || 0,
@@ -191,6 +276,40 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const loadModelsFromDirectory = async (dirPath: string) => {
+    try {
+      const models = await window.electron.getDirModels(dirPath);
+      if (!Array.isArray(models)) {
+        throw new Error("Invalid response from getDirModels - expected array");
+      }
+
+      // Convert the models array to the OllamaModel format
+      const formattedModels: Model[] = models.map((modelName: string) => ({
+        name: modelName,
+        type: "",
+        model_location: "",
+        modified_at: "", // These fields might not be available for local models
+        size: 0,
+        digest: "",
+      }));
+
+      setLocalModels(formattedModels);
+      setLocalModelDir(dirPath);
+
+      toast({
+        title: "Models Loaded",
+        description: `Found ${formattedModels.length} models in directory`,
+      });
+    } catch (error) {
+      console.error("Error loading models from directory:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load models from directory",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <SysSettingsContext.Provider
       value={{
@@ -227,6 +346,20 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         fetchLocalModels,
         fetchSystemSpecs,
         checkOllama,
+        maxTokens,
+        setMaxTokens,
+        localModelDir,
+        setLocalModelDir,
+        loadModelsFromDirectory,
+        handleRunModel,
+        ollamaModels,
+        setOllamaModels,
+        selectedModel,
+        setSelectedModel,
+        selectedProvider,
+        setSelectedProvider,
+        localModel,
+        setLocalModel,
       }}
     >
       {children}

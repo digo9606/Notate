@@ -6,8 +6,9 @@ import { GeminiProvider } from "./providers/gemini.js";
 import { XAIProvider } from "./providers/xai.js";
 import { generateTitle } from "./generateTitle.js";
 import { vectorstoreQuery } from "../embedding/vectorstoreQuery.js";
-import { LocalProvider } from "./providers/local.js";
+import { LocalModelProvider } from "./providers/localModel.js";
 import { OpenRouterProvider } from "./providers/openrouter.js";
+import { OllamaProvider } from "./providers/ollama.js";
 import log from "electron-log";
 import os from "os";
 
@@ -68,7 +69,7 @@ export async function chatRequest(
           collectionId: Number(collectionId),
           collectionName: collectionName.name,
         });
-      
+
         if (vectorstoreData.status === "error") {
           if (vectorstoreData.message === "Unauthorized") {
             const newMessage = {
@@ -161,7 +162,10 @@ export async function chatRequest(
         provider = XAIProvider;
         break;
       case "local":
-        provider = LocalProvider;
+        provider = LocalModelProvider;
+        break;
+      case "ollama":
+        provider = OllamaProvider;
         break;
       default:
         throw new Error(
@@ -241,16 +245,5 @@ export async function chatRequest(
       messages: [...messages, newMessage],
       title: "Need API Key",
     };
-  }
-}
-
-export function sendMessageChunk(
-  content: string,
-  mainWindow: BrowserWindow | null
-) {
-  if (mainWindow) {
-    mainWindow.webContents.send("messageChunk", content);
-  } else {
-    console.log("This no work cause Chunk not chunky");
   }
 }

@@ -12,7 +12,8 @@ database.sqlite
 Backend/__pycache__
 Backend/.pytest_cache
 Backend/venv
-
+Backend/venvs
+models/*
 
 .DS_Store
 
@@ -82,3 +83,29 @@ Backend/src/llms/providers/__pycache__/ollama.cpython-310.pyc
 Backend/src/llms/providers/__pycache__/ooba.cpython-310.pyc
 Backend/src/llms/providers/__pycache__/openai.cpython-310.pyc
 Backend/src/llms/messages/__pycache__/formMessages.cpython-310.pyc
+Backend/tests/test_curl.txt
+Backend/src/models/__pycache__/model_loader.cpython-310.pyc
+Backend/src/endpoint/__pycache__/api.cpython-310.pyc
+Backend/src/models/__pycache__/__init__.cpython-310.pyc
+Backend/src/models/__pycache__/exceptions.cpython-310.pyc
+Backend/src/models/__pycache__/manager.cpython-310.pyc
+Backend/src/models/scrratch
+Backend/src/models/loaders/__pycache__/__init__.cpython-310.pyc
+Backend/src/models/loaders/__pycache__/base.cpython-310.pyc
+Backend/src/models/loaders/__pycache__/exllama.cpython-310.pyc
+Backend/src/models/loaders/__pycache__/hqq.cpython-310.pyc
+Backend/src/models/loaders/__pycache__/llamaccphf.cpython-310.pyc
+Backend/src/models/loaders/__pycache__/llamacpp.cpython-310.pyc
+Backend/src/models/loaders/__pycache__/tensorrt.cpython-310.pyc
+Backend/src/models/loaders/__pycache__/transformers.cpython-310.pyc
+Backend/src/models/types/__pycache__/model_types.cpython-310.pyc
+Backend/src/models/types/__pycache__/__init__.cpython-310.pyc
+Backend/src/models/utils/__pycache__/__init__.cpython-310.pyc
+Backend/src/models/utils/__pycache__/detect_type.cpython-310.pyc
+Backend/src/models/utils/__pycache__/device.cpython-310.pyc
+Backend/src/models/utils/__pycache__/platform.cpython-310.pyc
+
+Backend/src/models/__pycache__/streamer.cpython-310.pyc
+monitor_resources.ps1
+
+Frontend/models/*

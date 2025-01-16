@@ -36,8 +36,10 @@ export function useAppInitialization() {
     setSettingsOpen,
     checkFFMPEG,
     fetchSystemSpecs,
-    checkOllama,
     setPlatform,
+    setLocalModelDir,
+    setLocalModels,
+    setOllamaModels,
   } = useSysSettings();
 
   // Initial setup that doesn't depend on activeUser
@@ -72,7 +74,6 @@ export function useAppInitialization() {
     checkFFMPEG();
     fetchUsers();
     fetchSystemSpecs();
-    checkOllama();
   }, []);
 
   // User-dependent initialization
@@ -84,15 +85,52 @@ export function useAppInitialization() {
       }
     };
 
-    fetchOpenRouterModels();
+    const handleOllamaIntegration = async () => {
+      const startUpOllama = await window.electron.checkOllama();
+      if (activeUser && startUpOllama) {
+        const models = await window.electron.fetchOllamaModels();
+        const filteredModels = (models.models as unknown as string[])
+          .filter((model) => !model.includes("granite"))
+          .map((model) => ({ name: model, type: "ollama" }));
+        await window.electron.updateUserSettings(
+          activeUser.id,
+          "ollamaIntegration",
+          "true"
+        );
+        setOllamaModels(filteredModels);
+      }
+    };
     const fetchSettings = async () => {
       if (activeUser) {
         const settings = await window.electron.getUserSettings(activeUser.id);
+        if (settings.ollamaIntegration === "true") {
+          handleOllamaIntegration();
+        }
         setSettings(settings);
+        if (settings.model_dir) {
+          setLocalModelDir(settings.model_dir);
+          const models = (await window.electron.getDirModels(
+            settings.model_dir
+          )) as unknown as { dirPath: string; models: Model[] };
+          setLocalModels(models.models);
+          if (
+            settings.provider === "local" &&
+            settings.model &&
+            settings.model_type
+          ) {
+            await window.electron.loadModel({
+              model_location: settings.model_location as string,
+              model_name: settings.model,
+              model_type: settings.model_type as string,
+              user_id: activeUser.id,
+            });
+          }
+        }
       }
     };
 
     if (activeUser) {
+      fetchOpenRouterModels();
       fetchSettings();
       getUserConversations();
       fetchApiKey();

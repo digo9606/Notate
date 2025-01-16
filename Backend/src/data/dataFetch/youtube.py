@@ -10,7 +10,6 @@ import requests
 import webvtt
 from io import StringIO
 from typing import Generator
-import time
 import json
 
 logging.basicConfig(

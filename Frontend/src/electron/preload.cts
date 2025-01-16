@@ -19,6 +19,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
   pullModel: async (model: string) => {
     await ipcInvoke("pullModel", { model });
   },
+  openDirectory: () => ipcInvoke("openDirectory"),
   deleteCollection: (
     collectionId: number,
     collectionName: string,
@@ -145,10 +146,22 @@ electron.contextBridge.exposeInMainWorld("electron", {
       description: string;
       type: string;
     }>,
+  getDirModels: (dirPath: string) =>
+    ipcInvoke("getDirModels", { dirPath }) as unknown as Promise<{
+      dirPath: string;
+      models: Model[];
+    }>,
   getOpenRouterModel: (userId: number) =>
     ipcInvoke("getOpenRouterModel", { userId }) as unknown as Promise<{
       model: string;
     }>,
+  downloadModel: (payload: {
+    modelId: string;
+    dirPath: string;
+    hfToken?: string;
+  }) => ipcInvoke("downloadModel", payload) as unknown as Promise<void>,
+  cancelDownload: () =>
+    ipcInvoke("cancelDownload") as unknown as Promise<{ success: boolean }>,
   addOpenRouterModel: (userId: number, model: string) =>
     ipcInvoke("addOpenRouterModel", {
       userId,
@@ -190,9 +203,15 @@ electron.contextBridge.exposeInMainWorld("electron", {
       throw error;
     }
   },
+  loadModel: (payload: {
+    model_location: string;
+    model_name: string;
+    model_type?: string;
+    user_id: number;
+  }) => ipcInvoke("loadModel", payload) as unknown as Promise<void>,
   fetchOllamaModels: () =>
     ipcInvoke("fetchOllamaModels") as unknown as Promise<{
-      models: string[];
+      models: OllamaModel[];
     }>,
   changeUser: () => ipcInvoke("changeUser"),
   quit: () => ipcInvoke("quit"),
@@ -304,11 +323,11 @@ electron.contextBridge.exposeInMainWorld("electron", {
       success?: boolean;
     }>,
   on: (
-    channel: "ingest-progress" | "ollama-progress",
+    channel: "ingest-progress" | "ollama-progress" | "download-model-progress",
     func: (event: Electron.IpcRendererEvent, message: any) => void
   ) => electron.ipcRenderer.on(channel, func),
   removeListener: (
-    channel: "ingest-progress" | "ollama-progress",
+    channel: "ingest-progress" | "ollama-progress" | "download-model-progress",
     func: (event: Electron.IpcRendererEvent, message: any) => void
   ) => electron.ipcRenderer.removeListener(channel, func),
   cancelEmbed: (payload: { userId: number }) =>
@@ -418,6 +437,21 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("openCollectionFolderFromFileExplorer", { filepath }) as Promise<{
       filepath: string;
     }>,
+  getModelInfo: (payload: {
+    model_location: string;
+    model_name: string;
+    model_type?: string;
+    user_id: number;
+  }) =>
+    ipcInvoke("getModelInfo", payload) as unknown as Promise<{
+      model_info: Model;
+    }>,
+  unloadModel: (payload: {
+    model_location: string;
+    model_name: string;
+    model_type?: string;
+    user_id: number;
+  }) => ipcInvoke("unloadModel", payload) as unknown as Promise<void>,
 } satisfies Window["electron"]);
 
 function ipcInvoke<Key extends keyof EventPayloadMapping>(

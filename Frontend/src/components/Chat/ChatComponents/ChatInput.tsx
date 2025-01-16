@@ -10,8 +10,9 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Library, Send, X, Mic, Loader2 } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { useUser } from "@/context/useUser";
+import { useChatInput } from "@/context/useChatInput";
 import { useSysSettings } from "@/context/useSysSettings";
 import {
   Tooltip,
@@ -22,15 +23,15 @@ import {
 import { WebAudioRecorder } from "@/utils/webAudioRecorder";
 import { useLibrary } from "@/context/useLibrary";
 
-export function ChatInput() {
+export const ChatInput = memo(function ChatInput() {
+  const { activeUser } = useUser();
   const {
-    activeUser,
     handleChatRequest,
     cancelRequest,
     input,
     setInput,
     isLoading,
-  } = useUser();
+  } = useChatInput();
   const { openLibrary, setOpenLibrary } = useLibrary();
   const [isRecording, setIsRecording] = useState(false);
   const [transcriptionLoading, setTranscriptionLoading] = useState(false);
@@ -38,22 +39,22 @@ export function ChatInput() {
   const { isFFMPEGInstalled } = useSysSettings();
   const audioRecorder = useMemo(() => new WebAudioRecorder(), []);
   const { selectedCollection } = useLibrary();
-  // Animate loading dots
+
+  // Memoize the loading dots animation interval
   useEffect(() => {
-    if (transcriptionLoading) {
-      const interval = setInterval(() => {
-        setLoadingDots((prev) => {
-          if (prev === "...") return "";
-          return prev + ".";
-        });
-      }, 500);
-      return () => clearInterval(interval);
-    } else {
+    if (!transcriptionLoading) {
       setLoadingDots("");
+      return;
     }
+
+    const interval = setInterval(() => {
+      setLoadingDots((prev: string) => prev === "..." ? "" : prev + ".");
+    }, 500);
+    return () => clearInterval(interval);
   }, [transcriptionLoading]);
 
-  const handleRecording = async () => {
+  // Memoize the recording handler
+  const handleRecording = useCallback(async () => {
     try {
       if (!isRecording) {
         await audioRecorder.startRecording();
@@ -61,7 +62,6 @@ export function ChatInput() {
       } else {
         setTranscriptionLoading(true);
         const audioData = await audioRecorder.stopRecording();
-        setIsRecording(false);
         setIsRecording(false);
         if (!activeUser?.id) {
           console.error("No active user ID found");
@@ -95,32 +95,36 @@ export function ChatInput() {
       setIsRecording(false);
       setTranscriptionLoading(false);
     }
-  };
+  }, [isRecording, audioRecorder, activeUser?.id, setInput]);
 
-  const getTooltipContent = () => {
-    if (!isFFMPEGInstalled) {
-      return "Please install FFMPEG to use voice-to-text";
-    }
-    if (transcriptionLoading) {
-      return "Transcribing your audio...";
-    }
-    if (isRecording) {
-      return "Click to stop recording";
-    }
+  // Memoize the tooltip content
+  const tooltipContent = useMemo(() => {
+    if (!isFFMPEGInstalled) return "Please install FFMPEG to use voice-to-text";
+    if (transcriptionLoading) return "Transcribing your audio...";
+    if (isRecording) return "Click to stop recording";
     return "Click to start voice recording";
-  };
+  }, [isFFMPEGInstalled, transcriptionLoading, isRecording]);
+
+  // Memoize the form submit handler
+  const handleSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (input.trim()) {
+      handleChatRequest(selectedCollection?.id || undefined);
+    }
+  }, [input, handleChatRequest, selectedCollection?.id]);
+
+  // Memoize the send button handler
+  const handleSendClick = useCallback(() => {
+    if (isLoading) {
+      cancelRequest();
+    } else if (input.trim()) {
+      handleChatRequest(selectedCollection?.id || undefined);
+    }
+  }, [isLoading, input, cancelRequest, handleChatRequest, selectedCollection?.id]);
 
   return (
     <div className="p-4 bg-card border-t border-secondary">
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (input.trim()) {
-            handleChatRequest(selectedCollection?.id || undefined);
-          }
-        }}
-        className="flex w-full items-center "
-      >
+      <form onSubmit={handleSubmit} className="flex w-full items-center">
         <div className="flex flex-col items-center">
           <Dialog open={openLibrary} onOpenChange={setOpenLibrary}>
             <DialogTrigger asChild>
@@ -177,7 +181,7 @@ export function ChatInput() {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{getTooltipContent()}</p>
+                <p>{tooltipContent}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -196,7 +200,7 @@ export function ChatInput() {
           }}
           disabled={transcriptionLoading}
           data-testid="chat-input"
-          className={`z-10   max-h-[72px] min-h-[72px] flex-grow bg-background text-foreground placeholder-muted-foreground border-secondary rounded-none transition-opacity duration-200 ${
+          className={`z-10 max-h-[72px] min-h-[72px] flex-grow bg-background text-foreground placeholder-muted-foreground border-secondary rounded-none transition-opacity duration-200 [overflow-wrap:anywhere] ${
             transcriptionLoading ? "opacity-50" : "opacity-100"
           }`}
         />
@@ -204,15 +208,7 @@ export function ChatInput() {
           type="button"
           size="icon"
           variant={isLoading ? "destructive" : "outline"}
-          onClick={
-            isLoading
-              ? cancelRequest
-              : () => {
-                  if (input.trim()) {
-                    handleChatRequest(selectedCollection?.id || undefined);
-                  }
-                }
-          }
+          onClick={handleSendClick}
           data-testid="chat-submit"
           className="flex-shrink-0 h-[72px] w-[36px] rounded-none rounded-r-[6px]"
         >
@@ -222,4 +218,4 @@ export function ChatInput() {
       </form>
     </div>
   );
-}
+});

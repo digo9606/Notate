@@ -33,9 +33,16 @@ import { useView } from "@/context/useView";
 import { useSysSettings } from "@/context/useSysSettings";
 import { toast } from "@/hooks/use-toast";
 import { useLibrary } from "@/context/useLibrary";
+import { Input } from "@/components/ui/input";
 
 export default function ChatSettings() {
-  const { setApiKeys, setPrompts, setConversations, setActiveUser, openRouterModels } = useUser();
+  const {
+    setApiKeys,
+    setPrompts,
+    setConversations,
+    setActiveUser,
+    openRouterModels,
+  } = useUser();
   const { setSelectedCollection, setFiles } = useLibrary();
   const { activeUser, apiKeys, prompts } = useUser();
   const [open, setOpen] = useState<boolean>(false);
@@ -48,8 +55,26 @@ export default function ChatSettings() {
     setSettings,
     setSettingsOpen,
     localModels,
-    handleRunOllama,
+    handleRunModel,
+    maxTokens,
+    setMaxTokens,
+    ollamaModels,
+    setLocalModalLoading,
   } = useSysSettings();
+  const [localMaxTokens, setLocalMaxTokens] = useState<string>("");
+
+  useEffect(() => {
+    setLocalMaxTokens(maxTokens?.toString() || "");
+  }, [maxTokens]);
+
+  const handleMaxTokensChange = (value: string) => {
+    setLocalMaxTokens(value);
+    const parsedValue = parseInt(value);
+    if (!isNaN(parsedValue)) {
+      setMaxTokens(parsedValue);
+      handleSettingChange("maxTokens", parsedValue);
+    }
+  };
 
   const handleSettingChange = async (
     setting: string,
@@ -75,6 +100,24 @@ export default function ChatSettings() {
     }
   };
 
+  const modelTokenDefaults = {
+    "gpt-3.5-turbo": 4096,
+    "gpt-4o": 8192,
+    "gpt-4o-mini": 4096,
+    "claude-3-5-sonnet-20241022": 8192,
+    "claude-3-5-haiku-20241022": 8192,
+    "claude-3-opus-20240229": 4096,
+    "claude-3-sonnet-20240229": 4096,
+    "claude-3-haiku-20240307": 4096,
+    "claude-2.1": 4096,
+    "claude-2.0": 4096,
+    "gemini-1.5-flash": 8192,
+    "gemini-1.5-pro": 8192,
+    "grok-beta": 8192,
+    local: 2048,
+    ollama: 2048,
+  };
+
   const modelOptions = {
     openai: ["gpt-3.5-turbo", "gpt-4o", "gpt-4o-mini"],
     anthropic: [
@@ -88,8 +131,11 @@ export default function ChatSettings() {
     ],
     gemini: ["gemini-1.5-flash", "gemini-1.5-pro"],
     xai: ["grok-beta"],
-    openrouter: openRouterModels,
-    local: localModels.map((model) => model.name),
+    openrouter: openRouterModels || [],
+    local: Array.isArray(localModels)
+      ? localModels.map((model) => model.name)
+      : [],
+    ollama: ollamaModels?.map((model) => model.name) || [],
   };
 
   const handleAddPrompt = async () => {
@@ -262,20 +308,68 @@ export default function ChatSettings() {
             </Label>
             <Select
               value={settings.model}
-              onValueChange={(value) => {
-                const provider = Object.keys(modelOptions).find((key) =>
+              onValueChange={async (value) => {
+                let provider = Object.keys(modelOptions).find((key) =>
                   modelOptions[key as keyof typeof modelOptions].includes(value)
-                ) as Provider;
+                ) as LLMProvider;
+
+                // Override provider for Ollama models
+                if (modelOptions.ollama.includes(value)) {
+                  provider = "ollama";
+                }
+
+                if (provider === "ollama") {
+                  setLocalModalLoading(true);
+                }
+
+                console.log("Selected model:", value);
+                console.log("Detected provider:", provider);
 
                 handleSettingChange("model", value);
                 handleSettingChange("provider", provider);
 
-                if (provider === "local" && activeUser) {
-                  handleRunOllama(value, activeUser);
+                const newMaxTokens =
+                  modelTokenDefaults[
+                    value as keyof typeof modelTokenDefaults
+                  ] || modelTokenDefaults.local;
+
+                setMaxTokens(newMaxTokens);
+                handleSettingChange("maxTokens", newMaxTokens);
+                setLocalMaxTokens(newMaxTokens.toString());
+
+                const isLocalModel = modelOptions.local.includes(value);
+                if (isLocalModel && activeUser) {
+                  const selectedModelPath = localModels.find(
+                    (model) => model.name === value
+                  )?.model_location;
+                  const selectedModelType = localModels.find(
+                    (model) => model.name === value
+                  )?.type;
+                  toast({
+                    title: "Local model loading",
+                    description: `Loading ${value}...`,
+                  });
+                  if (selectedModelPath && selectedModelType) {
+                    await handleRunModel(
+                      value,
+                      selectedModelPath,
+                      selectedModelType,
+                      activeUser.id.toString()
+                    );
+                  }
+                } else if (modelOptions.ollama.includes(value)) {
                   toast({
                     title: "Ollama model loading",
                     description: `Loading ${value}...`,
                   });
+                  if (activeUser) {
+                    await window.electron.runOllama(value, activeUser);
+                    setLocalModalLoading(false);
+                    toast({
+                      title: "Ollama model loaded",
+                      description: `Ollama model loaded`,
+                    });
+                  }
                 } else {
                   toast({
                     title: "Model set",
@@ -310,8 +404,31 @@ export default function ChatSettings() {
                     </SelectItem>
                   ))}
                 </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel className="font-semibold">OLLAMA</SelectLabel>
+                  {modelOptions.ollama.map((model) => (
+                    <SelectItem key={model} value={model}>
+                      {model}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label
+              htmlFor="maxTokens"
+              className="text-right text-sm font-medium"
+            >
+              Max Tokens
+            </Label>
+            <Input
+              id="maxTokens"
+              type="number"
+              value={localMaxTokens}
+              onChange={(e) => handleMaxTokensChange(e.target.value)}
+              className="col-span-3"
+            />
           </div>
         </div>
       </div>
@@ -339,6 +456,11 @@ export default function ChatSettings() {
                   activeUser.id,
                   "model",
                   settings.model ?? ""
+                );
+                window.electron.updateUserSettings(
+                  activeUser.id,
+                  "provider",
+                  settings.provider ?? ""
                 );
               }
               toast({
