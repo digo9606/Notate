@@ -1,4 +1,4 @@
-import { Cpu, Trash, Copy, Check, Eye, Network } from "lucide-react";
+import { Cpu, Trash, Copy, Check, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -73,7 +73,7 @@ export function DevIntegration() {
   };
 
   return (
-    <div className="w-full max-w-full">
+    <div>
       <Dialog open={showKeyDialog} onOpenChange={setShowKeyDialog}>
         <DialogContent>
           <DialogHeader>
@@ -106,115 +106,112 @@ export function DevIntegration() {
         </DialogContent>
       </Dialog>
 
-      <div>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Cpu className="h-4 w-4" />
-          Developer Integration
-        </h2>
-        <div className="space-y-4">
-          <div className="flex flex-col gap-4">
-            <div className="p-4 rounded-[14px] border border-border">
-              <div className="flex items-center gap-2 mb-4">
-                <Cpu className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-medium">Generate API Key</h3>
-              </div>
+      <div className="flex flex-col gap-4">
+        <div className="rounded-[6px] bg-background">
+          <div className="flex items-center gap-2 ">
+            <Cpu className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-medium">Generate API Key</h3>
+          </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Key Name</label>
-                  <Input
-                    type="text"
-                    placeholder="Enter a name for this API key"
-                    value={keyName}
-                    onChange={(e) => setKeyName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Expiration</label>
-                  <Select
-                    value={expiration ?? undefined}
-                    onValueChange={(value) => setExpiration(value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an option" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="30">30 days</SelectItem>
-                      <SelectItem value="60">60 days</SelectItem>
-                      <SelectItem value="90">90 days</SelectItem>
-                      <SelectItem value="never">Never expire</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Button className="w-full" onClick={handleGenerateKey}>
-                  Generate Key
-                </Button>
-              </div>
+          <div className="space-y-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Key Name</label>
+              <Input
+                type="text"
+                placeholder="Enter a name for this API key"
+                value={keyName}
+                onChange={(e) => setKeyName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Expiration</label>
+              <Select
+                value={expiration ?? undefined}
+                onValueChange={(value) => setExpiration(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select an option" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="30">30 days</SelectItem>
+                  <SelectItem value="60">60 days</SelectItem>
+                  <SelectItem value="90">90 days</SelectItem>
+                  <SelectItem value="never">Never expire</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="rounded-[14px] border border-border">
-              <div className="grid grid-cols-2 items-center gap-2 pb-2 px-4 pt-2">
-                <div className="flex items-center gap-2">
-                  <Network className="h-4 w-4 text-primary" />
-                  <h3 className="text-sm font-medium">Active API Keys</h3>
-                </div>
-                <div className="flex justify-end">
-                  <Button
-                    variant="outline"
-                    onClick={() => setActiveKeysMinimized(!activeKeysMinimized)}
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={handleGenerateKey}
+            >
+              Generate Key
+            </Button>
+          </div>
+        </div>
+
+        <div className="rounded-[6px] p-4 bg-gradient-to-br from-secondary/50 via-secondary/30 to-background border">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+              <h3 className="text-sm font-medium">Active API Keys</h3>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setActiveKeysMinimized(!activeKeysMinimized)}
+            >
+              {activeKeysMinimized ? "View Keys" : "Minimize"}
+            </Button>
+          </div>
+
+          {!activeKeysMinimized && (
+            <div className="space-y-2 max-h-[200px] overflow-y-auto p-2">
+              {devAPIKeys.length > 0 ? (
+                devAPIKeys.map((key) => (
+                  <div
+                    key={key.id}
+                    className="flex items-center justify-between p-2 rounded-[4px] bg-background/80 backdrop-blur-sm border shadow-sm hover:shadow-md transition-shadow"
                   >
-                    {activeKeysMinimized ? "View Keys" : "Minimize"}
-                  </Button>
-                </div>
-              </div>
-              {!activeKeysMinimized ? (
-                <div className="space-y-2 max-h-[200px] overflow-y-auto px-4 pb-4">
-                  {devAPIKeys.length > 0 ? (
-                    devAPIKeys.map((key) => (
-                      <div
-                        key={key.id}
-                        className="flex items-center justify-between p-2 rounded-[4px] bg-muted hover:bg-muted/70 transition-colors"
+                    <div className="flex flex-col gap-1">
+                      <p className="text-xs font-medium">{key.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Expires: {key.expiration ?? "Never"}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewKey(key)}
+                        className="h-8 w-8 p-0"
                       >
-                        <div className="flex flex-col gap-1">
-                          <p className="text-xs font-medium">{key.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Expires: {key.expiration ?? "Never"}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            className="p-2 hover:bg-secondary/50 transition-colors rounded-[4px]"
-                            onClick={() => handleViewKey(key)}
-                            aria-label="View API key"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            className="p-2 hover:bg-destructive/10 hover:text-destructive transition-colors rounded-[4px]"
-                            aria-label="Delete API key"
-                            onClick={() => handleDeleteKey(key.id)}
-                          >
-                            <Trash className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No active API keys
-                    </p>
-                  )}
-                </div>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteKey(key.id)}
+                        className="h-8 w-8 p-0 hover:text-destructive"
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
               ) : (
-                <div className="flex items-center gap-2 px-4 pb-4">
-                  <p className="text-sm font-medium">
-                    {devAPIKeys.length} active keys
-                  </p>
-                </div>
+                <p className="text-sm text-muted-foreground">
+                  No active API keys
+                </p>
               )}
             </div>
-          </div>
+          )}
+          {activeKeysMinimized && (
+            <p className="text-sm font-medium">
+              {devAPIKeys.length} active keys
+            </p>
+          )}
         </div>
       </div>
     </div>

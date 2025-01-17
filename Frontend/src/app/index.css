@@ -217,3 +217,21 @@ header {
 code {
   white-space: pre-wrap !important;
 }
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-secondary/20 rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-secondary/60 rounded-full hover:bg-secondary/80 transition-colors;
+}
+
+::-webkit-scrollbar-corner {
+  @apply bg-transparent;
+}

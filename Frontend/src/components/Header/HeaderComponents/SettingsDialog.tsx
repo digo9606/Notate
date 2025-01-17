@@ -20,11 +20,13 @@ export default function SettingsDialog() {
     isMaximized,
     setIsMaximized,
   } = useSysSettings();
+
   const renderWindowControls = WindowControls({
     isMaximized,
     setIsMaximized,
     platform,
   });
+
   return (
     <div className="flex items-center justify-end">
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
@@ -34,12 +36,11 @@ export default function SettingsDialog() {
             <span className="sr-only">Chat Settings</span>
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-h-[100vh] w-[80%] mt-4 overflow-y-auto p-6">
+        <DialogContent className="max-h-[100vh] w-[80%] mt-4">
           <DialogHeader className="sm:pb-4 pb-2">
             <DialogTitle className="text-xl font-semibold">
               Settings
             </DialogTitle>
-
             <DialogDescription className="text-muted-foreground">
               Configure your application preferences and settings
             </DialogDescription>

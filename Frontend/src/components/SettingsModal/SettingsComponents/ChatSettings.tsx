@@ -171,7 +171,6 @@ export default function ChatSettings() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-lg font-semibold mb-4">Chat Settings</h2>
         <div className="space-y-6">
           <div className="grid grid-cols-4 items-start gap-4">
             <Label
