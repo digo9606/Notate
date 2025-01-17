@@ -1,5 +1,7 @@
 import { spawnAsync } from "../helpers/spawnAsync.js";
 import log from "electron-log";
+import fs from "fs";
+import { execSync } from "child_process";
 
 export async function installLlamaCpp(
   venvPython: string,
@@ -27,6 +29,18 @@ export async function installLlamaCpp(
   ]);
 
   if (hasNvidiaGpu && cudaAvailable) {
+    // Check for Fedora and install CUDA toolkit if needed
+    if (fs.existsSync("/etc/fedora-release")) {
+      try {
+        log.info("Fedora system detected, checking CUDA toolkit");
+        execSync("which nvcc");
+        log.info("CUDA toolkit already installed");
+      } catch {
+        log.info("Installing CUDA toolkit for Fedora");
+        execSync("sudo dnf install -y cuda-toolkit-12-config-common cuda-toolkit-12-files cuda-toolkit-12");
+      }
+    }
+
     process.env.CMAKE_ARGS = "-DGGML_CUDA=ON";
     process.env.FORCE_CMAKE = "1";
     process.env.LLAMA_CUDA = "1";

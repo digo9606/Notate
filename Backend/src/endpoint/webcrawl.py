@@ -41,30 +41,24 @@ def webcrawl(data: WebCrawlRequest, cancel_event=None) -> Generator[dict, None, 
         html_files = get_html_files(collection_path)
         print(f"Found {len(html_files)} HTML files")
 
-        # Process files in batches for better performance
-        batch_size = 50
-        total_batches = (len(html_files) + batch_size - 1) // batch_size
-        for i in range(0, len(html_files), batch_size):
-            batch = html_files[i:i + batch_size]
-            batch_docs = []
+        # Process files one at a time
+        total_files = len(html_files)
+        for i, file_path in enumerate(html_files):
+            content = load_html(file_path)
+            if content:
+                split_content = split_text(content, file_path)
+                if split_content:
+                    vector_store.add_documents(split_content)
 
-            for file_path in batch:
-                content = load_html(file_path)
-                if content:
-                    split_content = split_text(content, file_path)
-                    batch_docs.extend(split_content)
-
-            if batch_docs:
-                vector_store.add_documents(batch_docs)
-
-            current_batch = i//batch_size + 1
+            # Update progress after each file
+            current_file = i + 1
             progress_data = {
                 "status": "progress",
                 "data": {
-                    "message": f"Part 2 of 2: Processing documents batch {current_batch}/{total_batches}",
-                    "chunk": current_batch,
-                    "total_chunks": total_batches,
-                    "percent_complete": f"{(current_batch/total_batches * 100):.1f}%"
+                    "message": f"Part 2 of 2: Processing document {current_file}/{total_files}",
+                    "chunk": current_file,
+                    "total_chunks": total_files,
+                    "percent_complete": f"{(current_file/total_files * 100):.1f}%"
                 }
             }
             yield f"data: {json.dumps(progress_data)}"
