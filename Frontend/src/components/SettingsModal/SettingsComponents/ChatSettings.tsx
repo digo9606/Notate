@@ -169,10 +169,10 @@ export default function ChatSettings() {
   }, [settings.prompt, prompts]);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <div className="space-y-6">
-          <div className="grid grid-cols-4 items-start gap-4">
+    <div className="space-y-6">
+      <div className="rounded-[6px] p-4 bg-gradient-to-br from-secondary/50 via-secondary/30 to-background border">
+        <div className="space-y-4">
+          <div className="grid grid-cols-4 items-start gap-4 py-2">
             <Label
               htmlFor="prompt"
               className="text-right text-sm font-medium pt-2"
@@ -187,7 +187,7 @@ export default function ChatSettings() {
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className="w-full justify-between bg-background px-3 font-normal"
+                    className="w-full justify-between bg-secondary/05 px-3 font-normal"
                   >
                     <span
                       className={cn(
@@ -275,32 +275,8 @@ export default function ChatSettings() {
               )}
             </div>
           </div>
-
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label
-              htmlFor="temperature"
-              className="text-right text-sm font-medium"
-            >
-              Temperature
-            </Label>
-            <div className="col-span-3 flex items-center gap-4">
-              <Slider
-                id="temperature"
-                min={0}
-                max={1}
-                step={0.1}
-                value={[settings.temperature ?? 0.7]}
-                onValueChange={(value) => {
-                  handleSettingChange("temperature", value[0]);
-                }}
-                className="flex-grow"
-              />
-              <span className="w-12 text-right text-sm tabular-nums">
-                {settings.temperature?.toFixed(1) ?? "0.7"}
-              </span>
-            </div>
-          </div>
-
+        </div>
+        <div className="space-y-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="model" className="text-right text-sm font-medium">
               Model
@@ -312,7 +288,6 @@ export default function ChatSettings() {
                   modelOptions[key as keyof typeof modelOptions].includes(value)
                 ) as LLMProvider;
 
-                // Override provider for Ollama models
                 if (modelOptions.ollama.includes(value)) {
                   provider = "ollama";
                 }
@@ -320,9 +295,6 @@ export default function ChatSettings() {
                 if (provider === "ollama") {
                   setLocalModalLoading(true);
                 }
-
-                console.log("Selected model:", value);
-                console.log("Detected provider:", provider);
 
                 handleSettingChange("model", value);
                 handleSettingChange("provider", provider);
@@ -414,6 +386,32 @@ export default function ChatSettings() {
               </SelectContent>
             </Select>
           </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label
+              htmlFor="temperature"
+              className="text-right text-sm font-medium"
+            >
+              Temperature
+            </Label>
+            <div className="col-span-3 flex items-center gap-4">
+              <Slider
+                id="temperature"
+                min={0}
+                max={1}
+                step={0.1}
+                value={[settings.temperature ?? 0.7]}
+                onValueChange={(value) => {
+                  handleSettingChange("temperature", value[0]);
+                }}
+                className="flex-grow"
+              />
+              <span className="w-12 text-right text-sm tabular-nums">
+                {settings.temperature?.toFixed(1) ?? "0.7"}
+              </span>
+            </div>
+          </div>
+
           <div className="grid grid-cols-4 items-center gap-4">
             <Label
               htmlFor="maxTokens"
@@ -438,6 +436,7 @@ export default function ChatSettings() {
             Cancel
           </Button>
           <Button
+            variant="secondary"
             onClick={() => {
               setSettingsOpen(false);
               if (activeUser) {

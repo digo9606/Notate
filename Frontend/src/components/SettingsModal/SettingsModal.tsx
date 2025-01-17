@@ -34,10 +34,11 @@ export function SettingsModal() {
         className="flex-1 overflow-hidden"
       >
         <LayoutGroup>
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="sync">
             <TabsContent
+              key="chat-tab"
               value="chat"
-              className="h-full m-0 border-none outline-none"
+              className="h-full m-0 border-none outline-none overflow-y-hidden"
             >
               <motion.div
                 layout
@@ -45,12 +46,13 @@ export function SettingsModal() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className="overflow-auto p-6"
+                className="overflow-auto p-6 overflow-y-hidden"
               >
                 <ChatSettings />
               </motion.div>
             </TabsContent>
             <TabsContent
+              key="llm-tab"
               value="llm"
               className="h-full m-0 border-none outline-none"
             >
@@ -60,12 +62,13 @@ export function SettingsModal() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className="overflow-auto p-6"
+                className="overflow-auto p-6 overflow-y-hidden"
               >
                 <LLMSettings />
               </motion.div>
             </TabsContent>
             <TabsContent
+              key="system-tab"
               value="system"
               className="h-full m-0 border-none outline-none"
             >

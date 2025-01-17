@@ -10,6 +10,7 @@ import {
 
 import { processFiles } from "@/lib/utils";
 import { useLibrary } from "@/context/useLibrary";
+import { cn } from "@/lib/utils";
 
 const truncateFileName = (fileName: string) => {
   if (fileName.length <= 30) return fileName;
@@ -21,26 +22,32 @@ const truncateFileName = (fileName: string) => {
 export function FilesInCollection() {
   const { files, fileExpanded, setFileExpanded } = useLibrary();
   const filesList = processFiles(files);
+
   return (
-    <div className="bg-secondary/50 rounded-[6px] p-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-          <Library className="h-4 w-4" />
-          Files in collection ({filesList.length})
-        </h3>
-        <div className="flex justify-end pb-2">
-          <Button
-            variant="ghost"
-            onClick={() => setFileExpanded(!fileExpanded)}
-          >
-            <ChevronDown className="h-4 w-4" /> Show
-          </Button>
+    <div className="rounded-[6px] p-4 bg-gradient-to-br from-secondary/50 via-secondary/30 to-background border">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+          <h3 className="text-sm font-medium flex items-center gap-2">
+            <Library className="h-4 w-4" />
+            Files in collection ({filesList.length})
+          </h3>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8"
+          onClick={() => setFileExpanded(!fileExpanded)}
+        >
+          <ChevronDown className={cn("h-4 w-4 transition-transform", fileExpanded ? "rotate-180" : "")} />
+          <span className="ml-2">{fileExpanded ? "Hide" : "Show"}</span>
+        </Button>
       </div>
       <div
-        className={`max-h-48 overflow-y-auto ${
-          fileExpanded ? "max-h-44" : "hidden"
-        }`}
+        className={cn(
+          "overflow-hidden transition-all duration-200",
+          fileExpanded ? "max-h-48 overflow-y-auto" : "max-h-0"
+        )}
       >
         {filesList.length > 0 ? (
           <ul className="space-y-1">

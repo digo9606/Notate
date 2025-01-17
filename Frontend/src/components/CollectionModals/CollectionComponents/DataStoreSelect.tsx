@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
@@ -20,6 +19,7 @@ import {
 } from "@/components/ui/command";
 import { toast } from "@/hooks/use-toast";
 import { useLibrary } from "@/context/useLibrary";
+
 export default function DataStoreSelect() {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
@@ -32,6 +32,7 @@ export default function DataStoreSelect() {
     setShowUpload,
     setFiles,
   } = useLibrary();
+
   const handleSelectCollection = async (collection: Collection) => {
     if (!activeUser) return;
     await window.electron.updateUserSettings(
@@ -63,23 +64,17 @@ export default function DataStoreSelect() {
   }, [selectedCollection, loadFiles]);
 
   return (
-    <div className="grid grid-cols-4 items-center gap-4">
-      <Label htmlFor="vectorstore" className="text-right">
-        Data Store
-      </Label>
-      <div className="col-span-3">
+    <div className="space-y-4">
+      <div className="flex flex-col space-y-2">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button
-              id="select-42"
               variant="outline"
               role="combobox"
               aria-expanded={open}
-              className="w-full justify-between bg-background px-3 font-normal"
+              className="w-full justify-between bg-background"
             >
-              <span
-                className={cn("truncate", !value && "text-muted-foreground")}
-              >
+              <span className={cn("truncate", !value && "text-muted-foreground")}>
                 {selectedCollection?.name || "Select Data Store"}
               </span>
               <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />

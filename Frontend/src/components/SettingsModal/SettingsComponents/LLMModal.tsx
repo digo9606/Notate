@@ -129,7 +129,7 @@ export default function LLMPanel() {
   };
 
   return (
-    <div>
+    <div className="space-y-8">
       <div className="flex flex-wrap gap-2">
         {Object.keys(providerIcons)
           .sort()

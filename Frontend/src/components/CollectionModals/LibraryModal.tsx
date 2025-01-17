@@ -15,22 +15,22 @@ export function LibraryModal() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <div className="space-y-6">
-          {showUpload && selectedCollection?.id !== 0 ? (
-            <IngestModal setShowUpload={setShowUpload} />
-          ) : (
-            <form className="space-y-6">
+      <div className="space-y-6">
+        {showUpload && selectedCollection?.id !== 0 ? (
+          <IngestModal setShowUpload={setShowUpload} />
+        ) : (
+          <div className="space-y-6">
+            <div className="rounded-[6px] p-4 bg-gradient-to-br from-secondary/50 via-secondary/30 to-background border">
               {!showAddStore && <DataStoreSelect />}
               {showAddStore && <AddLibrary />}
-              <div className="flex justify-between gap-4 pt-4 border-t">
-                <Button type="button" onClick={() => setOpenLibrary(false)}>
-                  Close
-                </Button>
-              </div>
-            </form>
-          )}
-        </div>
+            </div>
+            <div className="flex justify-between gap-4 pt-4 border-t">
+              <Button type="button" onClick={() => setOpenLibrary(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -45,7 +45,7 @@ export default function SettingsDialog() {
               Configure your application preferences and settings
             </DialogDescription>
           </DialogHeader>
-          <div className="overflow-y-auto overflow-x-hidden pr-2">
+          <div className="overflow-y-hidden overflow-x-hidden pr-2">
             <SettingsModal />
           </div>
         </DialogContent>

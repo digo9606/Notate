@@ -204,7 +204,7 @@ export function LinkIngestTab() {
         {implementedLinkTypes.map((type) => (
           <Button
             key={type.value}
-            variant={selectedLinkType === type.value ? "default" : "outline"}
+            variant={selectedLinkType === type.value ? "secondary" : "outline"}
             onClick={() =>
               setSelectedLinkType(type.value as "website" | "youtube" | "crawl")
             }
