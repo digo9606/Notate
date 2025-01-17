@@ -1,7 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MessageSquare, Cpu, Settings2 } from "lucide-react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import LLMSettings from "./SettingsComponents/LLMSettings";
+import LLMModal from "./SettingsComponents/LLMModal";
 import { DevIntegration } from "./SettingsComponents/DevIntegration";
 import ChatSettings from "./SettingsComponents/ChatSettings";
 
@@ -64,7 +64,7 @@ export function SettingsModal() {
                 transition={{ duration: 0.3 }}
                 className="overflow-auto p-6 overflow-y-hidden"
               >
-                <LLMSettings />
+                <LLMModal />
               </motion.div>
             </TabsContent>
             <TabsContent
