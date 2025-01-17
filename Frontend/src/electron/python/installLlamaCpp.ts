@@ -37,7 +37,54 @@ export async function installLlamaCpp(
         log.info("CUDA toolkit already installed");
       } catch {
         log.info("Installing CUDA toolkit for Fedora");
-        execSync("sudo dnf install -y cuda-toolkit-12-config-common cuda-toolkit-12-files cuda-toolkit-12");
+
+        // Install RPM Fusion repositories
+        const match = fs
+          .readFileSync("/etc/fedora-release", "utf8")
+          .match(/\d+/);
+        if (!match) throw new Error("Could not determine Fedora version");
+        const fedoraVersion = match[0];
+        execSync(
+          `sudo dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${fedoraVersion}.noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${fedoraVersion}.noarch.rpm`
+        );
+
+        // Install NVIDIA drivers and CUDA support
+        execSync("sudo dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda");
+
+        // Install GCC 13 for CUDA compatibility
+        execSync("sudo dnf install -y gcc13-c++");
+
+        // Download and install CUDA toolkit
+        const cudaInstaller = "cuda_12.6.2_560.35.03_linux.run";
+        if (!fs.existsSync(cudaInstaller)) {
+          execSync(
+            `wget https://developer.download.nvidia.com/compute/cuda/12.6.2/local_installers/${cudaInstaller}`
+          );
+        }
+
+        // Run CUDA installer with toolkit-only options
+        execSync(
+          `sudo sh ${cudaInstaller} --toolkit --toolkitpath=/usr/local/cuda-12.6 --no-man-page --no-desktop-menu`
+        );
+
+        // Setup symlinks and environment
+        execSync(`
+          cd /usr/local && \
+          sudo rm -f cuda && \
+          sudo ln -s cuda-12.6 cuda && \
+          sudo ln -s cuda/bin bin && \
+          sudo ln -s cuda/lib64 lib64 && \
+          sudo ln -s cuda-12.6/nvvm nvvm
+        `);
+
+        // Configure library paths
+        execSync(
+          'sudo sh -c "echo "/usr/local/lib64" > /etc/ld.so.conf.d/usr-local-x86_64.conf"'
+        );
+        execSync("sudo ldconfig -v");
+
+        // Set NVCC to use GCC 13
+        process.env.NVCC_PREPEND_FLAGS = "-ccbin /usr/bin/g++-13";
       }
     }
 
@@ -67,6 +114,7 @@ export async function installLlamaCpp(
           LLAMA_CUDA: "1",
           VERBOSE: "1",
           CMAKE_BUILD_PARALLEL_LEVEL: "8",
+          NVCC_PREPEND_FLAGS: "-ccbin /usr/bin/g++-13", // Ensure GCC 13 is used for CUDA compilation
         },
       }
     );
