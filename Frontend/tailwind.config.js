@@ -13,10 +13,15 @@ module.exports = {
           "0%": { opacity: "1", transform: "translateY(0)" },
           "100%": { opacity: "0", transform: "translateY(-10px)" },
         },
+        pulse: {
+          "0%, 100%": { boxShadow: "0 0 0 0 var(--pulse-color)" },
+          "50%": { boxShadow: "0 0 0 8px var(--pulse-color)" },
+        },
       },
       animation: {
         "fade-in": "fade-in 0.6s ease-out",
         "fade-out": "fade-out 0.6s ease-out forwards",
+        pulse: "pulse var(--duration) ease-out infinite",
       },
       fontFamily: {
         inter: ["Inter", "sans-serif"],

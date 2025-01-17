@@ -5,7 +5,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useUser } from "@/context/useUser";
-import LLMSettings from "@/components/SettingsModal/SettingsComponents/LLMSettings";
+import LLMPanel from "@/components/SettingsModal/SettingsComponents/LLMModal";
+
 export default function SettingsAlert() {
   const { alertForUser, setAlertForUser } = useUser();
 
@@ -18,7 +19,7 @@ export default function SettingsAlert() {
           <br />
           *Local Model Deployment requires Ollama to be installed and running
         </DialogDescription>
-        <LLMSettings />
+        <LLMPanel />
       </DialogContent>
     </Dialog>
   );

@@ -1,5 +1,13 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { lazy, Suspense, useRef, useEffect, useState, useMemo, memo } from "react";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import {
+  lazy,
+  Suspense,
+  useRef,
+  useEffect,
+  useState,
+  useMemo,
+  memo,
+} from "react";
 import { Button } from "@/components/ui/button";
 import {
   NotebookPenIcon,
@@ -8,11 +16,13 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { getYouTubeLink, formatTimestamp, getFileName } from "@/lib/utils";
+import { providerIcons } from "@/components/SettingsModal/SettingsComponents/providerIcons";
+import { useSysSettings } from "@/context/useSysSettings";
 
 // Lazy load the syntax highlighter
-const SyntaxHighlightedCode = lazy(() => 
+const SyntaxHighlightedCode = lazy(() =>
   import("@/components/Chat/ChatComponents/SyntaxHightlightedCode").then(
-    module => ({ default: module.SyntaxHighlightedCode })
+    (module) => ({ default: module.SyntaxHighlightedCode })
   )
 );
 
@@ -26,6 +36,7 @@ export const ChatMessage = memo(function ChatMessage({
   const isUser = message?.role === "user";
   const isRetrieval = message?.isRetrieval;
   const [isDataContentExpanded, setIsDataContentExpanded] = useState(false);
+  const { settings } = useSysSettings();
 
   const parsedDataContent = useMemo(() => {
     if (!message.data_content) return null;
@@ -42,109 +53,117 @@ export const ChatMessage = memo(function ChatMessage({
 
     return (
       <div className="flex flex-col divide-y divide-border">
-        {parsedDataContent.results.map((result: { 
-          content: string;
-          metadata: {
-            chunk_start?: number;
-            chunk_end?: number;
-            source: string;
-            title?: string;
-          };
-        }, index: number) => (
-          <div
-            key={index}
-            className="flex flex-col gap-3 p-4 hover:bg-muted/30 transition-colors duration-200"
-          >
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-5 h-5 rounded-[6px] bg-emerald-500/10 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-                {index + 1}
-              </div>
-              <div className="text-xs font-medium text-muted-foreground">
-                Source {index + 1} of {topk}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2.5">
-              <div className="flex flex-col gap-1.5">
-                <div className="w-full flex items-center gap-2 text-xs bg-background/80 rounded-[8px] border shadow-sm">
-                  <div className="flex-1 flex items-center gap-2 px-3 py-2 min-w-0">
-                    <span className="flex-shrink-0 font-medium text-muted-foreground">
-                      Source:
-                    </span>
-                    <span className="text-emerald-600 dark:text-emerald-400 truncate">
-                      {result.metadata.chunk_start ? (
-                        <a
-                          href={getYouTubeLink(
-                            result.metadata.source,
-                            result.metadata.chunk_start
-                          )}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hover:underline"
-                        >
-                          {result.metadata.title ||
-                            getFileName(result.metadata.source)}
-                        </a>
-                      ) : result.metadata.source.startsWith("http") ? (
-                        <a
-                          href={result.metadata.source}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hover:underline"
-                        >
-                          {result.metadata.title ||
-                            getFileName(result.metadata.source)}
-                        </a>
-                      ) : (
-                        <span>
-                          {result.metadata.title ||
-                            getFileName(result.metadata.source)}
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex-shrink-0 px-2 py-2 border-l">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5"
-                      onClick={() => {
-                        const source = result.metadata.source;
-                        if (
-                          source.includes("youtube.com") ||
-                          source.includes("youtu.be")
-                        ) {
-                          window.open(
-                            getYouTubeLink(source, result.metadata.chunk_start),
-                            "_blank"
-                          );
-                        } else if (source.startsWith("http")) {
-                          window.open(source, "_blank");
-                        } else {
-                          window.electron.openCollectionFolder(source);
-                        }
-                      }}
-                    >
-                      <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
-                    </Button>
-                  </div>
+        {parsedDataContent.results.map(
+          (
+            result: {
+              content: string;
+              metadata: {
+                chunk_start?: number;
+                chunk_end?: number;
+                source: string;
+                title?: string;
+              };
+            },
+            index: number
+          ) => (
+            <div
+              key={index}
+              className="flex flex-col gap-3 p-4 hover:bg-muted/30 transition-colors duration-200"
+            >
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center w-5 h-5 rounded-[6px] bg-emerald-500/10 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                  {index + 1}
                 </div>
-                {result.metadata.chunk_start && result.metadata.chunk_end && (
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/30" />
-                    <span className="text-[10px] font-medium text-muted-foreground">
-                      {formatTimestamp(result.metadata.chunk_start)} -{" "}
-                      {formatTimestamp(result.metadata.chunk_end)}
-                    </span>
-                  </div>
-                )}
+                <div className="text-xs font-medium text-muted-foreground">
+                  Source {index + 1} of {topk}
+                </div>
               </div>
-              <div className="text-sm text-foreground/90 bg-muted/30 px-3 py-2 rounded-[8px]">
-                {result.content}
+
+              <div className="flex flex-col gap-2.5">
+                <div className="flex flex-col gap-1.5">
+                  <div className="w-full flex items-center gap-2 text-xs bg-background/80 rounded-[8px] border shadow-sm">
+                    <div className="flex-1 flex items-center gap-2 px-3 py-2 min-w-0">
+                      <span className="flex-shrink-0 font-medium text-muted-foreground">
+                        Source:
+                      </span>
+                      <span className="text-emerald-600 dark:text-emerald-400 truncate">
+                        {result.metadata.chunk_start ? (
+                          <a
+                            href={getYouTubeLink(
+                              result.metadata.source,
+                              result.metadata.chunk_start
+                            )}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                          >
+                            {result.metadata.title ||
+                              getFileName(result.metadata.source)}
+                          </a>
+                        ) : result.metadata.source.startsWith("http") ? (
+                          <a
+                            href={result.metadata.source}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                          >
+                            {result.metadata.title ||
+                              getFileName(result.metadata.source)}
+                          </a>
+                        ) : (
+                          <span>
+                            {result.metadata.title ||
+                              getFileName(result.metadata.source)}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex-shrink-0 px-2 py-2 border-l">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5"
+                        onClick={() => {
+                          const source = result.metadata.source;
+                          if (
+                            source.includes("youtube.com") ||
+                            source.includes("youtu.be")
+                          ) {
+                            window.open(
+                              getYouTubeLink(
+                                source,
+                                result.metadata.chunk_start
+                              ),
+                              "_blank"
+                            );
+                          } else if (source.startsWith("http")) {
+                            window.open(source, "_blank");
+                          } else {
+                            window.electron.openCollectionFolder(source);
+                          }
+                        }}
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                      </Button>
+                    </div>
+                  </div>
+                  {result.metadata.chunk_start && result.metadata.chunk_end && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/30" />
+                      <span className="text-[10px] font-medium text-muted-foreground">
+                        {formatTimestamp(result.metadata.chunk_start)} -{" "}
+                        {formatTimestamp(result.metadata.chunk_end)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="text-sm text-foreground/90 bg-muted/30 px-3 py-2 rounded-[8px]">
+                  {result.content}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          )
+        )}
       </div>
     );
   }, [parsedDataContent]);
@@ -188,6 +207,18 @@ export const ChatMessage = memo(function ChatMessage({
     }
   }, [message?.content]);
 
+  const getProviderIcon = () => {
+    if (isUser) {
+      return "/src/assets/avatars/user-avatar.svg";
+    }
+    if (isRetrieval) {
+      return "/src/assets/avatars/database-avatar.svg";
+    }
+    return settings.provider
+      ? providerIcons[settings.provider as keyof typeof providerIcons]
+      : "/src/assets/avatars/ai-avatar.png";
+  };
+
   return (
     <div
       className={`flex ${
@@ -212,20 +243,31 @@ export const ChatMessage = memo(function ChatMessage({
               : isRetrieval
               ? "ring-2 ring-emerald-500 ring-offset-2"
               : "ring-2 ring-secondary ring-offset-2"
-          }`}
+          } overflow-hidden`}
         >
-          <AvatarFallback className="text-xs font-medium">
-            {isUser ? "U" : isRetrieval ? "D" : "AI"}
-          </AvatarFallback>
-          <AvatarImage
-            src={
-              isUser
-                ? "/src/assets/avatars/user-avatar.svg"
-                : isRetrieval
-                ? "/src/assets/avatars/database-avatar.svg"
-                : "/src/assets/avatars/ai-avatar.png"
-            }
-          />
+          {isUser || isRetrieval ? (
+            <AvatarImage
+              className="object-cover w-full h-full scale-125"
+              src={getProviderIcon() as string}
+            />
+          ) : (
+            <>
+              {settings.provider ? (
+                <div className="h-full w-full flex items-center justify-center scale-150">
+                  {
+                    providerIcons[
+                      settings.provider as keyof typeof providerIcons
+                    ]
+                  }
+                </div>
+              ) : (
+                <AvatarImage
+                  className="object-cover w-full h-full scale-125"
+                  src="/src/assets/avatars/ai-avatar.png"
+                />
+              )}
+            </>
+          )}
         </Avatar>
         <div
           className={`relative px-4 py-3 rounded-[16px] whitespace-pre-wrap break-words ${
