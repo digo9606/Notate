@@ -49,10 +49,19 @@ export async function installLlamaCpp(
         );
 
         // Install NVIDIA drivers and CUDA support
-        execSync("sudo dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda cuda-toolkit-12-devel");
+        execSync("sudo dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda");
 
         // Install GCC 13 for CUDA compatibility
         execSync("sudo dnf install -y gcc13-c++");
+
+        // Download and install CUDA toolkit
+        const cudaInstaller = "cuda_12.6.2_560.35.03_linux.run";
+        if (!fs.existsSync(cudaInstaller)) {
+          execSync(`wget https://developer.download.nvidia.com/compute/cuda/12.6.2/local_installers/${cudaInstaller}`);
+        }
+        
+        // Run CUDA installer with toolkit-only options
+        execSync(`sudo sh ${cudaInstaller} --toolkit --toolkitpath=/usr/local/cuda-12.6 --silent --override`);
 
         // Set up CUDA environment variables
         process.env.PATH = `/usr/local/cuda/bin:${process.env.PATH}`;
