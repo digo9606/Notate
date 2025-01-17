@@ -43,10 +43,21 @@ class DatabaseService {
           value TEXT,
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
+
         CREATE TABLE IF NOT EXISTS openrouter_models (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user_id INTEGER,
           model TEXT NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS azure_openai_models (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER,
+          name TEXT NOT NULL,
+          model TEXT NOT NULL,
+          endpoint TEXT NOT NULL,
+          api_key TEXT NOT NULL,
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
 
@@ -142,6 +153,14 @@ class DatabaseService {
       type TableName = keyof typeof expectedColumns;
       const expectedColumns = {
         openrouter_models: ["id", "user_id", "model"],
+        azure_openai_models: [
+          "id",
+          "user_id",
+          "name",
+          "model",
+          "endpoint",
+          "api_key",
+        ],
         users: ["id", "name", "created_at"],
         settings: ["id", "user_id", "key", "value"],
         api_keys: ["id", "user_id", "key", "provider", "created_at"],
@@ -604,7 +623,48 @@ class DatabaseService {
     const rows = this.db
       .prepare("SELECT model FROM openrouter_models WHERE user_id = ?")
       .all(userId) as { model: string }[];
-    return rows.map(row => row.model);
+    return rows.map((row) => row.model);
+  }
+
+  getAzureOpenAIModels(userId: number) {
+    const rows = this.db
+      .prepare("SELECT * FROM azure_openai_models WHERE user_id = ?")
+      .all(userId) as {
+      name: string;
+      model: string;
+      endpoint: string;
+      api_key: string;
+    }[];
+    return rows;
+  }
+  addAzureOpenAIModel(
+    userId: number,
+    name: string,
+    model: string,
+    endpoint: string,
+    api_key: string
+  ) {
+    const result = this.db
+      .prepare(
+        "INSERT INTO azure_openai_models (user_id, name, model, endpoint, api_key) VALUES (?, ?, ?, ?, ?)"
+      )
+      .run(userId, name, model, endpoint, api_key);
+    return result.lastInsertRowid as number;
+  }
+  deleteAzureOpenAIModel(userId: number, id: number) {
+    return this.db
+      .prepare("DELETE FROM azure_openai_models WHERE id = ? AND user_id = ?")
+      .run(id, userId);
+  }
+  getAzureOpenAIModel(userId: number, id: number) {
+    return this.db
+      .prepare("SELECT * FROM azure_openai_models WHERE id = ? AND user_id = ?")
+      .get(id, userId) as {
+      name: string;
+      model: string;
+      endpoint: string;
+      api_key: string;
+    };
   }
 }
 

@@ -12,13 +12,14 @@ import LocalLLM from "./LLMModels/LocalLLM";
 import Ollama from "./LLMModels/Ollama";
 import External from "./LLMModels/External";
 import Openrouter from "./LLMModels/Openrouter";
-import CustomLLM from "./LLMModels/CustomLLM";
+import CustomLLM from "./LLMModels/AzureOpenAI";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import AzureOpenAI from "./LLMModels/AzureOpenAI";
 
 export default function LLMPanel() {
   const [showUpdateInput, setShowUpdateInput] = useState(false);
@@ -91,7 +92,7 @@ export default function LLMPanel() {
           provider
         );
 
-        if (provider === "openrouter") {
+        if (provider === "Openrouter") {
           await window.electron.addOpenRouterModel(
             activeUser.id,
             "openai/gpt-3.5-turbo"
@@ -111,23 +112,25 @@ export default function LLMPanel() {
 
   const renderInputs = () => {
     switch (selectedProvider) {
-      case "anthropic":
-      case "xai":
-      case "gemini":
-      case "openai":
+      case "Anthropic":
+      case "XAI":
+      case "Gemini":
+      case "OpenAI":
         return (
           <External
             showUpdateInput={showUpdateInput}
             setShowUpdateInput={setShowUpdateInput}
           />
         );
-      case "local":
+      case "Local":
         return <LocalLLM />;
-      case "ollama":
+      case "Ollama":
         return <Ollama />;
-      case "openrouter":
+      case "Openrouter":
         return <Openrouter />;
-      case "custom":
+      case "Azure Open AI":
+        return <AzureOpenAI />;
+      case "Custom":
         return <CustomLLM />;
       default:
         return null;
@@ -164,7 +167,6 @@ export default function LLMPanel() {
                   setSelectedProvider("custom" as LLMProvider);
                   setApiKeyInput("");
                 }}
-                disabled
                 variant={selectedProvider === "custom" ? "default" : "outline"}
                 className={`btn-provider ${
                   selectedProvider === "custom" ? "selected" : ""
@@ -184,10 +186,14 @@ export default function LLMPanel() {
         <>
           <div className="mt-6">
             {renderInputs()}
-            {selectedProvider !== "openrouter" &&
-              selectedProvider !== "ollama" &&
-              selectedProvider !== "local" &&
-              (!apiKeys.some((key) => key.provider === selectedProvider) ||
+            {selectedProvider !== "Openrouter" &&
+              selectedProvider !== "Ollama" &&
+              selectedProvider !== "Local" &&
+              selectedProvider !== "Custom" &&
+              selectedProvider !== "Azure Open AI" &&
+              (!apiKeys.some(
+                (key) => key.provider === selectedProvider.toLowerCase()
+              ) ||
                 showUpdateInput) && (
                 <div className="flex justify-end">
                   <Button
@@ -229,13 +235,13 @@ export default function LLMPanel() {
             ))}
             {ollamaModels.length > 0 && (
               <div className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-background/80 backdrop-blur-sm border shadow-sm hover:shadow-md transition-shadow">
-                {providerIcons.ollama}
+                {providerIcons.Ollama}
                 <span className="ml-1.5">Ollama</span>
               </div>
             )}
             {localModels.length > 0 && (
               <div className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-background/80 backdrop-blur-sm border shadow-sm hover:shadow-md transition-shadow">
-                {providerIcons.local}
+                {providerIcons.Local}
                 <span className="ml-1.5">Local</span>
               </div>
             )}

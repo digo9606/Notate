@@ -8,14 +8,27 @@ export default function CustomLLM() {
   const [customProvider, setCustomProvider] = useState("");
   const [customBaseUrl, setCustomBaseUrl] = useState("");
   const [customModel, setCustomModel] = useState("");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       if (!activeUser) return;
+      const azureId = await window.electron.addAzureOpenAIModel(
+        activeUser.id,
+        customProvider,
+        customModel,
+        customBaseUrl,
+        apiKeyInput
+      );
       await window.electron.updateUserSettings(
         activeUser.id,
         "provider",
-        customProvider
+        "Azure Open AI"
+      );
+      await window.electron.updateUserSettings(
+        activeUser.id,
+        "selectedAzureId",
+        azureId.toString()
       );
       await window.electron.updateUserSettings(
         activeUser.id,
@@ -27,11 +40,7 @@ export default function CustomLLM() {
         "model",
         customModel
       );
-      await window.electron.addAPIKey(
-        activeUser.id,
-        apiKeyInput,
-        customProvider
-      );
+
       toast({
         title: "Custom provider added",
         description: "Your custom provider has been added",
@@ -53,17 +62,17 @@ export default function CustomLLM() {
   return (
     <div className="space-y-2">
       <Input
-        id="custom-provider-name"
+        id="name"
         type="text"
-        placeholder="Enter custom provider name (e.g. Azure OpenAI gpt-4o)"
+        placeholder="Enter a names (e.g. Azure OpenAI gpt-4o)"
         value={customProvider}
         onChange={(e) => setCustomProvider(e.target.value)}
         className="input-field"
       />
       <Input
-        id="custom-base-url"
+        id="azure-endpoint"
         type="text"
-        placeholder="Enter custom base url (e.g. https://api.custom.com/v1)"
+        placeholder="Enter Azure endpoint (e.g. https://customname.openai.azure.com)"
         value={customBaseUrl}
         onChange={(e) => setCustomBaseUrl(e.target.value)}
         className="input-field"
@@ -71,22 +80,22 @@ export default function CustomLLM() {
       <Input
         id="custom-model"
         type="text"
-        placeholder="Enter custom model (e.g. gpt-4o)"
+        placeholder="Enter model (e.g. gpt-4o)"
         value={customModel}
         onChange={(e) => setCustomModel(e.target.value)}
         className="input-field"
       />
       <Input
-        id="custom-api-key"
+        id="azure-api-key"
         type="password"
-        placeholder="Enter your custom API key"
+        placeholder="Enter your Azure API key"
         className="input-field"
         value={apiKeyInput}
         onChange={(e) => setApiKeyInput(e.target.value)}
       />
 
       <Button variant="secondary" onClick={handleSubmit} className="w-full">
-        Add Custom Provider
+        Add Azure Open AI Provider
       </Button>
     </div>
   );

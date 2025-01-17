@@ -452,6 +452,44 @@ electron.contextBridge.exposeInMainWorld("electron", {
     model_type?: string;
     user_id: number;
   }) => ipcInvoke("unloadModel", payload) as unknown as Promise<void>,
+  deleteAzureOpenAIModel: (userId: number, id: number) =>
+    ipcInvoke("deleteAzureOpenAIModel", { userId, id }) as unknown as Promise<{
+      userId: number;
+      id: number;
+      success: boolean;
+    }>,
+  getAzureOpenAIModels: (userId: number) =>
+    ipcInvoke("getAzureOpenAIModels", { userId }) as unknown as Promise<{
+      models: {
+        name: string;
+        model: string;
+        endpoint: string;
+        api_key: string;
+      }[];
+    }>,
+  getAzureOpenAIModel: (userId: number, id: number) =>
+    ipcInvoke("getAzureOpenAIModel", { userId, id }) as unknown as Promise<{
+      name: string;
+      model: string;
+      endpoint: string;
+      api_key: string;
+    }>,
+  addAzureOpenAIModel: (
+    userId: number,
+    name: string,
+    model: string,
+    endpoint: string,
+    api_key: string
+  ) =>
+    ipcInvoke("addAzureOpenAIModel", {
+      userId,
+      name,
+      model,
+      endpoint,
+      api_key,
+    }) as unknown as Promise<{
+      id: number;
+    }>,
 } satisfies Window["electron"]);
 
 function ipcInvoke<Key extends keyof EventPayloadMapping>(
