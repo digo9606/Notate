@@ -13,6 +13,12 @@ import Ollama from "./LLMModels/Ollama";
 import External from "./LLMModels/External";
 import Openrouter from "./LLMModels/Openrouter";
 import CustomLLM from "./LLMModels/CustomLLM";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function LLMPanel() {
   const [showUpdateInput, setShowUpdateInput] = useState(false);
@@ -150,20 +156,29 @@ export default function LLMPanel() {
               {provider}
             </Button>
           ))}
-        <Button
-          onClick={() => {
-            setSelectedProvider("custom" as LLMProvider);
-            setApiKeyInput("");
-          }}
-          disabled
-          variant={selectedProvider === "custom" ? "default" : "outline"}
-          className={`btn-provider ${
-            selectedProvider === "custom" ? "selected" : ""
-          }`}
-        >
-          <PlusCircle className="w-4 h-4 mr-2" />
-          Custom
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Button
+                onClick={() => {
+                  setSelectedProvider("custom" as LLMProvider);
+                  setApiKeyInput("");
+                }}
+                disabled
+                variant={selectedProvider === "custom" ? "default" : "outline"}
+                className={`btn-provider ${
+                  selectedProvider === "custom" ? "selected" : ""
+                }`}
+              >
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Custom
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Custom provider coming soon.</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
       {selectedProvider && (
         <>
