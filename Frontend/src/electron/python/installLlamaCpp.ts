@@ -57,15 +57,11 @@ export async function installLlamaCpp(
         // Download and install CUDA toolkit
         const cudaInstaller = "cuda_12.6.2_560.35.03_linux.run";
         if (!fs.existsSync(cudaInstaller)) {
-          execSync(
-            `wget https://developer.download.nvidia.com/compute/cuda/12.6.2/local_installers/${cudaInstaller}`
-          );
+          execSync(`wget https://developer.download.nvidia.com/compute/cuda/12.6.2/local_installers/${cudaInstaller}`);
         }
-
+        
         // Run CUDA installer with toolkit-only options
-        execSync(
-          `sudo sh ${cudaInstaller} --toolkit --toolkitpath=/usr/local/cuda-12.6 --no-man-page --no-desktop-menu`
-        );
+        execSync(`sudo sh ${cudaInstaller} --toolkit --toolkitpath=/usr/local/cuda-12.6 --silent --override`);
 
         // Setup symlinks and environment
         execSync(`
