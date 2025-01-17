@@ -1,5 +1,8 @@
 const electron = require("electron");
 
+// Set higher max listeners limit for IPC events
+electron.ipcRenderer.setMaxListeners(20);
+
 type IpcCallback<T> = (event: Electron.IpcRendererEvent, payload: T) => void;
 
 electron.contextBridge.exposeInMainWorld("electron", {

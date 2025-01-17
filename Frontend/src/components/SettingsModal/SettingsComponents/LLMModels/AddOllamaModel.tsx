@@ -61,7 +61,9 @@ export default function AddOllamaModel() {
       }
     };
 
+    window.electron.removeListener("download-model-progress", handleProgress);
     window.electron.on("download-model-progress", handleProgress);
+
     return () => {
       window.electron.removeListener("download-model-progress", handleProgress);
     };

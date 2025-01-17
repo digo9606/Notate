@@ -161,7 +161,7 @@ export default function LLMPanel() {
           ))}
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger asChild>
               <Button
                 onClick={() => {
                   setSelectedProvider("custom" as LLMProvider);

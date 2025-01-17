@@ -18,6 +18,8 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
+const MotionAvatar = motion.create(Avatar);
+
 export default function SelectAccount({ users }: { users: User[] }) {
   const { setActiveView } = useView();
   const { activeUser, setActiveUser } = useUser();
@@ -92,11 +94,15 @@ export default function SelectAccount({ users }: { users: User[] }) {
                           onClick={() => handleSelectAccount(user)}
                         >
                           <CardContent className="flex items-center p-4">
-                            <Avatar className="h-10 w-10 ring-2 ring-primary/10 group-hover:ring-primary/30 transition-all duration-300">
+                            <MotionAvatar
+                              className="h-10 w-10 ring-2 ring-primary/10 group-hover:ring-primary/30 transition-all duration-300"
+                              initial="hidden"
+                              animate="visible"
+                            >
                               <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm group-hover:bg-primary/20 transition-colors duration-300">
                                 {user.name.charAt(0).toUpperCase()}
                               </AvatarFallback>
-                            </Avatar>
+                            </MotionAvatar>
                             <div className="ml-4 min-w-0 flex-1">
                               <h3 className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors duration-300">
                                 {user.name}
