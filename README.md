@@ -117,6 +117,7 @@ Donations are used to cover the costs of running the project, including server c
 
 - AppImage: `Notate/Frontend/dist/Notate.AppImage`
 - Debian Package: `Notate/Frontend/dist/Notate.deb`
+- RPM Package: `Notate/Frontend/dist/Notate.rpm`
 
 ## Coming Soon
 
@@ -125,4 +126,4 @@ Donations are used to cover the costs of running the project, including server c
 - [ ] Advanced Agent Actions
 - [ ] Additional Document Types
 - [ ] Output to Speech
-- [ ] built-in llama.cpp support
+- [ ] Custom API Endpoints
