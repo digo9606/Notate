@@ -30,8 +30,6 @@ export default function LLMPanel() {
     localModels,
     selectedProvider,
     setSelectedProvider,
-    totalVRAM,
-    platform,
   } = useSysSettings();
 
   const handleSubmit = async (e: React.FormEvent) => {
