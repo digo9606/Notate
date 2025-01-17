@@ -49,38 +49,23 @@ export async function installLlamaCpp(
         );
 
         // Install NVIDIA drivers and CUDA support
-        execSync("sudo dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda");
+        execSync("sudo dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda cuda-toolkit-12-devel");
 
         // Install GCC 13 for CUDA compatibility
         execSync("sudo dnf install -y gcc13-c++");
 
-        // Download and install CUDA toolkit
-        const cudaInstaller = "cuda_12.6.2_560.35.03_linux.run";
-        if (!fs.existsSync(cudaInstaller)) {
-          execSync(`wget https://developer.download.nvidia.com/compute/cuda/12.6.2/local_installers/${cudaInstaller}`);
-        }
-        
-        // Run CUDA installer with toolkit-only options
-        execSync(`sudo sh ${cudaInstaller} --toolkit --toolkitpath=/usr/local/cuda-12.6 --silent --override`);
-
-        // Setup symlinks and environment
-        execSync(`
-          cd /usr/local && \
-          sudo rm -f cuda && \
-          sudo ln -s cuda-12.6 cuda && \
-          sudo ln -s cuda/bin bin && \
-          sudo ln -s cuda/lib64 lib64 && \
-          sudo ln -s cuda-12.6/nvvm nvvm
-        `);
-
-        // Configure library paths
-        execSync(
-          'sudo sh -c "echo "/usr/local/lib64" > /etc/ld.so.conf.d/usr-local-x86_64.conf"'
-        );
-        execSync("sudo ldconfig -v");
+        // Set up CUDA environment variables
+        process.env.PATH = `/usr/local/cuda/bin:${process.env.PATH}`;
+        process.env.LD_LIBRARY_PATH = `/usr/local/cuda/lib64:${process.env.LD_LIBRARY_PATH || ''}`;
+        process.env.CUDA_HOME = "/usr/local/cuda";
+        process.env.CUDACXX = "/usr/local/cuda/bin/nvcc";
 
         // Set NVCC to use GCC 13
         process.env.NVCC_PREPEND_FLAGS = "-ccbin /usr/bin/g++-13";
+
+        // Configure library paths
+        execSync('sudo sh -c \'echo "/usr/local/cuda/lib64" >> /etc/ld.so.conf.d/cuda.conf\'');
+        execSync("sudo ldconfig -v");
       }
     }
 
