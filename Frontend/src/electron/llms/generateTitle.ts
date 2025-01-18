@@ -184,6 +184,7 @@ async function generateTitleAzureOpenAI(input: string, userId: number) {
     userId,
     Number(userSettings.selectedAzureId)
   );
+  console.log("Azure model:", azureModel);
   if (!azureModel) {
     throw new Error("Azure OpenAI model not found for the active user");
   }
@@ -197,19 +198,19 @@ async function generateTitleAzureOpenAI(input: string, userId: number) {
   if (!openai) {
     throw new Error("Azure OpenAI instance not initialized");
   }
-
-  const llmTitleRequest = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: titleMessages(input),
-    max_tokens: 20,
-    temperature: 0.7,
-    top_p: 0.95,
-    presence_penalty: 0.1,
-    frequency_penalty: 0.1,
-  });
-
-  const generatedTitle = llmTitleRequest.choices[0]?.message?.content?.trim();
-  return generatedTitle;
+  try {
+    const llmTitleRequest = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: titleMessages(input),
+      max_tokens: 20,
+      temperature: 0.7,
+    });
+    const generatedTitle = llmTitleRequest.choices[0]?.message?.content?.trim();
+    return generatedTitle;
+  } catch (error) {
+    console.error("Error generating title:", error);
+    return "New Conversation";
+  }
 }
 
 async function generateTitleLocalOpenAI(input: string, userId: number) {
@@ -242,12 +243,13 @@ export async function generateTitle(
   model?: string
 ) {
   const userSettings = await db.getUserSettings(userId);
-  switch (userSettings.provider) {
+  console.log("User settings:", userSettings);
+  switch (userSettings.provider?.toLowerCase()) {
     case "openai":
       return generateTitleOpenAI(input, userId);
     case "openrouter":
       return generateTitleOpenRouter(input, userId);
-    case "Azure Open AI":
+    case "azure open ai":
       return generateTitleAzureOpenAI(input, userId);
     case "anthropic":
       return generateTitleAnthropic(input, userId);

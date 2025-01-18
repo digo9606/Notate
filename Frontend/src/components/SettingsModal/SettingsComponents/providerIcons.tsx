@@ -19,12 +19,12 @@ const SvgIcon = ({ src, alt }: { src: string; alt: string }) => (
 );
 
 export const providerIcons: Record<string, ReactNode> = {
-  openai: <SvgIcon src={openai} alt="OpenAI" />,
-  anthropic: <SvgIcon src={anthropic} alt="Anthropic" />,
-  gemini: <SvgIcon src={gemini} alt="Gemini" />,
-  xai: <SvgIcon src={xai} alt="XAI" />,
-  local: <HouseIcon className="h-3 w-3" />,
-  openrouter: <SvgIcon src={openrouter} alt="OpenRouter" />,
-  ollama: <SvgIcon src={ollama} alt="Ollama" />,
+  OpenAI: <SvgIcon src={openai} alt="OpenAI" />,
+  Anthropic: <SvgIcon src={anthropic} alt="Anthropic" />,
+  Gemini: <SvgIcon src={gemini} alt="Gemini" />,
+  XAI: <SvgIcon src={xai} alt="XAI" />,
+  Local: <HouseIcon className="h-3 w-3" />,
+  OpenRouter: <SvgIcon src={openrouter} alt="OpenRouter" />,
+  Ollama: <SvgIcon src={ollama} alt="Ollama" />,
   "Azure Open AI": <SvgIcon src={azure} alt="Azure" />,
 };

@@ -165,7 +165,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     await window.electron.updateUserSettings(
       Number(user_id),
       "provider",
-      "local"
+      "Local"
     );
     await window.electron.updateUserSettings(
       Number(user_id),
@@ -260,7 +260,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 
       setSettings((prev) => ({
         ...prev,
-        provider: "local",
+        provider: "Ollama",
         model: model,
       }));
     } catch (error) {

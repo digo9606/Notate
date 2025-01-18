@@ -146,14 +146,14 @@ export async function chatRequest(
     }
     let provider;
     log.info(`User settings: ${JSON.stringify(userSettings)}`);
-    switch (userSettings.provider) {
+    switch (userSettings.provider?.toLowerCase()) {
       case "openai":
         provider = OpenAIProvider;
         break;
       case "openrouter":
         provider = OpenRouterProvider;
         break;
-      case "Azure Open AI":
+      case "azure open ai":
         provider = AzureOpenAIProvider;
         break;
       case "anthropic":

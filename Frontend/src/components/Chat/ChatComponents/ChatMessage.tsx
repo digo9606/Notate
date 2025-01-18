@@ -215,10 +215,21 @@ export const ChatMessage = memo(function ChatMessage({
       return { type: 'image', src: "/src/assets/avatars/database-avatar.svg" };
     }
     if (settings.provider) {
-      const normalizedProvider = settings.provider === "Azure Open AI" ? settings.provider : 
-        settings.provider.toLowerCase();
+      // Map provider names to match the keys in providerIcons
+      const providerMap: Record<string, string> = {
+        "local": "Local",
+        "openai": "OpenAI",
+        "anthropic": "Anthropic",
+        "gemini": "Gemini",
+        "xai": "XAI",
+        "openrouter": "OpenRouter",
+        "ollama": "Ollama",
+        "Azure Open AI": "Azure Open AI"
+      };
       
-      const icon = providerIcons[normalizedProvider as keyof typeof providerIcons];
+      const normalizedProvider = providerMap[settings.provider.toLowerCase()] || settings.provider;
+      const icon = providerIcons[normalizedProvider];
+      
       if (icon) {
         return { 
           type: 'component', 

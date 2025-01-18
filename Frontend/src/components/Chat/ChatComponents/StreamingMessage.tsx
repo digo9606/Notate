@@ -80,7 +80,21 @@ export function StreamingMessage({ content }: { content: string }) {
               className="h-full w-full flex items-center justify-center"
             >
               {settings.provider ? (
-                providerIcons[settings.provider as keyof typeof providerIcons]
+                (() => {
+                  const providerMap: Record<string, string> = {
+                    "local": "Local",
+                    "openai": "OpenAI",
+                    "anthropic": "Anthropic",
+                    "gemini": "Gemini",
+                    "xai": "XAI",
+                    "openrouter": "OpenRouter",
+                    "ollama": "Ollama",
+                    "Azure Open AI": "Azure Open AI"
+                  };
+                  
+                  const normalizedProvider = providerMap[settings.provider.toLowerCase()] || settings.provider;
+                  return providerIcons[normalizedProvider];
+                })()
               ) : (
                 <AvatarImage
                   className="object-cover w-full h-full scale-125"
