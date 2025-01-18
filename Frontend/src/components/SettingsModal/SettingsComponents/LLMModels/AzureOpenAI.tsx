@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/tooltip";
 import { HelpCircle } from "lucide-react";
 
-export default function CustomLLM() {
+export default function AzureOpenAI() {
   const { apiKeyInput, setApiKeyInput, activeUser } = useUser();
   const [customProvider, setCustomProvider] = useState("");
   const [customBaseUrl, setCustomBaseUrl] = useState("");

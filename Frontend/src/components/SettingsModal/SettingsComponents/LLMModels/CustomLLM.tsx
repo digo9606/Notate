@@ -3,6 +3,13 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useUser } from "@/context/useUser";
 import { toast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 export default function CustomLLM() {
   const { apiKeyInput, setApiKeyInput, activeUser } = useUser();
   const [customProvider, setCustomProvider] = useState("");
@@ -55,11 +62,23 @@ export default function CustomLLM() {
       <Input
         id="custom-provider-name"
         type="text"
-        placeholder="Enter custom provider name (e.g. Azure OpenAI gpt-4o)"
+        placeholder="Enter custom provider name (e.g. Deployed ooba model)"
         value={customProvider}
         onChange={(e) => setCustomProvider(e.target.value)}
         className="input-field"
       />
+      <Select>
+        <SelectTrigger>
+          <SelectValue placeholder="Select a endpoint type" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="openai">OpenAI</SelectItem>
+          <SelectItem value="openai">ooba</SelectItem>
+          <SelectItem value="openai">ollama</SelectItem>
+          <SelectItem value="openai">anthropic</SelectItem>
+          <SelectItem value="openai">gemini</SelectItem>
+        </SelectContent>
+      </Select>
       <Input
         id="custom-base-url"
         type="text"
@@ -84,7 +103,6 @@ export default function CustomLLM() {
         value={apiKeyInput}
         onChange={(e) => setApiKeyInput(e.target.value)}
       />
-
       <Button variant="secondary" onClick={handleSubmit} className="w-full">
         Add Custom Provider
       </Button>

@@ -12,7 +12,7 @@ import LocalLLM from "./LLMModels/LocalLLM";
 import Ollama from "./LLMModels/Ollama";
 import External from "./LLMModels/External";
 import Openrouter from "./LLMModels/Openrouter";
-import CustomLLM from "./LLMModels/AzureOpenAI";
+import CustomLLM from "./LLMModels/CustomLLM";
 import {
   Tooltip,
   TooltipContent,
@@ -165,6 +165,7 @@ export default function LLMPanel() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                disabled
                 onClick={() => {
                   setSelectedProvider("custom" as LLMProvider);
                   setApiKeyInput("");
