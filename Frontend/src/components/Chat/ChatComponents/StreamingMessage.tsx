@@ -6,7 +6,7 @@ import { useSysSettings } from "@/context/useSysSettings";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-const MotionAvatar = motion(Avatar);
+const MotionAvatar = motion.create(Avatar);
 
 export function StreamingMessage({ content }: { content: string }) {
   const [parsedContent, setParsedContent] = useState<(string | JSX.Element)[]>(

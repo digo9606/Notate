@@ -1,17 +1,26 @@
-import OpenAI from "openai";
+import { AzureOpenAI } from "openai";
 import db from "../../db.js";
 import { BrowserWindow } from "electron";
 import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
 import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
-let openai: OpenAI;
+let openai: AzureOpenAI;
 
-async function initializeOpenAI(apiKey: string) {
-  openai = new OpenAI({ apiKey });
+async function initializeAzureOpenAI(
+  baseURL: string,
+  apiKey: string,
+  model: string
+) {
+  openai = new AzureOpenAI({
+    baseURL: baseURL,
+    apiKey: apiKey,
+    deployment: model,
+    apiVersion: "2024-05-01-preview",
+  });
 }
 
-export async function OpenAIProvider(
+export async function AzureOpenAIProvider(
   messages: Message[],
   activeUser: User,
   userSettings: UserSettings,
@@ -29,16 +38,25 @@ export async function OpenAIProvider(
   } | null,
   signal?: AbortSignal
 ) {
-  const apiKey = db.getApiKey(activeUser.id, "openai");
-
-  if (!apiKey) {
-    throw new Error("OpenAI API key not found for the active user");
+  if (!userSettings.selectedAzureId) {
+    throw new Error("Azure OpenAI model not found for the active user");
+  }
+  const azureModel = db.getAzureOpenAIModel(
+    activeUser.id,
+    Number(userSettings.selectedAzureId)
+  );
+  if (!azureModel) {
+    throw new Error("Azure OpenAI model not found for the active user");
   }
 
-  await initializeOpenAI(apiKey);
+  await initializeAzureOpenAI(
+    azureModel.endpoint,
+    azureModel.api_key,
+    azureModel.model
+  );
 
   if (!openai) {
-    throw new Error("OpenAI instance not initialized");
+    throw new Error("Azure OpenAI instance not initialized");
   }
 
   const maxOutputTokens = (userSettings.maxTokens as number) || 4096;

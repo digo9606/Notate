@@ -64,7 +64,6 @@ const FileItem: React.FC<FileItemProps> = ({
     if (newName.trim() === "") return;
 
     try {
-      console.log("Renaming file:", { fullPath, newName });
       const result = await window.electron.renameFile(
         activeUser.id,
         activeUser.name,

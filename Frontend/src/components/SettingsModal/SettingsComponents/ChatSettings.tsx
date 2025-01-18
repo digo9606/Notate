@@ -44,7 +44,7 @@ export default function ChatSettings() {
     openRouterModels,
   } = useUser();
   const { setSelectedCollection, setFiles } = useLibrary();
-  const { activeUser, apiKeys, prompts } = useUser();
+  const { activeUser, apiKeys, prompts, azureModels } = useUser();
   const [open, setOpen] = useState<boolean>(false);
   const [value, setValue] = useState<string>("");
   const [showNewPrompt, setShowNewPrompt] = useState<boolean>(false);
@@ -116,6 +116,7 @@ export default function ChatSettings() {
     "grok-beta": 8192,
     local: 2048,
     ollama: 2048,
+    "Azure Open AI": 4096,
   };
 
   const modelOptions = {
@@ -136,6 +137,7 @@ export default function ChatSettings() {
       ? localModels.map((model) => model.name)
       : [],
     ollama: ollamaModels?.map((model) => model.name) || [],
+    "Azure Open AI": azureModels?.map((model) => model.name) || [],
   };
 
   const handleAddPrompt = async () => {
@@ -289,10 +291,10 @@ export default function ChatSettings() {
                 ) as LLMProvider;
 
                 if (modelOptions.ollama.includes(value)) {
-                  provider = "ollama";
+                  provider = "Ollama";
                 }
 
-                if (provider === "ollama") {
+                if (provider === "Ollama") {
                   setLocalModalLoading(true);
                 }
 

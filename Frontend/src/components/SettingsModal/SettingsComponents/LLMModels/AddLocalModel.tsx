@@ -56,13 +56,14 @@ export default function AddLocalModel() {
           totalProgress,
           ...rest,
         });
-        console.log(progressMessage);
         if (fileName) setCurrentFile(fileName);
         if (typeof fileProgress === "number") setFileProgress(fileProgress);
       }
     };
 
+    window.electron.removeListener("download-model-progress", handleProgress);
     window.electron.on("download-model-progress", handleProgress);
+
     return () => {
       window.electron.removeListener("download-model-progress", handleProgress);
     };
@@ -142,13 +143,13 @@ export default function AddLocalModel() {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger className="flex flex-row gap-2 items-center">
-              <HelpCircle className="w-4 h-4" />
               <Input
                 className="w-full"
                 placeholder="Enter model ID (e.g. TheBloke/Mistral-7B-v0.1-GGUF)"
                 value={localModel}
                 onChange={(e) => setLocalModel(e.target.value)}
-              />
+              />{" "}
+              <HelpCircle className="w-4 h-4" />
             </TooltipTrigger>
             <TooltipContent>
               Enter a Hugging Face model ID (e.g.

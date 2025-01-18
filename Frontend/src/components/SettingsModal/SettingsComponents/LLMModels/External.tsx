@@ -15,16 +15,11 @@ export default function External({
   const { selectedProvider } = useSysSettings();
   const { apiKeyInput, setApiKeyInput, apiKeys } = useUser();
 
-  console.log("Selected Provider:", selectedProvider);
-  console.log("API Keys:", apiKeys);
-
   const hasProviderKey = selectedProvider
     ? apiKeys.some(
         (key) => key.provider.toLowerCase() === selectedProvider.toLowerCase()
       )
     : false;
-
-  console.log("Has Provider Key:", hasProviderKey);
 
   return (
     <div className="space-y-4">

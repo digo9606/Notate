@@ -51,7 +51,6 @@ export function DevIntegration() {
   const handleDeleteKey = async (id: number) => {
     if (!activeUser) return;
     await window.electron.deleteDevAPIKey(activeUser.id, id);
-    console.log("deleted key");
     setDevAPIKeys(devAPIKeys.filter((key) => key.id !== id));
   };
 
@@ -65,6 +64,8 @@ export function DevIntegration() {
     setDevAPIKeys([...devAPIKeys, results]);
     setSelectedKey({ key: results.key, name: keyName, isNew: true });
     setShowKeyDialog(true);
+    setKeyName("");
+    setExpiration(null);
   };
 
   const handleViewKey = (key: APIKey) => {

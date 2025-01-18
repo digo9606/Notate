@@ -28,6 +28,7 @@ import { getDevSecretPath } from "./authentication/devApi.js";
 import { setupOpenRouterHandlers } from "./handlers/openRouterHandlers.js";
 import { setupLocalModelHandlers } from "./handlers/localModelHandlers.js";
 import crypto from "crypto";
+import { setupAzureOpenAI } from "./handlers/azureHandlers.js";
 
 // Configure logging first
 log.transports.file.level = "debug";
@@ -198,6 +199,7 @@ app.on("ready", async () => {
     setupCollectionHandlers();
     setupMenuHandlers(mainWindow);
     setupOllamaHandlers();
+    setupAzureOpenAI();
     setupFileHandlers();
     setupOpenRouterHandlers();
     handleCloseEvents(mainWindow);

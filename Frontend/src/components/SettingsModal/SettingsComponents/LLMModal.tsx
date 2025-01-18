@@ -12,13 +12,14 @@ import LocalLLM from "./LLMModels/LocalLLM";
 import Ollama from "./LLMModels/Ollama";
 import External from "./LLMModels/External";
 import Openrouter from "./LLMModels/Openrouter";
-import CustomLLM from "./LLMModels/CustomLLM";
+import CustomLLM from "./LLMModels/AzureOpenAI";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import AzureOpenAI from "./LLMModels/AzureOpenAI";
 
 export default function LLMPanel() {
   const [showUpdateInput, setShowUpdateInput] = useState(false);
@@ -91,7 +92,7 @@ export default function LLMPanel() {
           provider
         );
 
-        if (provider === "openrouter") {
+        if (provider === "Openrouter") {
           await window.electron.addOpenRouterModel(
             activeUser.id,
             "openai/gpt-3.5-turbo"
@@ -127,6 +128,8 @@ export default function LLMPanel() {
         return <Ollama />;
       case "openrouter":
         return <Openrouter />;
+      case "Azure Open AI":
+        return <AzureOpenAI />;
       case "custom":
         return <CustomLLM />;
       default:
@@ -147,24 +150,25 @@ export default function LLMPanel() {
                 setApiKeyInput("");
                 setShowUpdateInput(false);
               }}
-              variant={selectedProvider === provider ? "default" : "outline"}
+              variant={selectedProvider === provider ? "secondary" : "outline"}
               className={`btn-provider ${
                 selectedProvider === provider ? "selected" : ""
               }`}
             >
-              {providerIcons[provider as keyof typeof providerIcons]}
+              <div className="mr-2">
+                {providerIcons[provider as keyof typeof providerIcons]}
+              </div>
               {provider}
             </Button>
           ))}
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger asChild>
               <Button
                 onClick={() => {
                   setSelectedProvider("custom" as LLMProvider);
                   setApiKeyInput("");
                 }}
-                disabled
                 variant={selectedProvider === "custom" ? "default" : "outline"}
                 className={`btn-provider ${
                   selectedProvider === "custom" ? "selected" : ""
@@ -184,10 +188,14 @@ export default function LLMPanel() {
         <>
           <div className="mt-6">
             {renderInputs()}
-            {selectedProvider !== "openrouter" &&
+            {selectedProvider !== "Openrouter" &&
               selectedProvider !== "ollama" &&
               selectedProvider !== "local" &&
-              (!apiKeys.some((key) => key.provider === selectedProvider) ||
+              selectedProvider !== "custom" &&
+              selectedProvider !== "Azure Open AI" &&
+              (!apiKeys.some(
+                (key) => key.provider === selectedProvider.toLowerCase()
+              ) ||
                 showUpdateInput) && (
                 <div className="flex justify-end">
                   <Button
@@ -229,13 +237,13 @@ export default function LLMPanel() {
             ))}
             {ollamaModels.length > 0 && (
               <div className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-background/80 backdrop-blur-sm border shadow-sm hover:shadow-md transition-shadow">
-                {providerIcons.ollama}
+                {providerIcons["ollama" as keyof typeof providerIcons]}
                 <span className="ml-1.5">Ollama</span>
               </div>
             )}
             {localModels.length > 0 && (
               <div className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-background/80 backdrop-blur-sm border shadow-sm hover:shadow-md transition-shadow">
-                {providerIcons.local}
+                {providerIcons["local" as keyof typeof providerIcons]}
                 <span className="ml-1.5">Local</span>
               </div>
             )}

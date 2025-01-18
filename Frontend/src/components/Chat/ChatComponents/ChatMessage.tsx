@@ -209,15 +209,27 @@ export const ChatMessage = memo(function ChatMessage({
 
   const getProviderIcon = () => {
     if (isUser) {
-      return "/src/assets/avatars/user-avatar.svg";
+      return { type: 'image', src: "/src/assets/avatars/user-avatar.svg" };
     }
     if (isRetrieval) {
-      return "/src/assets/avatars/database-avatar.svg";
+      return { type: 'image', src: "/src/assets/avatars/database-avatar.svg" };
     }
-    return settings.provider
-      ? providerIcons[settings.provider as keyof typeof providerIcons]
-      : "/src/assets/avatars/ai-avatar.png";
+    if (settings.provider) {
+      const normalizedProvider = settings.provider === "Azure Open AI" ? settings.provider : 
+        settings.provider.toLowerCase();
+      
+      const icon = providerIcons[normalizedProvider as keyof typeof providerIcons];
+      if (icon) {
+        return { 
+          type: 'component', 
+          component: icon
+        };
+      }
+    }
+    return { type: 'image', src: "/src/assets/avatars/ai-avatar.png" };
   };
+
+  const icon = getProviderIcon();
 
   return (
     <div
@@ -245,28 +257,15 @@ export const ChatMessage = memo(function ChatMessage({
               : "ring-2 ring-secondary ring-offset-2"
           } overflow-hidden`}
         >
-          {isUser || isRetrieval ? (
+          {icon.type === 'image' ? (
             <AvatarImage
               className="object-cover w-full h-full scale-125"
-              src={getProviderIcon() as string}
+              src={icon.src}
             />
           ) : (
-            <>
-              {settings.provider ? (
-                <div className="h-full w-full flex items-center justify-center scale-150">
-                  {
-                    providerIcons[
-                      settings.provider as keyof typeof providerIcons
-                    ]
-                  }
-                </div>
-              ) : (
-                <AvatarImage
-                  className="object-cover w-full h-full scale-125"
-                  src="/src/assets/avatars/ai-avatar.png"
-                />
-              )}
-            </>
+            <div className="h-full w-full flex items-center justify-center scale-150">
+              {icon.component}
+            </div>
           )}
         </Avatar>
         <div

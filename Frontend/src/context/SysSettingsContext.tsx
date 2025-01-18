@@ -209,7 +209,6 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         dirPath: string;
         models: Model[];
       };
-      console.log(data);
 
       setLocalModels(
         Array.isArray(data.models)

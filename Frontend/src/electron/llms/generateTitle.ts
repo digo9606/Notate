@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import db from "../db.js";
 import OpenAI from "openai";
+import { AzureOpenAI } from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getToken } from "../authentication/token.js";
 
@@ -174,6 +175,43 @@ async function generateTitleOpenAI(input: string, userId: number) {
   return generatedTitle;
 }
 
+async function generateTitleAzureOpenAI(input: string, userId: number) {
+  const userSettings = await db.getUserSettings(userId);
+  if (!userSettings.selectedAzureId) {
+    throw new Error("Azure OpenAI model not found for the active user");
+  }
+  const azureModel = db.getAzureOpenAIModel(
+    userId,
+    Number(userSettings.selectedAzureId)
+  );
+  if (!azureModel) {
+    throw new Error("Azure OpenAI model not found for the active user");
+  }
+  const openai = new AzureOpenAI({
+    baseURL: azureModel.endpoint,
+    apiKey: azureModel.api_key,
+    deployment: azureModel.model,
+    apiVersion: "2024-05-01-preview",
+  });
+
+  if (!openai) {
+    throw new Error("Azure OpenAI instance not initialized");
+  }
+
+  const llmTitleRequest = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: titleMessages(input),
+    max_tokens: 20,
+    temperature: 0.7,
+    top_p: 0.95,
+    presence_penalty: 0.1,
+    frequency_penalty: 0.1,
+  });
+
+  const generatedTitle = llmTitleRequest.choices[0]?.message?.content?.trim();
+  return generatedTitle;
+}
+
 async function generateTitleLocalOpenAI(input: string, userId: number) {
   const apiKey = await getToken({ userId: userId.toString() });
   if (!apiKey) {
@@ -195,7 +233,6 @@ async function generateTitleLocalOpenAI(input: string, userId: number) {
     const content = chunk.choices[0]?.delta?.content || "";
     generatedTitle += content;
   }
-  console.log("Generated title:", generatedTitle);
   return generatedTitle;
 }
 
@@ -207,25 +244,20 @@ export async function generateTitle(
   const userSettings = await db.getUserSettings(userId);
   switch (userSettings.provider) {
     case "openai":
-      console.log("OpenAI");
       return generateTitleOpenAI(input, userId);
     case "openrouter":
-      console.log("OpenRouter");
       return generateTitleOpenRouter(input, userId);
+    case "Azure Open AI":
+      return generateTitleAzureOpenAI(input, userId);
     case "anthropic":
-      console.log("Anthropic");
       return generateTitleAnthropic(input, userId);
     case "gemini":
-      console.log("Gemini");
       return generateTitleGemini(input, userId);
     case "xai":
-      console.log("XAI");
       return generateTitleXAI(input, userId);
     case "local":
-      console.log("Local");
       return generateTitleLocalOpenAI(input, userId);
     case "ollama":
-      console.log("Ollama");
       return generateOllamaTitle(input, model || "llama3.2");
     default:
       return "New Conversation";

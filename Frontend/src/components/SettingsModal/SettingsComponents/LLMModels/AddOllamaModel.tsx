@@ -55,13 +55,14 @@ export default function AddOllamaModel() {
           totalProgress,
           ...rest,
         });
-        console.log(progressMessage);
         if (fileName) setCurrentFile(fileName);
         if (typeof fileProgress === "number") setFileProgress(fileProgress);
       }
     };
 
+    window.electron.removeListener("download-model-progress", handleProgress);
     window.electron.on("download-model-progress", handleProgress);
+
     return () => {
       window.electron.removeListener("download-model-progress", handleProgress);
     };

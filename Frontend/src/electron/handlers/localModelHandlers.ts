@@ -15,7 +15,6 @@ async function downloadModel(payload: {
   dirPath: string;
   hfToken?: string;
 }) {
-  console.log("Downloading model", payload);
   const windows = BrowserWindow.getAllWindows();
   const mainWindow = windows[0];
 
@@ -50,7 +49,6 @@ async function downloadModel(payload: {
         );
 
         if (hasModelFiles) {
-          console.log("Model already exists in:", payload.dirPath);
           sendProgress({
             type: "progress",
             data: {
@@ -95,7 +93,6 @@ async function downloadModel(payload: {
     }
 
     const files = (await response.json()) as { path: string; size: number }[];
-    console.log("Found files:", files);
 
     // Filter out zero-size files and sort by size (largest first)
     const downloadableFiles = files
@@ -133,7 +130,6 @@ async function downloadModel(payload: {
       // Create subdirectories if needed
       fs.mkdirSync(path.dirname(filePath), { recursive: true });
 
-      console.log(`Downloading ${fileName} to ${filePath}`);
       sendProgress({
         type: "progress",
         data: {
@@ -179,12 +175,12 @@ async function downloadModel(payload: {
         while (true) {
           try {
             const { done, value } = await reader.read();
-            
+
             // Add check for abort signal
             if (signal.aborted) {
               reader.cancel();
               fileStream.destroy();
-              throw new Error('Download cancelled');
+              throw new Error("Download cancelled");
             }
 
             if (done) break;
@@ -206,7 +202,9 @@ async function downloadModel(payload: {
               const totalProgress = Math.round(
                 (downloadedSize / totalSize) * 100
               );
-              const fileProgress = Math.round((receivedLength / file.size) * 100);
+              const fileProgress = Math.round(
+                (receivedLength / file.size) * 100
+              );
 
               sendProgress({
                 type: "progress",
@@ -234,7 +232,6 @@ async function downloadModel(payload: {
         }
 
         fileStream.end();
-        console.log(`Successfully downloaded ${fileName}`);
       } catch (error) {
         console.warn(`Error downloading ${fileName}:`, error);
         failedFiles.push(fileName);
@@ -281,10 +278,10 @@ async function downloadModel(payload: {
     if (fs.existsSync(payload.dirPath)) {
       fs.rmSync(payload.dirPath, { recursive: true, force: true });
     }
-    
+
     // Add specific handling for cancellation
-    if (error instanceof Error && error.message === 'Download cancelled') {
-      throw new Error('Download cancelled by user');
+    if (error instanceof Error && error.message === "Download cancelled") {
+      throw new Error("Download cancelled by user");
     }
     throw error;
   } finally {
@@ -320,9 +317,7 @@ export function setupLocalModelHandlers() {
 
   ipcMainDatabaseHandle("downloadModel", async (payload) => {
     try {
-      console.log("downloadModel", payload);
       const result = await downloadModel(payload);
-      console.log("result", result);
       return result;
     } catch (error) {
       console.error("Error downloading model:", error);

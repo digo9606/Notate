@@ -26,6 +26,13 @@ type User = {
   name: string;
 };
 
+type AzureModel = {
+  id: number;
+  name: string;
+  endpoint: string;
+  deployment: string;
+};
+
 type Message = {
   role: "user" | "assistant" | "system";
   content: string;
@@ -311,6 +318,16 @@ interface EventPayloadMapping {
   };
   "download-model-progress": DownloadModelProgress;
   cancelDownload: { success: boolean };
+  deleteAzureOpenAIModel: { userId: number; id: number };
+  getAzureOpenAIModels: { userId: number };
+  getAzureOpenAIModel: { userId: number; id: number };
+  addAzureOpenAIModel: {
+    userId: number;
+    name: string;
+    model: string;
+    endpoint: string;
+    api_key: string;
+  };
 }
 
 interface Model {
@@ -594,6 +611,40 @@ interface Window {
       max_workers: number;
       status: string;
     }>;
+    deleteAzureOpenAIModel: (
+      userId: number,
+      id: number
+    ) => Promise<{
+      userId: number;
+      id: number;
+      success: boolean;
+    }>;
+    getAzureOpenAIModels: (userId: number) => Promise<{
+      models: {
+        name: string;
+        model: string;
+        endpoint: string;
+        api_key: string;
+      }[];
+    }>;
+    getAzureOpenAIModel: (
+      userId: number,
+      id: number
+    ) => Promise<{
+      name: string;
+      model: string;
+      endpoint: string;
+      api_key: string;
+    }>;
+    addAzureOpenAIModel: (
+      userId: number,
+      name: string,
+      model: string,
+      endpoint: string,
+      api_key: string
+    ) => Promise<{
+      id: number;
+    }>;
     downloadModel: (payload: {
       modelId: string;
       dirPath: string;
@@ -679,14 +730,15 @@ type OpenRouterModel = string;
 interface ProgressData extends CustomProgressData, OllamaProgressEvent {}
 
 type LLMProvider =
-  | "openai"
-  | "anthropic"
-  | "gemini"
-  | "xai"
-  | "openrouter"
-  | "local"
-  | "ollama"
-  | "custom";
+  | "OpenAI"
+  | "Anthropic"
+  | "Gemini"
+  | "XAI"
+  | "Openrouter"
+  | "Local"
+  | "Ollama"
+  | "Azure Open AI"
+  | "Custom";
 
 interface OllamaProgressEvent {
   type: "pull" | "verify";

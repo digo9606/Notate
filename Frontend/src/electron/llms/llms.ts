@@ -11,6 +11,7 @@ import { OpenRouterProvider } from "./providers/openrouter.js";
 import { OllamaProvider } from "./providers/ollama.js";
 import log from "electron-log";
 import os from "os";
+import { AzureOpenAIProvider } from "./providers/azureOpenAI.js";
 
 interface ProviderResponse {
   id: bigint | number;
@@ -151,6 +152,9 @@ export async function chatRequest(
         break;
       case "openrouter":
         provider = OpenRouterProvider;
+        break;
+      case "Azure Open AI":
+        provider = AzureOpenAIProvider;
         break;
       case "anthropic":
         provider = AnthropicProvider;
