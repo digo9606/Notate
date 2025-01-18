@@ -109,3 +109,4 @@ Backend/src/models/__pycache__/streamer.cpython-310.pyc
 monitor_resources.ps1
 
 Frontend/models/*
+Backend/models/*
