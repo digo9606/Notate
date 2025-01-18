@@ -155,7 +155,9 @@ export default function LLMPanel() {
                 selectedProvider === provider ? "selected" : ""
               }`}
             >
-              {providerIcons[provider as keyof typeof providerIcons]}
+              <div className="mr-2">
+                {providerIcons[provider as keyof typeof providerIcons]}
+              </div>
               {provider}
             </Button>
           ))}
@@ -235,13 +237,13 @@ export default function LLMPanel() {
             ))}
             {ollamaModels.length > 0 && (
               <div className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-background/80 backdrop-blur-sm border shadow-sm hover:shadow-md transition-shadow">
-                {providerIcons.Ollama}
+                {providerIcons["ollama" as keyof typeof providerIcons]}
                 <span className="ml-1.5">Ollama</span>
               </div>
             )}
             {localModels.length > 0 && (
               <div className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-background/80 backdrop-blur-sm border shadow-sm hover:shadow-md transition-shadow">
-                {providerIcons.Local}
+                {providerIcons["local" as keyof typeof providerIcons]}
                 <span className="ml-1.5">Local</span>
               </div>
             )}
