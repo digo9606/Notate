@@ -51,7 +51,7 @@ export default function AzureOpenAI() {
       await window.electron.addAPIKey(
         activeUser.id,
         apiKeyInput,
-        "customProvider"
+        "Azure Open AI"
       );
       toast({
         title: "Custom provider added",
