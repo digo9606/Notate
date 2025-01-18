@@ -119,7 +119,6 @@ export async function AzureOpenAIProvider(
   );
   truncatedMessages.unshift(sysPrompt);
 
-  console.log("Final messages to send:", truncatedMessages);
   const stream = await openai.chat.completions.create(
     {
       model: userSettings.model as string,

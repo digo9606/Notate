@@ -233,7 +233,6 @@ async function generateTitleLocalOpenAI(input: string, userId: number) {
     const content = chunk.choices[0]?.delta?.content || "";
     generatedTitle += content;
   }
-  console.log("Generated title:", generatedTitle);
   return generatedTitle;
 }
 
@@ -245,28 +244,20 @@ export async function generateTitle(
   const userSettings = await db.getUserSettings(userId);
   switch (userSettings.provider) {
     case "openai":
-      console.log("OpenAI");
       return generateTitleOpenAI(input, userId);
     case "openrouter":
-      console.log("OpenRouter");
       return generateTitleOpenRouter(input, userId);
     case "Azure Open AI":
-      console.log("Azure Open AI");
       return generateTitleAzureOpenAI(input, userId);
     case "anthropic":
-      console.log("Anthropic");
       return generateTitleAnthropic(input, userId);
     case "gemini":
-      console.log("Gemini");
       return generateTitleGemini(input, userId);
     case "xai":
-      console.log("XAI");
       return generateTitleXAI(input, userId);
     case "local":
-      console.log("Local");
       return generateTitleLocalOpenAI(input, userId);
     case "ollama":
-      console.log("Ollama");
       return generateOllamaTitle(input, model || "llama3.2");
     default:
       return "New Conversation";

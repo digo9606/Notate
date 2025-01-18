@@ -26,6 +26,13 @@ type User = {
   name: string;
 };
 
+type AzureModel = {
+  id: number;
+  name: string;
+  endpoint: string;
+  deployment: string;
+};
+
 type Message = {
   role: "user" | "assistant" | "system";
   content: string;

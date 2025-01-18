@@ -22,6 +22,7 @@ export function useAppInitialization() {
     fetchApiKey,
     fetchPrompts,
     setOpenRouterModels,
+    setAzureModels,
   } = useUser();
   const {
     setUserCollections,
@@ -85,6 +86,21 @@ export function useAppInitialization() {
       }
     };
 
+    const fetchAzureModels = async () => {
+      if (activeUser) {
+        const models = await window.electron.getAzureOpenAIModels(
+          activeUser.id
+        );
+        setAzureModels(
+          models.models.map((m) => ({
+            ...m,
+            id: Date.now(),
+            deployment: m.model,
+          }))
+        );
+      }
+    };
+
     const handleOllamaIntegration = async () => {
       const startUpOllama = await window.electron.checkOllama();
       if (activeUser && startUpOllama) {
@@ -137,6 +153,7 @@ export function useAppInitialization() {
       fetchPrompts();
       fetchDevAPIKeys();
       fetchCollections();
+      fetchAzureModels();
     }
   }, [activeUser]);
 

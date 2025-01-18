@@ -97,7 +97,6 @@ export async function LocalModelProvider(
   );
   truncatedMessages.unshift(sysPrompt);
 
-  console.log("Final messages to send:", truncatedMessages);
 
   const newMessage: Message = {
     role: "assistant",

@@ -55,7 +55,6 @@ export default function AddOllamaModel() {
           totalProgress,
           ...rest,
         });
-        console.log(progressMessage);
         if (fileName) setCurrentFile(fileName);
         if (typeof fileProgress === "number") setFileProgress(fileProgress);
       }

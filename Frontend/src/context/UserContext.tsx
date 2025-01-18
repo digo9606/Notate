@@ -54,6 +54,8 @@ interface UserContextType {
   setOpenRouterModels: React.Dispatch<React.SetStateAction<OpenRouterModel[]>>;
   apiKeyInput: string;
   setApiKeyInput: React.Dispatch<React.SetStateAction<string>>;
+  azureModels: AzureModel[];
+  setAzureModels: React.Dispatch<React.SetStateAction<AzureModel[]>>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -88,6 +90,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [alertForUser, setAlertForUser] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [currentRequestId, setCurrentRequestId] = useState<number | null>(null);
+  const [azureModels, setAzureModels] = useState<AzureModel[]>([]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -344,6 +347,8 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       setOpenRouterModels,
       apiKeyInput,
       setApiKeyInput,
+      azureModels,
+      setAzureModels,
     }),
     [
       activeUser,
@@ -371,6 +376,8 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       openRouterModels,
       apiKeyInput,
       setApiKeyInput,
+      azureModels,
+      setAzureModels,
     ]
   );
 
