@@ -112,25 +112,25 @@ export default function LLMPanel() {
 
   const renderInputs = () => {
     switch (selectedProvider) {
-      case "Anthropic":
-      case "XAI":
-      case "Gemini":
-      case "OpenAI":
+      case "anthropic":
+      case "xai":
+      case "gemini":
+      case "openai":
         return (
           <External
             showUpdateInput={showUpdateInput}
             setShowUpdateInput={setShowUpdateInput}
           />
         );
-      case "Local":
+      case "local":
         return <LocalLLM />;
-      case "Ollama":
+      case "ollama":
         return <Ollama />;
-      case "Openrouter":
+      case "openrouter":
         return <Openrouter />;
       case "Azure Open AI":
         return <AzureOpenAI />;
-      case "Custom":
+      case "custom":
         return <CustomLLM />;
       default:
         return null;
@@ -150,7 +150,7 @@ export default function LLMPanel() {
                 setApiKeyInput("");
                 setShowUpdateInput(false);
               }}
-              variant={selectedProvider === provider ? "default" : "outline"}
+              variant={selectedProvider === provider ? "secondary" : "outline"}
               className={`btn-provider ${
                 selectedProvider === provider ? "selected" : ""
               }`}
@@ -189,9 +189,9 @@ export default function LLMPanel() {
           <div className="mt-6">
             {renderInputs()}
             {selectedProvider !== "Openrouter" &&
-              selectedProvider !== "Ollama" &&
-              selectedProvider !== "Local" &&
-              selectedProvider !== "Custom" &&
+              selectedProvider !== "ollama" &&
+              selectedProvider !== "local" &&
+              selectedProvider !== "custom" &&
               selectedProvider !== "Azure Open AI" &&
               (!apiKeys.some(
                 (key) => key.provider === selectedProvider.toLowerCase()
