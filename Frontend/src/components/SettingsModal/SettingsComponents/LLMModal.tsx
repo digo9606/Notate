@@ -44,7 +44,7 @@ export default function LLMPanel() {
     const trimmedApiKey = apiKeyInput.trim();
     const result = await window.electron.keyValidation({
       apiKey: trimmedApiKey,
-      inputProvider: selectedProvider,
+      inputProvider: selectedProvider.toLowerCase(),
     });
     if (result.error) {
       toast({
@@ -60,12 +60,16 @@ export default function LLMPanel() {
       await window.electron.addAPIKey(
         activeUser.id,
         trimmedApiKey,
-        selectedProvider
+        selectedProvider.toLowerCase()
       );
       if (!apiKeys.some((key) => key.provider === selectedProvider)) {
         setApiKeys((prevKeys) => [
           ...prevKeys,
-          { id: Date.now(), key: trimmedApiKey, provider: selectedProvider },
+          {
+            id: Date.now(),
+            key: trimmedApiKey,
+            provider: selectedProvider.toLowerCase(),
+          },
         ]);
       }
       setShowUpdateInput(false);
@@ -89,7 +93,7 @@ export default function LLMPanel() {
         await window.electron.updateUserSettings(
           activeUser.id,
           "provider",
-          provider
+          provider.toLowerCase()
         );
         if (provider === "Openrouter") {
           await window.electron.addOpenRouterModel(
