@@ -192,11 +192,11 @@ export default function LLMPanel() {
         <>
           <div className="mt-6">
             {renderInputs()}
-            {selectedProvider !== "Openrouter" &&
-              selectedProvider !== "ollama" &&
-              selectedProvider !== "local" &&
-              selectedProvider !== "custom" &&
-              selectedProvider !== "Azure Open AI" &&
+            {selectedProvider.toLowerCase() !== "openrouter" &&
+              selectedProvider.toLowerCase() !== "ollama" &&
+              selectedProvider.toLowerCase() !== "local" &&
+              selectedProvider.toLowerCase() !== "custom" &&
+              selectedProvider.toLowerCase() !== "azure open ai" &&
               (!apiKeys.some(
                 (key) => key.provider === selectedProvider.toLowerCase()
               ) ||
