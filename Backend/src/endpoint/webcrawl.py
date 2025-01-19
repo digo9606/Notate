@@ -8,7 +8,8 @@ from src.vectorstorage.vectorstore import get_vectorstore
 from typing import Generator
 import json
 import os
-from urllib.parse import urlparses
+from urllib.parse import urlparse
+import logging
 
 
 def webcrawl(data: WebCrawlRequest, cancel_event=None) -> Generator[dict, None, None]:
