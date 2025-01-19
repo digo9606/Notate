@@ -43,7 +43,6 @@ mdurl==0.1.2
 mmh3==5.0.1
 monotonic==1.6
 mpmath==1.3.0
-numpy==1.24.3
 numba==0.58.1
 oauthlib==3.2.2
 onnxruntime==1.20.1
@@ -88,11 +87,10 @@ sniffio==1.3.1
 starlette==0.41.3
 sympy==1.13.3
 tenacity==9.0.0
-tokenizers>=0.21.0,<0.22.0
+tokenizers==0.21.0
 tomli==2.2.1
 tqdm==4.67.1
 typer==0.15.1
-typing_extensions==4.12.2
 urllib3==2.2.3
 uvicorn==0.32.1
 watchfiles==1.0.0
@@ -122,6 +120,10 @@ hpack==4.0.0
 http3==0.6.7
 h11==0.14.0
 httpcore==1.0.7
+sentence-transformers==3.3.1
+threadpoolctl==3.5.0
+joblib==1.4.2
+scipy==1.15.1
 httpx==0.28.0
 priority==2.0.0
 wsproto==1.2.0
@@ -149,7 +151,6 @@ accelerate>=0.20.3
 bitsandbytes>=0.41.1
 safetensors>=0.4.0
 llvmlite==0.43.0
-transformers>=4.36.0
 einops==0.8.0
 optimum==1.23.3
 datasets==3.2.0
@@ -169,3 +170,4 @@ xxhash==3.5.0
 diskcache==5.6.3
 hqq==0.2.2
 termcolor==2.5.0
+langchain-huggingface==0.1.2

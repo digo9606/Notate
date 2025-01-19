@@ -1,7 +1,22 @@
 import sys
 import os
 import subprocess
+import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import warnings
+import logging
+import torch
+
+# Filter transformers model warnings
+warnings.filterwarnings('ignore', category=UserWarning)
+os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = 'true'
+
+# Configure logging to handle progress messages
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Move the import after we install dependencies
+# from src.vectorstorage.init_store import init_store
 
 
 def find_python310():
@@ -63,20 +78,168 @@ def get_installed_packages(python_path):
     return {line.split('==')[0].lower(): line.split('==')[1] for line in result.stdout.splitlines()}
 
 
+async def async_init_store():
+    try:
+        # Suppress model initialization warnings
+        import transformers
+        from src.vectorstorage.init_store import init_store
+        transformers.logging.set_verbosity_error()
+        logging.getLogger(
+            "transformers.modeling_utils").setLevel(logging.ERROR)
+
+        # Configure huggingface_hub logging
+        hf_logger = logging.getLogger("huggingface_hub")
+        hf_logger.setLevel(logging.INFO)
+        sys.stdout.write(
+            "Downloading initial embedding model (HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5) ...|85\n")
+        sys.stdout.flush()
+
+        # Redirect stderr to capture progress messages
+        with open(os.devnull, 'w') as devnull:
+            old_stderr = sys.stderr
+            sys.stderr = devnull
+            try:
+                model_path = await init_store()
+                sys.stdout.write(
+                    f"Model downloaded successfully to {model_path}|95\n")
+            finally:
+                sys.stderr = old_stderr
+
+        sys.stdout.flush()
+    except Exception as e:
+        sys.stdout.write(f"Error downloading model: {str(e)}|85\n")
+        sys.stdout.flush()
+        raise e
+
+
+def get_package_version(python_path, package_name):
+    try:
+        result = subprocess.run(
+            [python_path, '-m', 'pip', 'show', package_name],
+            capture_output=True,
+            text=True
+        )
+        for line in result.stdout.split('\n'):
+            if line.startswith('Version: '):
+                version = line.split('Version: ')[1].strip()
+                # Handle CUDA variants of PyTorch
+                if package_name == 'torch' and '+cu' in version:
+                    # Strip CUDA suffix for version comparison
+                    version = version.split('+')[0]
+                return version
+    except:
+        return None
+    return None
+
+
+def install_core_dependencies(python_path):
+    """Install critical dependencies first"""
+    core_packages = [
+        'numpy==1.24.3',
+        'torch==2.5.1',  # Install torch first
+        'torchvision==0.20.1',  # Match the version that was successfully installed earlier
+        'transformers==4.48.0',
+        'typing-extensions>=4.12.2',
+        'scikit-learn==1.6.1',
+        'sentence-transformers==3.3.1'
+    ]
+
+    for package in core_packages:
+        try:
+            package_name = package.split('==')[0].split('>=')[0]
+            required_version = package.split(
+                '==')[1] if '==' in package else package.split('>=')[1]
+            current_version = get_package_version(python_path, package_name)
+
+            if current_version:
+                if '==' in package and current_version == required_version:
+                    sys.stdout.write(
+                        f"Package {package_name} {current_version} already installed|45\n")
+                    sys.stdout.flush()
+                    continue
+                elif '>=' in package and current_version >= required_version:
+                    sys.stdout.write(
+                        f"Package {package_name} {current_version} already installed|45\n")
+                    sys.stdout.flush()
+                    continue
+
+            sys.stdout.write(f"Installing {package}...|40\n")
+            sys.stdout.flush()
+
+            # Special handling for PyTorch and torchvision installation on Linux
+            if package_name in ['torch', 'torchvision']:
+                if sys.platform.startswith('linux'):
+                    # Fix the installation command format
+                    install_cmd = [
+                        python_path,
+                        '-m',
+                        'pip',
+                        'install',
+                        '--no-cache-dir',
+                        f'{package_name}=={required_version}',
+                        '--extra-index-url',
+                        'https://download.pytorch.org/whl/cpu'
+                    ]
+                elif torch.cuda.is_available():
+                    install_cmd = [
+                        python_path,
+                        '-m',
+                        'pip',
+                        'install',
+                        '--no-cache-dir',
+                        f'{package_name}=={required_version}',
+                        '--extra-index-url',
+                        'https://download.pytorch.org/whl/cu121'
+                    ]
+                else:
+                    install_cmd = [
+                        python_path,
+                        '-m',
+                        'pip',
+                        'install',
+                        '--no-cache-dir',
+                        package
+                    ]
+
+                subprocess.check_call(
+                    install_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            else:
+                subprocess.check_call(
+                    [python_path, '-m', 'pip', 'install',
+                        '--no-cache-dir', package],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+
+            sys.stdout.write(f"Successfully installed {package}|45\n")
+            sys.stdout.flush()
+        except subprocess.CalledProcessError as e:
+            sys.stdout.write(f"Error installing {package}: {str(e)}|45\n")
+            sys.stdout.flush()
+            raise
+
+
 def install_requirements(custom_venv_path=None):
     try:
         venv_path = create_venv(custom_venv_path)
         python_path = get_venv_python(venv_path)
+
+        # Install core dependencies first
+        install_core_dependencies(python_path)
+
         requirements_path = os.path.join(
             os.path.dirname(__file__), 'requirements.txt')
 
-        # Handle all requirements except those already installed by ensurePythonAndVenv.ts
+        # Handle remaining requirements
         with open(requirements_path, 'r') as f:
-            requirements = [line.strip() for line in f if line.strip()
-                            and not line.startswith('#')
-                            and not line.startswith('llama-cpp-python')
-                            and not line.startswith('typing_extensions')
-                            and not line.startswith('numpy')]
+            requirements = [
+                line.strip() for line in f
+                if line.strip()
+                and not line.startswith('#')
+                and not any(pkg.split('==')[0] in line for pkg in [
+                    'numpy', 'torch', 'transformers', 'typing-extensions'
+                ])
+            ]
 
         total_deps = len(requirements)
         sys.stdout.write(f"Total packages to process: {total_deps}|50\n")
@@ -91,7 +254,8 @@ def install_requirements(custom_venv_path=None):
                 to_install.append(req)
 
         completed_deps = total_deps - len(to_install)
-        progress = 50 + (completed_deps / total_deps) * 23
+        progress = 50 + (completed_deps / total_deps) * \
+            30  # Scale from 50 to 80
         sys.stdout.write(f"Checked installed packages|{progress:.1f}\n")
         sys.stdout.flush()
 
@@ -103,7 +267,8 @@ def install_requirements(custom_venv_path=None):
                 pkg_name = pkg.split('==')[0] if '==' in pkg else pkg
                 result, error = future.result()
                 completed_deps += 1
-                progress = 73 + (completed_deps / total_deps) * 23
+                progress = 50 + (completed_deps / total_deps) * \
+                    30  # Scale from 50 to 80
 
                 if error:
                     sys.stdout.write(
@@ -112,7 +277,16 @@ def install_requirements(custom_venv_path=None):
                     sys.stdout.write(f"Installed {pkg_name}|{progress:.1f}\n")
                 sys.stdout.flush()
 
-        sys.stdout.write("Dependencies installed successfully!|96\n")
+        # Now we can safely import init_store after all dependencies are installed
+        sys.stdout.write(
+            "All dependencies installed, initializing model store...|85\n")
+        sys.stdout.flush()
+
+        # Initialize the store to download the model
+        asyncio.run(async_init_store())
+
+        sys.stdout.write(
+            "Dependencies installed and model initialized successfully!|99\n")
         sys.stdout.flush()
 
     except Exception as e:

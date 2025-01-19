@@ -23,7 +23,6 @@ import threading
 import uvicorn
 import json
 from src.endpoint.api import chat_completion_stream
-
 app = FastAPI()
 embedding_task = None
 embedding_event = None
@@ -55,6 +54,13 @@ async def chat_completion(request: ChatCompletionRequest, user_id: str = Depends
         chat_completion_stream(request),
         media_type="text/event-stream"
     )
+
+
+@app.post("/local-embeddings")
+async def local_embeddings(request: EmbeddingRequest, user_id: str = Depends(verify_token)):
+    if user_id is None:
+        return {"status": "error", "message": "Unauthorized"}
+    return local_embed(request)
 
 
 @app.get("/model-info")

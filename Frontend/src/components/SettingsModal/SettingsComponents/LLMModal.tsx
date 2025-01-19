@@ -44,7 +44,7 @@ export default function LLMPanel() {
     const trimmedApiKey = apiKeyInput.trim();
     const result = await window.electron.keyValidation({
       apiKey: trimmedApiKey,
-      inputProvider: selectedProvider,
+      inputProvider: selectedProvider.toLowerCase(),
     });
     if (result.error) {
       toast({
@@ -60,12 +60,16 @@ export default function LLMPanel() {
       await window.electron.addAPIKey(
         activeUser.id,
         trimmedApiKey,
-        selectedProvider
+        selectedProvider.toLowerCase()
       );
       if (!apiKeys.some((key) => key.provider === selectedProvider)) {
         setApiKeys((prevKeys) => [
           ...prevKeys,
-          { id: Date.now(), key: trimmedApiKey, provider: selectedProvider },
+          {
+            id: Date.now(),
+            key: trimmedApiKey,
+            provider: selectedProvider.toLowerCase(),
+          },
         ]);
       }
       setShowUpdateInput(false);
@@ -89,9 +93,8 @@ export default function LLMPanel() {
         await window.electron.updateUserSettings(
           activeUser.id,
           "provider",
-          provider
+          provider.toLowerCase()
         );
-
         if (provider === "Openrouter") {
           await window.electron.addOpenRouterModel(
             activeUser.id,
@@ -112,25 +115,25 @@ export default function LLMPanel() {
 
   const renderInputs = () => {
     switch (selectedProvider) {
-      case "anthropic":
-      case "xai":
-      case "gemini":
-      case "openai":
+      case "Anthropic":
+      case "XAI":
+      case "Gemini":
+      case "OpenAI":
         return (
           <External
             showUpdateInput={showUpdateInput}
             setShowUpdateInput={setShowUpdateInput}
           />
         );
-      case "local":
+      case "Local":
         return <LocalLLM />;
-      case "ollama":
+      case "Ollama":
         return <Ollama />;
-      case "openrouter":
+      case "OpenRouter":
         return <Openrouter />;
       case "Azure Open AI":
         return <AzureOpenAI />;
-      case "custom":
+      case "Custom":
         return <CustomLLM />;
       default:
         return null;
@@ -189,11 +192,11 @@ export default function LLMPanel() {
         <>
           <div className="mt-6">
             {renderInputs()}
-            {selectedProvider !== "Openrouter" &&
-              selectedProvider !== "ollama" &&
-              selectedProvider !== "local" &&
-              selectedProvider !== "custom" &&
-              selectedProvider !== "Azure Open AI" &&
+            {selectedProvider.toLowerCase() !== "openrouter" &&
+              selectedProvider.toLowerCase() !== "ollama" &&
+              selectedProvider.toLowerCase() !== "local" &&
+              selectedProvider.toLowerCase() !== "custom" &&
+              selectedProvider.toLowerCase() !== "azure open ai" &&
               (!apiKeys.some(
                 (key) => key.provider === selectedProvider.toLowerCase()
               ) ||

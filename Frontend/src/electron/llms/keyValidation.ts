@@ -16,7 +16,8 @@ export async function keyValidation({
 }> {
   try {
     let provider;
-    switch (inputProvider) {
+    log.info(`Input provider: ${inputProvider}`);
+    switch (inputProvider.toLowerCase()) {
       case "openai":
         provider = OpenAIProviderAPIKeyCheck;
         break;

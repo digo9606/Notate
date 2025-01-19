@@ -31,7 +31,7 @@ export default function AzureOpenAI() {
       await window.electron.updateUserSettings(
         activeUser.id,
         "provider",
-        "Azure Open AI"
+        "azure open ai"
       );
       await window.electron.updateUserSettings(
         activeUser.id,
@@ -51,7 +51,7 @@ export default function AzureOpenAI() {
       await window.electron.addAPIKey(
         activeUser.id,
         apiKeyInput,
-        "Azure Open AI"
+        "azure open ai"
       );
       toast({
         title: "Custom provider added",

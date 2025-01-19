@@ -49,8 +49,10 @@ export async function addFileToCollection(
                     .replace(/'/g, '"')
                     // Handle nested quotes in message strings
                     .replace(/"([^"]*)'([^']*)'([^"]*)"/, '"$1\\"$2\\"$3"');
-                  const parsedData = JSON.parse(formattedJson) as PythonProgressData;
-                  
+                  const parsedData = JSON.parse(
+                    formattedJson
+                  ) as PythonProgressData;
+
                   const progressData: ProgressData = {
                     status: parsedData.type || "progress",
                     data: {
@@ -60,7 +62,7 @@ export async function addFileToCollection(
                       percent_complete: parsedData.percent_complete,
                     },
                   };
-                  
+
                   mainWindow?.webContents.send("ingest-progress", progressData);
                 } catch (parseError) {
                   console.error("[NEW_FILE] JSON parse error:", parseError);
@@ -108,7 +110,8 @@ export async function addFileToCollection(
     let localEmbeddingModel = "";
     if (!apiKey) {
       isLocal = true;
-      localEmbeddingModel = "granite-embedding:278m";
+      localEmbeddingModel =
+        "HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5";
     }
 
     if (collectionId) {
@@ -119,13 +122,15 @@ export async function addFileToCollection(
     }
     db.addFileToCollection(userId, collectionId, fileName);
 
-    sendProgress(JSON.stringify({
-      type: "progress",
-      message: "Starting file processing...",
-      chunk: 1,
-      totalChunks: 2,
-      percent_complete: "50%"
-    }));
+    sendProgress(
+      JSON.stringify({
+        type: "progress",
+        message: "Starting file processing...",
+        chunk: 1,
+        totalChunks: 2,
+        percent_complete: "50%",
+      })
+    );
 
     const controller = new AbortController();
 
@@ -167,10 +172,12 @@ export async function addFileToCollection(
 
       if (signal?.aborted || controller.signal.aborted) {
         reader.cancel();
-        sendProgress(JSON.stringify({
-          type: "error",
-          message: "Operation cancelled"
-        }));
+        sendProgress(
+          JSON.stringify({
+            type: "error",
+            message: "Operation cancelled",
+          })
+        );
         return { success: false, error: "Operation cancelled" };
       }
 
@@ -199,8 +206,8 @@ export async function addFileToCollection(
       mainWindow?.webContents.send("ingest-progress", {
         status: "error",
         data: {
-          message: "Operation cancelled"
-        }
+          message: "Operation cancelled",
+        },
       });
       return { success: false, error: "Operation cancelled" };
     }
@@ -208,8 +215,8 @@ export async function addFileToCollection(
     mainWindow?.webContents.send("ingest-progress", {
       status: "error",
       data: {
-        message: error instanceof Error ? error.message : "Unknown error"
-      }
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
     });
     return { success: false, error: "Failed to add file to collection" };
   }

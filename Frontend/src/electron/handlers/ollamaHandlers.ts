@@ -68,14 +68,4 @@ export async function setupOllamaHandlers() {
       }
     }
   );
-
-  /*   const isOllamaRunning = await checkOllama();
-  if (isOllamaRunning) {
-    log.info("Ollama is running, pulling model...");
-    try {
-      await pullModel("granite-embedding:278m");
-    } catch (error) {
-      log.info("Error pulling model (You probably arent running ollama) :", error);
-    }
-  } */
 }
