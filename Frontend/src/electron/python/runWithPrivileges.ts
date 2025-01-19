@@ -15,7 +15,7 @@ export async function runWithPrivileges(
       execSync(cmd);
     }
   } catch {
-    log.info("Failed to run commands, requesting privileges..., ");
+    log.info("Failed to run commands, requesting privileges...");
 
     const response = await dialog.showMessageBox({
       type: "question",
@@ -30,9 +30,17 @@ export async function runWithPrivileges(
 
     if (response.response === 0) {
       try {
-        // Combine all commands with && to run them in sequence
-        const combinedCommand = commandArray.join(" && ");
-        execSync(`pkexec sh -c '${combinedCommand}'`);
+        // Use sudo -n to prevent password prompt if sudo is configured with NOPASSWD
+        try {
+          execSync("sudo -n true");
+          // If sudo -n succeeds, use sudo
+          const combinedCommand = commandArray.join(" && ");
+          execSync(`sudo sh -c '${combinedCommand}'`);
+        } catch {
+          // If sudo -n fails, fall back to pkexec
+          const combinedCommand = commandArray.join(" && ");
+          execSync(`pkexec sh -c 'DEBIAN_FRONTEND=noninteractive ${combinedCommand}'`);
+        }
       } catch (error) {
         log.error("Failed to run commands with privileges", error);
         throw new Error("Failed to run commands with elevated privileges");
