@@ -5,9 +5,14 @@ from langchain_openai import OpenAIEmbeddings
 import torch
 import os
 import logging
+import platform
 
 home_dir = os.path.expanduser("~")
-app_data_dir = os.path.join(home_dir, ".notate")
+if platform.system() == "Darwin":  # macOS
+    app_data_dir = os.path.join(home_dir, "Library/Application Support/Notate")
+else:  # Linux and others
+    app_data_dir = os.path.join(home_dir, ".notate")
+
 os.makedirs(app_data_dir, exist_ok=True)
 chroma_db_path = os.path.join(app_data_dir, "chroma_db")
 logger = logging.getLogger(__name__)
