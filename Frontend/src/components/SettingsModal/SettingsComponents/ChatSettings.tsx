@@ -361,7 +361,7 @@ export default function ChatSettings() {
                       {apiKey.provider.toUpperCase()}
                     </SelectLabel>
                     {modelOptions[
-                      apiKey.provider as keyof typeof modelOptions
+                      apiKey.provider.toLowerCase() as keyof typeof modelOptions
                     ]?.map((model) => (
                       <SelectItem key={model} value={model}>
                         {model}
