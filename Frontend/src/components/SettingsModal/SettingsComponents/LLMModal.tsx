@@ -91,7 +91,6 @@ export default function LLMPanel() {
           "provider",
           provider
         );
-
         if (provider === "Openrouter") {
           await window.electron.addOpenRouterModel(
             activeUser.id,
