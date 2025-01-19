@@ -13,7 +13,7 @@ export function getLinuxPackageManager(): {
       const fedoraVersion = fs
         .readFileSync("/etc/fedora-release", "utf8")
         .match(/\d+/)?.[0];
-      
+
       return {
         command: "dnf",
         installCommand: `dnf -y --setopt=install_weak_deps=False --allowerasing install python3-devel gcc gcc-c++ && \
