@@ -112,25 +112,25 @@ export default function LLMPanel() {
 
   const renderInputs = () => {
     switch (selectedProvider) {
-      case "anthropic":
-      case "xai":
-      case "gemini":
-      case "openai":
+      case "Anthropic":
+      case "XAI":
+      case "Gemini":
+      case "OpenAI":
         return (
           <External
             showUpdateInput={showUpdateInput}
             setShowUpdateInput={setShowUpdateInput}
           />
         );
-      case "local":
+      case "Local":
         return <LocalLLM />;
-      case "ollama":
+      case "Ollama":
         return <Ollama />;
-      case "openrouter":
+      case "OpenRouter":
         return <Openrouter />;
       case "Azure Open AI":
         return <AzureOpenAI />;
-      case "custom":
+      case "Custom":
         return <CustomLLM />;
       default:
         return null;
