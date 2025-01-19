@@ -13,12 +13,18 @@ import { useState } from "react";
 import { sanitizeStoreName } from "@/lib/utils";
 import { useUser } from "@/context/useUser";
 import { useLibrary } from "@/context/useLibrary";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function AddLibrary() {
   const [newStore, setNewStore] = useState("");
   const [newStoreError, setNewStoreError] = useState<string | null>(null);
   const [newStoreDescription, setNewStoreDescription] = useState("");
-  const [isLocal, setIsLocal] = useState(false);
+  const [isLocal, setIsLocal] = useState(true);
   const [localEmbeddingModel, setLocalEmbeddingModel] = useState(
     "granite-embedding:278m"
   );
@@ -63,7 +69,10 @@ export default function AddLibrary() {
       newCollection.id.toString()
     );
 
-    setUserCollections((prevCollections) => [...prevCollections, newCollection]);
+    setUserCollections((prevCollections) => [
+      ...prevCollections,
+      newCollection,
+    ]);
     setShowAddStore(false);
     setFiles([]);
     setNewStore("");
@@ -87,7 +96,10 @@ export default function AddLibrary() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Label htmlFor="newStore" className="col-span-2 text-left text-lg">
+              <Label
+                htmlFor="newStore"
+                className="col-span-2 text-left text-lg"
+              >
                 Create a new store
               </Label>
             </div>
@@ -135,19 +147,36 @@ export default function AddLibrary() {
         <div className="space-y-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="storeLocation" className="text-right">
-              Store Location
+              Embeddings
             </Label>
             <div className="col-span-3">
               <div className="flex gap-4">
-                <Button
-                  type="button"
-                  variant={isLocal ? "outline" : "secondary"}
-                  className="flex-1 sm:text-[14px] text-[10px]"
-                  onClick={() => setIsLocal(false)}
-                >
-                  <Cloud className="h-4 w-4 mr-2" />
-                  Cloud Store
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        <Button
+                          disabled={
+                            apiKeys.find((key) => key.provider === "openai") ===
+                            undefined
+                          }
+                          type="button"
+                          variant={isLocal ? "outline" : "secondary"}
+                          className="flex-1 sm:text-[14px] text-[10px]"
+                          onClick={() => setIsLocal(false)}
+                        >
+                          <Cloud className="h-4 w-4 mr-2" />
+                          Open AI
+                        </Button>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        You must have an OpenAI API key to use this feature.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <Button
                   type="button"
                   variant={isLocal ? "secondary" : "outline"}
@@ -155,7 +184,7 @@ export default function AddLibrary() {
                   onClick={() => setIsLocal(true)}
                 >
                   <Database className="h-4 w-4 mr-2" />
-                  Local Store
+                  Local
                 </Button>
               </div>
             </div>
@@ -176,7 +205,7 @@ export default function AddLibrary() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="granite-embedding:278m">
-                      Default: granite-embedding:278m
+                      Default: 
                     </SelectItem>
                   </SelectContent>
                 </Select>
