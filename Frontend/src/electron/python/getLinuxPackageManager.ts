@@ -12,7 +12,7 @@ export function getLinuxPackageManager(): {
       execSync("which dnf");
       return {
         command: "dnf",
-        installCommand: "dnf install -y python3-devel gcc gcc-c++",
+        installCommand: "dnf -y update && dnf install -y python3-devel gcc gcc-c++",
       };
     } catch {
       log.info("Fedora-based system detected but dnf not found");

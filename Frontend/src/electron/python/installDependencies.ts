@@ -81,10 +81,24 @@ export async function installDependencies(
         "torch",
         "torchvision",
         "torchaudio",
+        "--index-url",
+        "https://download.pytorch.org/whl/cpu",
       ]);
     }
     log.info("PyTorch installed successfully");
     updateLoadingStatus("PyTorch installed successfully", 44.5);
+
+    // Install transformers and related packages
+    await spawnAsync(venvPython, [
+      "-m",
+      "pip",
+      "install",
+      "--no-cache-dir",
+      "transformers==4.48.0",
+      "sentence-transformers==3.3.1",
+    ]);
+    log.info("Transformers installed successfully");
+    updateLoadingStatus("Transformers installed successfully", 46.5);
 
     // Install llama-cpp-python if needed
     if (process.platform === "darwin" || hasNvidiaGpu) {

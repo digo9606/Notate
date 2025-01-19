@@ -15,9 +15,6 @@ os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = 'true'
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Move the import after we install dependencies
-# from src.vectorstorage.init_store import init_store
-
 
 def find_python310():
     python_commands = ["python3.10", "python3"] if sys.platform != "win32" else [
@@ -132,100 +129,12 @@ def get_package_version(python_path, package_name):
     return None
 
 
-def install_core_dependencies(python_path):
-    """Install critical dependencies first"""
-    core_packages = [
-        'numpy==1.24.3',
-        'torch==2.5.1',  # Install torch first
-        'torchvision==0.20.1',  # Match the version that was successfully installed earlier
-        'transformers==4.48.0',
-        'typing-extensions>=4.12.2',
-        'scikit-learn==1.6.1',
-        'sentence-transformers==3.3.1'
-    ]
-
-    for package in core_packages:
-        try:
-            package_name = package.split('==')[0].split('>=')[0]
-            required_version = package.split(
-                '==')[1] if '==' in package else package.split('>=')[1]
-            current_version = get_package_version(python_path, package_name)
-
-            if current_version:
-                if '==' in package and current_version == required_version:
-                    sys.stdout.write(
-                        f"Package {package_name} {current_version} already installed|45\n")
-                    sys.stdout.flush()
-                    continue
-                elif '>=' in package and current_version >= required_version:
-                    sys.stdout.write(
-                        f"Package {package_name} {current_version} already installed|45\n")
-                    sys.stdout.flush()
-                    continue
-
-            sys.stdout.write(f"Installing {package}...|40\n")
-            sys.stdout.flush()
-
-            # Special handling for PyTorch and torchvision installation on Linux
-            if package_name in ['torch', 'torchvision']:
-                if sys.platform.startswith('linux'):
-                    # Fix the installation command format
-                    install_cmd = [
-                        python_path,
-                        '-m',
-                        'pip',
-                        'install',
-                        '--no-cache-dir',
-                        f'{package_name}=={required_version}',
-                        '--extra-index-url',
-                        'https://download.pytorch.org/whl/cpu'
-                    ]
-                elif torch.cuda.is_available():
-                    install_cmd = [
-                        python_path,
-                        '-m',
-                        'pip',
-                        'install',
-                        '--no-cache-dir',
-                        f'{package_name}=={required_version}',
-                        '--extra-index-url',
-                        'https://download.pytorch.org/whl/cu121'
-                    ]
-                else:
-                    install_cmd = [
-                        python_path,
-                        '-m',
-                        'pip',
-                        'install',
-                        '--no-cache-dir',
-                        package
-                    ]
-
-                subprocess.check_call(
-                    install_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            else:
-                subprocess.check_call(
-                    [python_path, '-m', 'pip', 'install',
-                        '--no-cache-dir', package],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL
-                )
-
-            sys.stdout.write(f"Successfully installed {package}|45\n")
-            sys.stdout.flush()
-        except subprocess.CalledProcessError as e:
-            sys.stdout.write(f"Error installing {package}: {str(e)}|45\n")
-            sys.stdout.flush()
-            raise
-
-
 def install_requirements(custom_venv_path=None):
     try:
         venv_path = create_venv(custom_venv_path)
         python_path = get_venv_python(venv_path)
 
         # Install core dependencies first
-        install_core_dependencies(python_path)
 
         requirements_path = os.path.join(
             os.path.dirname(__file__), 'requirements.txt')
@@ -236,9 +145,6 @@ def install_requirements(custom_venv_path=None):
                 line.strip() for line in f
                 if line.strip()
                 and not line.startswith('#')
-                and not any(pkg.split('==')[0] in line for pkg in [
-                    'numpy', 'torch', 'transformers', 'typing-extensions'
-                ])
             ]
 
         total_deps = len(requirements)

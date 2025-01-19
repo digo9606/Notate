@@ -149,7 +149,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
   // Check for NVIDIA GPU and CUDA first
   let hasNvidiaGpu = false;
   let cudaAvailable = false;
-  
+
   // Force CPU-only mode for laptops and non-NVIDIA systems
   if (process.platform === "darwin") {
     hasNvidiaGpu = false;
@@ -162,7 +162,10 @@ export async function ensurePythonAndVenv(backendPath: string) {
         updateLoadingStatus("Checking for NVIDIA GPU...", 8.5);
         const gpuInfo = execSync("nvidia-smi").toString();
         // Only enable CUDA if this is a dedicated GPU (not a laptop integrated GPU)
-        if (!gpuInfo.toLowerCase().includes("notebook") && !gpuInfo.toLowerCase().includes("laptop")) {
+        if (
+          !gpuInfo.toLowerCase().includes("notebook") &&
+          !gpuInfo.toLowerCase().includes("laptop")
+        ) {
           hasNvidiaGpu = true;
           updateLoadingStatus("Dedicated NVIDIA GPU detected", 9.5);
         } else {
@@ -172,7 +175,9 @@ export async function ensurePythonAndVenv(backendPath: string) {
         }
       }
     } catch {
-      log.info("No NVIDIA GPU detected or nvidia-smi not available, using CPU-only mode");
+      log.info(
+        "No NVIDIA GPU detected or nvidia-smi not available, using CPU-only mode"
+      );
       updateLoadingStatus("Using CPU-only mode", 9.5);
       hasNvidiaGpu = false;
     }
@@ -216,23 +221,40 @@ export async function ensurePythonAndVenv(backendPath: string) {
         );
         const packageManager = getLinuxPackageManager();
 
-        try {
-          await runWithPrivileges([
-            // Update package list
-            `${packageManager.command} update`,
-            // Install CUDA toolkit and development tools
-            `${packageManager.installCommand} nvidia-cuda-toolkit build-essential`,
-          ]);
-
-          // Verify installation
-          const nvccVersion = execSync("nvcc --version").toString();
-          if (nvccVersion) {
-            log.info("CUDA toolkit installed successfully");
-            cudaAvailable = true;
+        // Check if we're on Fedora - if so, handle CUDA installation in ifFedora.ts
+        if (fs.existsSync("/etc/fedora-release")) {
+          // Re-check CUDA availability after Fedora-specific installation
+          try {
+            const nvccVersion = execSync("nvcc --version").toString();
+            if (nvccVersion) {
+              log.info(
+                "CUDA toolkit installed successfully via Fedora-specific process"
+              );
+              cudaAvailable = true;
+            }
+          } catch (error) {
+            log.error("Failed to verify CUDA installation on Fedora:", error);
           }
-        } catch (error) {
-          log.error("Failed to install CUDA toolkit:", error);
-          // Continue without CUDA support
+        } else {
+          // Non-Fedora Linux systems
+          try {
+            await runWithPrivileges([
+              // Update package list
+              `${packageManager.command} update`,
+              // Install CUDA toolkit and development tools
+              `${packageManager.installCommand} nvidia-cuda-toolkit build-essential`,
+            ]);
+
+            // Verify installation
+            const nvccVersion = execSync("nvcc --version").toString();
+            if (nvccVersion) {
+              log.info("CUDA toolkit installed successfully");
+              cudaAvailable = true;
+            }
+          } catch (error) {
+            log.error("Failed to install CUDA toolkit:", error);
+            // Continue without CUDA support
+          }
         }
       }
     } catch (error) {

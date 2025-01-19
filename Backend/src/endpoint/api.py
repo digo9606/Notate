@@ -4,7 +4,6 @@ from src.endpoint.models import ChatCompletionRequest
 from transformers import TextIteratorStreamer
 from threading import Thread
 import logging
-import os
 from src.models.manager import model_manager
 from src.models.streamer import TextGenerator, StopOnInterrupt
 import uuid
@@ -12,18 +11,7 @@ import time
 import torch
 import transformers
 
-# Configure logging
-log_dir = os.path.join(os.path.dirname(
-    os.path.dirname(os.path.dirname(__file__))), "logs")
-os.makedirs(log_dir, exist_ok=True)
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(os.path.join(log_dir, 'app.log')),
-        logging.StreamHandler()
-    ]
-)
+
 logger = logging.getLogger(__name__)
 
 
