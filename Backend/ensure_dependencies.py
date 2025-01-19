@@ -91,7 +91,7 @@ async def async_init_store():
         hf_logger = logging.getLogger("huggingface_hub")
         hf_logger.setLevel(logging.INFO)
         sys.stdout.write(
-            "Downloading initial embedding model (dunzhang/stella_en_400M_v5) ...|85\n")
+            "Downloading initial embedding model (HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5) ...|85\n")
         sys.stdout.flush()
 
         # Redirect stderr to capture progress messages
@@ -147,16 +147,19 @@ def install_core_dependencies(python_path):
     for package in core_packages:
         try:
             package_name = package.split('==')[0].split('>=')[0]
-            required_version = package.split('==')[1] if '==' in package else package.split('>=')[1]
+            required_version = package.split(
+                '==')[1] if '==' in package else package.split('>=')[1]
             current_version = get_package_version(python_path, package_name)
 
             if current_version:
                 if '==' in package and current_version == required_version:
-                    sys.stdout.write(f"Package {package_name} {current_version} already installed|45\n")
+                    sys.stdout.write(
+                        f"Package {package_name} {current_version} already installed|45\n")
                     sys.stdout.flush()
                     continue
                 elif '>=' in package and current_version >= required_version:
-                    sys.stdout.write(f"Package {package_name} {current_version} already installed|45\n")
+                    sys.stdout.write(
+                        f"Package {package_name} {current_version} already installed|45\n")
                     sys.stdout.flush()
                     continue
 
@@ -168,10 +171,10 @@ def install_core_dependencies(python_path):
                 if sys.platform.startswith('linux'):
                     # Fix the installation command format
                     install_cmd = [
-                        python_path, 
-                        '-m', 
-                        'pip', 
-                        'install', 
+                        python_path,
+                        '-m',
+                        'pip',
+                        'install',
                         '--no-cache-dir',
                         f'{package_name}=={required_version}',
                         '--extra-index-url',
@@ -197,15 +200,17 @@ def install_core_dependencies(python_path):
                         '--no-cache-dir',
                         package
                     ]
-                
-                subprocess.check_call(install_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                subprocess.check_call(
+                    install_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             else:
                 subprocess.check_call(
-                    [python_path, '-m', 'pip', 'install', '--no-cache-dir', package],
+                    [python_path, '-m', 'pip', 'install',
+                        '--no-cache-dir', package],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL
                 )
-            
+
             sys.stdout.write(f"Successfully installed {package}|45\n")
             sys.stdout.flush()
         except subprocess.CalledProcessError as e:
