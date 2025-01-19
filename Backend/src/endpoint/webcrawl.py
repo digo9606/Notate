@@ -8,12 +8,12 @@ from src.vectorstorage.vectorstore import get_vectorstore
 from typing import Generator
 import json
 import os
-from urllib.parse import urlparse
-import logging
-import sys
+from urllib.parse import urlparses
+
 
 def webcrawl(data: WebCrawlRequest, cancel_event=None) -> Generator[dict, None, None]:
     try:
+        # Create web crawler instance with all required fields
         scraper = WebCrawler(
             data.base_url,
             data.user_id,
@@ -24,23 +24,23 @@ def webcrawl(data: WebCrawlRequest, cancel_event=None) -> Generator[dict, None, 
             cancel_event=cancel_event
         )
 
+        # Yield progress updates during scraping
         for progress in scraper.scrape():
             if progress:
-                try:
-                    json_str = json.dumps(progress, ensure_ascii=False, errors='replace')
-                    yield f"data: {json_str}\n\n"
-                except Exception as e:
-                    logging.error(f"Error serializing progress: {str(e)}")
-                    continue
+                yield f"data: {json.dumps(progress)}"
 
-        root_url_dir = urlparse(data.base_url).netloc.replace(".", "_") + "_docs"
+        # After scraping, process and embed all HTML files
+        root_url_dir = urlparse(
+            data.base_url).netloc.replace(".", "_") + "_docs"
         collection_path = os.path.join(scraper.output_dir, root_url_dir)
         vector_store = get_vectorstore(
             data.api_key, data.collection_name, data.is_local, data.local_embedding_model)
 
+        # Get all HTML files recursively
         html_files = get_html_files(collection_path)
-        logging.info(f"Found {len(html_files)} HTML files")
+        print(f"Found {len(html_files)} HTML files")
 
+        # Process files in batches for better performance
         batch_size = 50
         total_batches = (len(html_files) + batch_size - 1) // batch_size
         for i in range(0, len(html_files), batch_size):
@@ -57,45 +57,33 @@ def webcrawl(data: WebCrawlRequest, cancel_event=None) -> Generator[dict, None, 
                 vector_store.add_documents(batch_docs)
 
             current_batch = i//batch_size + 1
-            try:
-                progress_data = {
-                    "status": "progress",
-                    "data": {
-                        "message": f"Part 2 of 2: Processing documents batch {current_batch}/{total_batches}",
-                        "chunk": current_batch,
-                        "total_chunks": total_batches,
-                        "percent_complete": f"{(current_batch/total_batches * 100):.1f}%"
-                    }
-                }
-                json_str = json.dumps(progress_data, ensure_ascii=False, errors='replace')
-                yield f"data: {json_str}\n\n"
-            except Exception as e:
-                logging.error(f"Error serializing batch progress: {str(e)}")
-                continue
-
-        try:
-            final_message = f"Successfully crawled and embedded {len(scraper.visited_urls)} pages from {data.base_url}"
-            success_data = {
-                "status": "success",
+            progress_data = {
+                "status": "progress",
                 "data": {
-                    "message": final_message
+                    "message": f"Part 2 of 2: Processing documents batch {current_batch}/{total_batches}",
+                    "chunk": current_batch,
+                    "total_chunks": total_batches,
+                    "percent_complete": f"{(current_batch/total_batches * 100):.1f}%"
                 }
             }
-            json_str = json.dumps(success_data, ensure_ascii=False, errors='replace')
-            yield f"data: {json_str}\n\n"
-        except Exception as e:
-            logging.error(f"Error serializing final message: {str(e)}")
+            yield f"data: {json.dumps(progress_data)}"
+
+        final_message = f"Successfully crawled and embedded {len(scraper.visited_urls)} pages from {data.base_url}"
+        success_data = {
+            "status": "success",
+            "data": {
+                "message": final_message
+            }
+        }
+        yield f"data: {json.dumps(success_data)}"
     except Exception as e:
         error_message = str(e)
+        print(f"Error during webcrawl: {error_message}")
         logging.error(f"Error during webcrawl: {error_message}")
-        try:
-            error_data = {
-                "status": "error",
-                "data": {
-                    "message": error_message
-                }
+        error_data = {
+            "status": "error",
+            "data": {
+                "message": error_message
             }
-            json_str = json.dumps(error_data, ensure_ascii=False, errors='replace')
-            yield f"data: {json_str}\n\n"
-        except Exception as json_e:
-            logging.error(f"Error serializing error message: {str(json_e)}")
+        }
+        yield f"data: {json.dumps(error_data)}"

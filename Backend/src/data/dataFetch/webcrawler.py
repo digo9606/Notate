@@ -3,14 +3,14 @@ import json
 import logging
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparses
 import time
 import threading
 import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue, Empty
 import threading
-import sys
+
 
 class WebCrawler:
     def __init__(self, base_url, user_id, user_name, collection_id, collection_name, max_workers, cancel_event=None):
@@ -19,7 +19,7 @@ class WebCrawler:
             user_id, user_name, collection_id, collection_name)
         self.visited_urls = set()
         self.failed_urls = set()
-        self.delay = 0
+        self.delay = 0  # Reduced delay since we're rate limiting with max_workers
         self.max_workers = 35
         self.url_queue = Queue()
         self.url_lock = threading.Lock()
@@ -52,23 +52,21 @@ class WebCrawler:
         )
 
     def _print_progress(self):
-        """Print progress as JSON with safe encoding"""
+        """Print progress as JSON"""
         if self.total_urls > 0:
-            try:
-                percent = (self.current_urls / self.total_urls) * 100
-                progress_data = {
-                    "status": "progress",
-                    "data": {
-                        "message": f"Part 1 of 2: Scraping page {self.current_urls} out of {self.total_urls}",
-                        "chunk": self.current_urls,
-                        "total_chunks": self.total_urls,
-                        "percent_complete": f"{percent:.1f}%"
-                    }
+            percent = (self.current_urls / self.total_urls) * 100
+            progress_data = {
+                "status": "progress",
+                "data": {
+                    "message": f"Part 1 of 2: Scraping page {self.current_urls} out of {self.total_urls} from {self.base_url}",
+                    "chunk": self.current_urls,
+                    "total_chunks": self.total_urls,
+                    "percent_complete": f"{percent:.1f}%"
                 }
-                return progress_data
-            except Exception as e:
-                logging.error(f"Error in _print_progress: {str(e)}")
-                return None
+            }
+            json_str = json.dumps(progress_data)
+            print(f"data: {json_str}")
+            return progress_data
 
     def is_valid_url(self, url):
         """Check if URL belongs to the same domain and is a documentation page"""
@@ -101,28 +99,33 @@ class WebCrawler:
         return not url.endswith(('js', 'css', 'json'))
 
     def save_page(self, url, html_content):
-        """Save the HTML content to a file with UTF-8 encoding"""
+        """Save the HTML content to a file"""
         try:
+            # Create base_url_docs directory
             parsed_base_url = urlparse(self.base_url)
             base_url_dir = parsed_base_url.netloc.replace(".", "_") + "_docs"
             base_dir = os.path.join(self.output_dir, base_url_dir)
             os.makedirs(base_dir, exist_ok=True)
 
+            # Create a file path based on the URL structure
             parsed_url = urlparse(url)
             path_parts = parsed_url.path.strip('/').split('/')
 
+            # Create subdirectories if needed
             current_dir = base_dir
             for part in path_parts[:-1]:
                 current_dir = os.path.join(current_dir, part)
                 os.makedirs(current_dir, exist_ok=True)
 
+            # Save the file
             filename = path_parts[-1] if path_parts else 'index'
             filepath = os.path.join(current_dir, f"{filename}.html")
 
-            with open(filepath, 'w', encoding='utf-8', errors='ignore') as f:
+            with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(html_content)
 
             return True
+
         except Exception as e:
             logging.error(f"Error saving {url}: {str(e)}")
             return False
