@@ -81,6 +81,8 @@ export async function installDependencies(
         "torch",
         "torchvision",
         "torchaudio",
+        "--index-url",
+        "https://download.pytorch.org/whl/cpu",
       ]);
     }
     log.info("PyTorch installed successfully");
