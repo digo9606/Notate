@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 # Move the import after we install dependencies
 # from src.vectorstorage.init_store import init_store
 
+
 def find_python310():
     python_commands = ["python3.10", "python3"] if sys.platform != "win32" else [
         "python3.10", "py -3.10", "python"]
@@ -90,7 +91,7 @@ async def async_init_store():
         hf_logger = logging.getLogger("huggingface_hub")
         hf_logger.setLevel(logging.INFO)
         sys.stdout.write(
-            "Checking for initial embedding model (dunzhang/stella_en_400M_v5) ...|70\n")
+            "Downloading initial embedding model (dunzhang/stella_en_400M_v5) ...|85\n")
         sys.stdout.flush()
 
         # Redirect stderr to capture progress messages
@@ -106,7 +107,7 @@ async def async_init_store():
 
         sys.stdout.flush()
     except Exception as e:
-        sys.stdout.write(f"Error downloading model: {str(e)}|70\n")
+        sys.stdout.write(f"Error downloading model: {str(e)}|85\n")
         sys.stdout.flush()
         raise e
 
@@ -140,37 +141,41 @@ def install_core_dependencies(python_path):
         'typing-extensions>=4.12.2',
         'scikit-learn==1.6.1'  # Add scikit-learn as a core dependency
     ]
-    
+
     for package in core_packages:
         try:
             package_name = package.split('==')[0].split('>=')[0]
-            required_version = package.split('==')[1] if '==' in package else package.split('>=')[1]
+            required_version = package.split(
+                '==')[1] if '==' in package else package.split('>=')[1]
             current_version = get_package_version(python_path, package_name)
-            
+
             if current_version:
                 if '==' in package and current_version == required_version:
-                    sys.stdout.write(f"Package {package_name} {current_version} already installed|45\n")
+                    sys.stdout.write(
+                        f"Package {package_name} {current_version} already installed|45\n")
                     sys.stdout.flush()
                     continue
                 elif '>=' in package and current_version >= required_version:
-                    sys.stdout.write(f"Package {package_name} {current_version} already installed|45\n")
+                    sys.stdout.write(
+                        f"Package {package_name} {current_version} already installed|45\n")
                     sys.stdout.flush()
                     continue
-            
+
             # Special handling for PyTorch to avoid reinstalling CUDA variants
             if package_name == 'torch' and current_version and current_version.startswith(required_version):
-                sys.stdout.write(f"PyTorch {current_version} already installed|45\n")
+                sys.stdout.write(
+                    f"PyTorch {current_version} already installed|45\n")
                 sys.stdout.flush()
                 continue
-            
+
             sys.stdout.write(f"Installing {package}...|40\n")
             sys.stdout.flush()
-            
+
             # Special handling for PyTorch installation
             if package_name == 'torch':
                 if torch.cuda.is_available():
                     package = f"{package_name}=={required_version} --index-url https://download.pytorch.org/whl/cu121"
-            
+
             subprocess.check_call(
                 [python_path, '-m', 'pip', 'install', '--no-cache-dir', package],
                 stdout=subprocess.DEVNULL,
@@ -188,18 +193,18 @@ def install_requirements(custom_venv_path=None):
     try:
         venv_path = create_venv(custom_venv_path)
         python_path = get_venv_python(venv_path)
-        
+
         # Install core dependencies first
         install_core_dependencies(python_path)
-        
+
         requirements_path = os.path.join(
             os.path.dirname(__file__), 'requirements.txt')
 
         # Handle remaining requirements
         with open(requirements_path, 'r') as f:
             requirements = [
-                line.strip() for line in f 
-                if line.strip() 
+                line.strip() for line in f
+                if line.strip()
                 and not line.startswith('#')
                 and not any(pkg.split('==')[0] in line for pkg in [
                     'numpy', 'torch', 'transformers', 'typing-extensions'
@@ -219,7 +224,8 @@ def install_requirements(custom_venv_path=None):
                 to_install.append(req)
 
         completed_deps = total_deps - len(to_install)
-        progress = 50 + (completed_deps / total_deps) * 30  # Scale from 50 to 80
+        progress = 50 + (completed_deps / total_deps) * \
+            30  # Scale from 50 to 80
         sys.stdout.write(f"Checked installed packages|{progress:.1f}\n")
         sys.stdout.flush()
 
@@ -231,7 +237,8 @@ def install_requirements(custom_venv_path=None):
                 pkg_name = pkg.split('==')[0] if '==' in pkg else pkg
                 result, error = future.result()
                 completed_deps += 1
-                progress = 50 + (completed_deps / total_deps) * 30  # Scale from 50 to 80
+                progress = 50 + (completed_deps / total_deps) * \
+                    30  # Scale from 50 to 80
 
                 if error:
                     sys.stdout.write(
@@ -241,10 +248,10 @@ def install_requirements(custom_venv_path=None):
                 sys.stdout.flush()
 
         # Now we can safely import init_store after all dependencies are installed
-        sys.stdout.write("All dependencies installed, initializing model store...|85\n")
+        sys.stdout.write(
+            "All dependencies installed, initializing model store...|85\n")
         sys.stdout.flush()
-        
-        
+
         # Initialize the store to download the model
         asyncio.run(async_init_store())
 
