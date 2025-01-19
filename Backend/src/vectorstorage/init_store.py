@@ -7,11 +7,15 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 def get_models_dir():
-    # On macOS, use ~/Library/Application Support/Notate/models
     if os.name == 'posix':
-        base_dir = os.path.expanduser('~/Library/Application Support/Notate')
+        # For Linux, use ~/.local/share/Notate/models
+        if os.uname().sysname == 'Linux':
+            base_dir = os.path.expanduser('~/.local/share/Notate')
+        # For macOS, use ~/Library/Application Support/Notate/models
+        else:
+            base_dir = os.path.expanduser('~/Library/Application Support/Notate')
     else:
-        # For other platforms, use appropriate app data directory
+        # For Windows, use %APPDATA%/Notate
         base_dir = os.path.expanduser('~/.notate')
     
     models_dir = os.path.join(base_dir, 'models')
@@ -21,7 +25,15 @@ def get_models_dir():
 async def init_store(model_name: str = "HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5"):
     logger.info("Initializing HuggingFace embeddings")
 
-    device = "mps" if torch.backends.mps.is_available() else "cpu"
+    # Determine the appropriate device
+    if torch.cuda.is_available():
+        device = "cuda"
+    elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+        device = "mps"
+    else:
+        device = "cpu"
+        
+    logger.info(f"Using device: {device}")
     models_dir = get_models_dir()
     logger.info(f"Using models directory: {models_dir}")
 
@@ -35,9 +47,25 @@ async def init_store(model_name: str = "HIT-TMG/KaLM-embedding-multilingual-mini
         "max_seq_length": 512
     }
 
-    return HuggingFaceEmbeddings(
-        model_name=model_name,
-        model_kwargs=model_kwargs,
-        encode_kwargs=encode_kwargs,
-        cache_folder=models_dir
-    )
+    try:
+        embeddings = HuggingFaceEmbeddings(
+            model_name=model_name,
+            model_kwargs=model_kwargs,
+            encode_kwargs=encode_kwargs,
+            cache_folder=models_dir
+        )
+        return embeddings
+    except Exception as e:
+        logger.error(f"Error initializing embeddings: {str(e)}")
+        # Fallback to CPU if there's an error with the device
+        if device != "cpu":
+            logger.info("Falling back to CPU")
+            model_kwargs["device"] = "cpu"
+            encode_kwargs["device"] = "cpu"
+            return HuggingFaceEmbeddings(
+                model_name=model_name,
+                model_kwargs=model_kwargs,
+                encode_kwargs=encode_kwargs,
+                cache_folder=models_dir
+            )
+        raise
