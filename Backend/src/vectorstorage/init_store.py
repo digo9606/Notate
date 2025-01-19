@@ -3,7 +3,7 @@ import torch
 from transformers import AutoModel, AutoTokenizer
 from sklearn.preprocessing import normalize
 import logging
-from huggingface_hub import hf_hub_download, snapshot_download
+from huggingface_hub import snapshot_download
 
 logger = logging.getLogger(__name__)
 
