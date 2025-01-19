@@ -7,6 +7,7 @@ import fs from "fs";
 import { getLinuxPackageManager } from "./getLinuxPackageManager.js";
 import { updateLoadingStatus } from "../loadingWindow.js";
 import { installDependencies } from "./installDependencies.js";
+import { ifFedora } from "./ifFedora.js";
 
 export async function ensurePythonAndVenv(backendPath: string) {
   updateLoadingStatus("Installing Python and Virtual Environment...", 0.5);
@@ -216,23 +217,39 @@ export async function ensurePythonAndVenv(backendPath: string) {
         );
         const packageManager = getLinuxPackageManager();
 
-        try {
-          await runWithPrivileges([
-            // Update package list
-            `${packageManager.command} update`,
-            // Install CUDA toolkit and development tools
-            `${packageManager.installCommand} nvidia-cuda-toolkit build-essential`,
-          ]);
-
-          // Verify installation
-          const nvccVersion = execSync("nvcc --version").toString();
-          if (nvccVersion) {
-            log.info("CUDA toolkit installed successfully");
-            cudaAvailable = true;
+        // Check if we're on Fedora - if so, handle CUDA installation in ifFedora.ts
+        if (fs.existsSync("/etc/fedora-release")) {
+          await ifFedora();
+          // Re-check CUDA availability after Fedora-specific installation
+          try {
+            const nvccVersion = execSync("nvcc --version").toString();
+            if (nvccVersion) {
+              log.info("CUDA toolkit installed successfully via Fedora-specific process");
+              cudaAvailable = true;
+            }
+          } catch (error) {
+            log.error("Failed to verify CUDA installation on Fedora:", error);
           }
-        } catch (error) {
-          log.error("Failed to install CUDA toolkit:", error);
-          // Continue without CUDA support
+        } else {
+          // Non-Fedora Linux systems
+          try {
+            await runWithPrivileges([
+              // Update package list
+              `${packageManager.command} update`,
+              // Install CUDA toolkit and development tools
+              `${packageManager.installCommand} nvidia-cuda-toolkit build-essential`,
+            ]);
+
+            // Verify installation
+            const nvccVersion = execSync("nvcc --version").toString();
+            if (nvccVersion) {
+              log.info("CUDA toolkit installed successfully");
+              cudaAvailable = true;
+            }
+          } catch (error) {
+            log.error("Failed to install CUDA toolkit:", error);
+            // Continue without CUDA support
+          }
         }
       }
     } catch (error) {
