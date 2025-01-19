@@ -149,24 +149,36 @@ export async function ensurePythonAndVenv(backendPath: string) {
   // Check for NVIDIA GPU and CUDA first
   let hasNvidiaGpu = false;
   let cudaAvailable = false;
-  try {
-    if (process.platform === "linux" || process.platform === "win32") {
-      updateLoadingStatus("Checking for NVIDIA GPU and CUDA...", 15.5);
-      execSync("nvidia-smi");
-      hasNvidiaGpu = true;
-      updateLoadingStatus("NVIDIA GPU and CUDA detected", 16.5);
-    } else if (process.platform === "darwin") {
+  
+  // Force CPU-only mode for laptops and non-NVIDIA systems
+  if (process.platform === "darwin") {
+    hasNvidiaGpu = false;
+    cudaAvailable = false;
+    log.info("MacOS detected, using CPU-only mode");
+    updateLoadingStatus("Using CPU-only mode for MacOS", 15.5);
+  } else {
+    try {
+      if (process.platform === "linux" || process.platform === "win32") {
+        updateLoadingStatus("Checking for NVIDIA GPU...", 15.5);
+        const gpuInfo = execSync("nvidia-smi").toString();
+        // Only enable CUDA if this is a dedicated GPU (not a laptop integrated GPU)
+        if (!gpuInfo.toLowerCase().includes("notebook") && !gpuInfo.toLowerCase().includes("laptop")) {
+          hasNvidiaGpu = true;
+          updateLoadingStatus("Dedicated NVIDIA GPU detected", 16.5);
+        } else {
+          log.info("Laptop GPU detected, using CPU-only mode");
+          updateLoadingStatus("Using CPU-only mode for laptop GPU", 16.5);
+          hasNvidiaGpu = false;
+        }
+      }
+    } catch {
+      log.info("No NVIDIA GPU detected or nvidia-smi not available, using CPU-only mode");
+      updateLoadingStatus("Using CPU-only mode", 17.5);
       hasNvidiaGpu = false;
     }
-  } catch {
-    log.info("No NVIDIA GPU detected, will use CPU-only packages");
-    updateLoadingStatus(
-      "No NVIDIA GPU detected, will use CPU-only packages",
-      17.5
-    );
-    hasNvidiaGpu = false;
   }
 
+  // Skip CUDA checks if we're in CPU-only mode
   if (hasNvidiaGpu) {
     try {
       updateLoadingStatus("Checking for CUDA installation...", 22.5);
@@ -226,6 +238,8 @@ export async function ensurePythonAndVenv(backendPath: string) {
     } catch (error) {
       log.info("Failed to detect CUDA installation details", error);
     }
+  } else {
+    cudaAvailable = false;
   }
 
   // When you reach the dependency installation part, call the new async function:

@@ -3,7 +3,6 @@ import os
 import subprocess
 import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from src.vectorstorage.init_store import init_store
 import warnings
 import logging
 
@@ -15,6 +14,8 @@ os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = 'true'
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Move the import after we install dependencies
+# from src.vectorstorage.init_store import init_store
 
 def find_python310():
     python_commands = ["python3.10", "python3"] if sys.platform != "win32" else [
@@ -108,20 +109,56 @@ async def async_init_store():
         raise e
 
 
+def install_core_dependencies(python_path):
+    """Install critical dependencies first"""
+    core_packages = [
+        'numpy==1.24.3',  # Specify version to avoid conflicts
+        'torch==2.1.2',   # CPU version
+        'transformers==4.37.2',  # Specify version for stability
+        'typing-extensions>=4.8.0'
+    ]
+    
+    for package in core_packages:
+        try:
+            sys.stdout.write(f"Installing {package}...|40\n")
+            sys.stdout.flush()
+            subprocess.check_call(
+                [python_path, '-m', 'pip', 'install', '--no-cache-dir', package],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            sys.stdout.write(f"Successfully installed {package}|45\n")
+            sys.stdout.flush()
+        except subprocess.CalledProcessError as e:
+            sys.stdout.write(f"Error installing {package}: {str(e)}|45\n")
+            sys.stdout.flush()
+            raise
+
+
 def install_requirements(custom_venv_path=None):
     try:
         venv_path = create_venv(custom_venv_path)
         python_path = get_venv_python(venv_path)
+        
+        # Install core dependencies first
+        install_core_dependencies(python_path)
+        
+        # Now we can safely import init_store
+        from src.vectorstorage.init_store import init_store
+        
         requirements_path = os.path.join(
             os.path.dirname(__file__), 'requirements.txt')
 
-        # Handle all requirements except those already installed by ensurePythonAndVenv.ts
+        # Handle remaining requirements
         with open(requirements_path, 'r') as f:
-            requirements = [line.strip() for line in f if line.strip()
-                            and not line.startswith('#')
-                            and not line.startswith('llama-cpp-python')
-                            and not line.startswith('typing_extensions')
-                            and not line.startswith('numpy')]
+            requirements = [
+                line.strip() for line in f 
+                if line.strip() 
+                and not line.startswith('#')
+                and not any(pkg.split('==')[0] in line for pkg in [
+                    'numpy', 'torch', 'transformers', 'typing-extensions'
+                ])
+            ]
 
         total_deps = len(requirements)
         sys.stdout.write(f"Total packages to process: {total_deps}|50\n")
