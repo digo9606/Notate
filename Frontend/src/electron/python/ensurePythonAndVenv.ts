@@ -7,7 +7,6 @@ import fs from "fs";
 import { getLinuxPackageManager } from "./getLinuxPackageManager.js";
 import { updateLoadingStatus } from "../loadingWindow.js";
 import { installDependencies } from "./installDependencies.js";
-import { ifFedora } from "./ifFedora.js";
 
 export async function ensurePythonAndVenv(backendPath: string) {
   updateLoadingStatus("Installing Python and Virtual Environment...", 0.5);
@@ -150,7 +149,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
   // Check for NVIDIA GPU and CUDA first
   let hasNvidiaGpu = false;
   let cudaAvailable = false;
-  
+
   // Force CPU-only mode for laptops and non-NVIDIA systems
   if (process.platform === "darwin") {
     hasNvidiaGpu = false;
@@ -163,7 +162,10 @@ export async function ensurePythonAndVenv(backendPath: string) {
         updateLoadingStatus("Checking for NVIDIA GPU...", 8.5);
         const gpuInfo = execSync("nvidia-smi").toString();
         // Only enable CUDA if this is a dedicated GPU (not a laptop integrated GPU)
-        if (!gpuInfo.toLowerCase().includes("notebook") && !gpuInfo.toLowerCase().includes("laptop")) {
+        if (
+          !gpuInfo.toLowerCase().includes("notebook") &&
+          !gpuInfo.toLowerCase().includes("laptop")
+        ) {
           hasNvidiaGpu = true;
           updateLoadingStatus("Dedicated NVIDIA GPU detected", 9.5);
         } else {
@@ -173,7 +175,9 @@ export async function ensurePythonAndVenv(backendPath: string) {
         }
       }
     } catch {
-      log.info("No NVIDIA GPU detected or nvidia-smi not available, using CPU-only mode");
+      log.info(
+        "No NVIDIA GPU detected or nvidia-smi not available, using CPU-only mode"
+      );
       updateLoadingStatus("Using CPU-only mode", 9.5);
       hasNvidiaGpu = false;
     }
@@ -219,12 +223,13 @@ export async function ensurePythonAndVenv(backendPath: string) {
 
         // Check if we're on Fedora - if so, handle CUDA installation in ifFedora.ts
         if (fs.existsSync("/etc/fedora-release")) {
-          await ifFedora();
           // Re-check CUDA availability after Fedora-specific installation
           try {
             const nvccVersion = execSync("nvcc --version").toString();
             if (nvccVersion) {
-              log.info("CUDA toolkit installed successfully via Fedora-specific process");
+              log.info(
+                "CUDA toolkit installed successfully via Fedora-specific process"
+              );
               cudaAvailable = true;
             }
           } catch (error) {
