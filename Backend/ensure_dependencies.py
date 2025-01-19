@@ -145,9 +145,6 @@ def install_requirements(custom_venv_path=None):
                 line.strip() for line in f
                 if line.strip()
                 and not line.startswith('#')
-                and not any(pkg.split('==')[0] in line for pkg in [
-                    'numpy', 'torch', 'transformers', 'typing-extensions'
-                ])
             ]
 
         total_deps = len(requirements)
