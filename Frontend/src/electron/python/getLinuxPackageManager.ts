@@ -16,9 +16,9 @@ export function getLinuxPackageManager(): {
       
       return {
         command: "dnf",
-        installCommand: `dnf install -y python3-devel gcc gcc-c++ && \
-dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${fedoraVersion}.noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${fedoraVersion}.noarch.rpm && \
-dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda nvidia-cuda-toolkit gcc13-c++`,
+        installCommand: `dnf --assumeyes --allowerasing install python3-devel gcc gcc-c++ && \
+dnf --assumeyes install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${fedoraVersion}.noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${fedoraVersion}.noarch.rpm && \
+dnf --assumeyes --allowerasing install akmod-nvidia xorg-x11-drv-nvidia-cuda nvidia-cuda-toolkit gcc13-c++`,
       };
     } catch {
       log.info("Fedora-based system detected but dnf not found");
