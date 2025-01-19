@@ -116,7 +116,7 @@ export default function ChatSettings() {
     "grok-beta": 8192,
     local: 2048,
     ollama: 2048,
-    "Azure Open AI": 4096,
+    "azure open ai": 4096,
   };
 
   const modelOptions = {
@@ -137,7 +137,7 @@ export default function ChatSettings() {
       ? localModels.map((model) => model.name)
       : [],
     ollama: ollamaModels?.map((model) => model.name) || [],
-    "Azure Open AI": azureModels?.map((model) => model.name) || [],
+    "azure open ai": azureModels?.map((model) => model.name) || [],
   };
 
   const handleAddPrompt = async () => {
