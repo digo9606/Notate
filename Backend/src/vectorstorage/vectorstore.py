@@ -19,9 +19,11 @@ def get_vectorstore(api_key: str, collection_name: str, use_local_embeddings: bo
     try:
         if use_local_embeddings or api_key is None:
             print(f"Using local embedding model: {local_embedding_model}")
-            device = "mps" if torch.backends.mps.is_available() else "cpu"
+            # Determine the best available device
+            device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
             models_dir = get_models_dir()
             logger.info(f"Using models directory: {models_dir}")
+            logger.info(f"Using device: {device}")
 
             model_kwargs = {
                 "device": device
