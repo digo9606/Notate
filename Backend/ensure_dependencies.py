@@ -135,53 +135,77 @@ def get_package_version(python_path, package_name):
 def install_core_dependencies(python_path):
     """Install critical dependencies first"""
     core_packages = [
-        'numpy==1.24.3',  # Specify version to avoid conflicts
-        'torch==2.5.1',   # Version without CUDA suffix
-        'transformers==4.48.0',  # Specify version for stability
+        'numpy==1.24.3',
+        'torch==2.5.1',  # Install torch first
+        'torchvision==0.20.1',  # Match the version that was successfully installed earlier
+        'transformers==4.48.0',
         'typing-extensions>=4.12.2',
-        'scikit-learn==1.6.1',  # Add scikit-learn as a core dependency
+        'scikit-learn==1.6.1',
         'sentence-transformers==3.3.1'
     ]
 
     for package in core_packages:
         try:
             package_name = package.split('==')[0].split('>=')[0]
-            required_version = package.split(
-                '==')[1] if '==' in package else package.split('>=')[1]
+            required_version = package.split('==')[1] if '==' in package else package.split('>=')[1]
             current_version = get_package_version(python_path, package_name)
 
             if current_version:
                 if '==' in package and current_version == required_version:
-                    sys.stdout.write(
-                        f"Package {package_name} {current_version} already installed|45\n")
+                    sys.stdout.write(f"Package {package_name} {current_version} already installed|45\n")
                     sys.stdout.flush()
                     continue
                 elif '>=' in package and current_version >= required_version:
-                    sys.stdout.write(
-                        f"Package {package_name} {current_version} already installed|45\n")
+                    sys.stdout.write(f"Package {package_name} {current_version} already installed|45\n")
                     sys.stdout.flush()
                     continue
-
-            # Special handling for PyTorch to avoid reinstalling CUDA variants
-            if package_name == 'torch' and current_version and current_version.startswith(required_version):
-                sys.stdout.write(
-                    f"PyTorch {current_version} already installed|45\n")
-                sys.stdout.flush()
-                continue
 
             sys.stdout.write(f"Installing {package}...|40\n")
             sys.stdout.flush()
 
-            # Special handling for PyTorch installation
-            if package_name == 'torch':
-                if torch.cuda.is_available():
-                    package = f"{package_name}=={required_version} --index-url https://download.pytorch.org/whl/cu121"
-
-            subprocess.check_call(
-                [python_path, '-m', 'pip', 'install', '--no-cache-dir', package],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
+            # Special handling for PyTorch and torchvision installation on Linux
+            if package_name in ['torch', 'torchvision']:
+                if sys.platform.startswith('linux'):
+                    # Fix the installation command format
+                    install_cmd = [
+                        python_path, 
+                        '-m', 
+                        'pip', 
+                        'install', 
+                        '--no-cache-dir',
+                        f'{package_name}=={required_version}',
+                        '--extra-index-url',
+                        'https://download.pytorch.org/whl/cpu'
+                    ]
+                elif torch.cuda.is_available():
+                    install_cmd = [
+                        python_path,
+                        '-m',
+                        'pip',
+                        'install',
+                        '--no-cache-dir',
+                        f'{package_name}=={required_version}',
+                        '--extra-index-url',
+                        'https://download.pytorch.org/whl/cu121'
+                    ]
+                else:
+                    install_cmd = [
+                        python_path,
+                        '-m',
+                        'pip',
+                        'install',
+                        '--no-cache-dir',
+                        package
+                    ]
+                
+                subprocess.check_call(install_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            else:
+                subprocess.check_call(
+                    [python_path, '-m', 'pip', 'install', '--no-cache-dir', package],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+            
             sys.stdout.write(f"Successfully installed {package}|45\n")
             sys.stdout.flush()
         except subprocess.CalledProcessError as e:
