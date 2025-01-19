@@ -139,7 +139,8 @@ def install_core_dependencies(python_path):
         'torch==2.5.1',   # Version without CUDA suffix
         'transformers==4.48.0',  # Specify version for stability
         'typing-extensions>=4.12.2',
-        'scikit-learn==1.6.1'  # Add scikit-learn as a core dependency
+        'scikit-learn==1.6.1',  # Add scikit-learn as a core dependency
+        'sentence-transformers==3.3.1'
     ]
 
     for package in core_packages:

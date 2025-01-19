@@ -56,6 +56,13 @@ async def chat_completion(request: ChatCompletionRequest, user_id: str = Depends
     )
 
 
+@app.post("/local-embeddings")
+async def local_embeddings(request: EmbeddingRequest, user_id: str = Depends(verify_token)):
+    if user_id is None:
+        return {"status": "error", "message": "Unauthorized"}
+    return local_embed(request)
+
+
 @app.get("/model-info")
 async def get_model_info():
     """Get information about the currently loaded model"""
