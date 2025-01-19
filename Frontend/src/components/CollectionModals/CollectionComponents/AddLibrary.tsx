@@ -26,7 +26,7 @@ export default function AddLibrary() {
   const [newStoreDescription, setNewStoreDescription] = useState("");
   const [isLocal, setIsLocal] = useState(true);
   const [localEmbeddingModel, setLocalEmbeddingModel] = useState(
-    "granite-embedding:278m"
+    "HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5"
   );
   const [newStoreType, setNewStoreType] = useState("Notes");
   const { activeUser, apiKeys } = useUser();
@@ -46,7 +46,9 @@ export default function AddLibrary() {
 
     if (!apiKeys.find((key) => key.provider === "openai")) {
       setIsLocal(true);
-      setLocalEmbeddingModel("granite-embedding:278m");
+      setLocalEmbeddingModel(
+        "HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5"
+      );
     }
 
     const newCollection = (await window.electron.createCollection(
@@ -204,8 +206,9 @@ export default function AddLibrary() {
                     <SelectValue placeholder="Select embedding model" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="granite-embedding:278m">
-                      Default: 
+                    <SelectItem value="HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5">
+                      Default:
+                      HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5
                     </SelectItem>
                   </SelectContent>
                 </Select>

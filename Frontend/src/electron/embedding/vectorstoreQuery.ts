@@ -19,7 +19,8 @@ export async function vectorstoreQuery(payload: {
 
   if (!apiKey) {
     isLocal = true;
-    localEmbeddingModel = "granite-embedding:278m";
+    localEmbeddingModel =
+      "HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5";
   }
   if (payload.collectionId) {
     if (db.isCollectionLocal(payload.collectionId)) {

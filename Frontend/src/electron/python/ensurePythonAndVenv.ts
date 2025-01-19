@@ -28,7 +28,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
       updateLoadingStatus(`Trying Python command: ${cmd}`, 1.5);
       const version = execSync(`${cmd} --version`).toString().trim();
       log.info(`Version output: ${version}`);
-      updateLoadingStatus(`Version output: ${version}`, 3.5);
+      updateLoadingStatus(`Version output: ${version}`, 2.0);
       if (version.includes("3.10")) {
         pythonCommand = cmd;
         pythonVersion = version;
@@ -42,7 +42,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
     } catch (error: unknown) {
       if (error instanceof Error) {
         log.info(`Failed to execute ${cmd}: ${error.message}`);
-        updateLoadingStatus(`Failed to execute ${cmd}: ${error.message}`, 5.5);
+        updateLoadingStatus(`Failed to execute ${cmd}: ${error.message}`, 3.5);
       }
       continue;
     }
@@ -50,7 +50,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
 
   if (!pythonCommand) {
     log.error("Python 3.10 is not installed or not in PATH");
-    updateLoadingStatus("Python 3.10 is not installed or not in PATH", 6.5);
+    updateLoadingStatus("Python 3.10 is not installed or not in PATH", 3.5);
     const response = await dialog.showMessageBox({
       type: "question",
       buttons: ["Install Python 3.10", "Cancel"],
@@ -62,7 +62,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
     });
 
     if (response.response === 0) {
-      updateLoadingStatus("Opening Python download page...", 7.5);
+      updateLoadingStatus("Opening Python download page...", 4.5);
       await shell.openExternal(
         "https://www.python.org/downloads/release/python-31010/"
       );
@@ -74,7 +74,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
         "Please restart the application after installing Python 3.10"
       );
     } else {
-      updateLoadingStatus("Installation cancelled", 8.5);
+      updateLoadingStatus("Installation cancelled", 4.5);
       throw new Error(
         "Python 3.10 is required to run this application. Installation was cancelled."
       );
@@ -82,7 +82,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
   }
 
   log.info(`Using ${pythonVersion}`);
-  updateLoadingStatus(`Using ${pythonVersion}`, 9.5);
+  updateLoadingStatus(`Using ${pythonVersion}`, 5.5);
   const venvPython =
     process.platform === "win32"
       ? path.join(venvPath, "Scripts", "python.exe")
@@ -107,18 +107,18 @@ export async function ensurePythonAndVenv(backendPath: string) {
           .toString()
           .trim();
         log.info(`Full Python path: ${pythonFullPath}`);
-        updateLoadingStatus(`Full Python path: ${pythonFullPath}`, 12.5);
+        updateLoadingStatus(`Full Python path: ${pythonFullPath}`, 6.5);
         await runWithPrivileges([
           packageManager.installCommand,
           `${pythonFullPath} -m venv "${venvPath}"`,
           `chown -R ${process.env.USER}:${process.env.USER} "${venvPath}"`,
         ]);
-        updateLoadingStatus("Virtual environment created successfully", 13.5);
+        updateLoadingStatus("Virtual environment created successfully", 6.5);
         log.info("Virtual environment created successfully");
       } catch (error: unknown) {
         if (error instanceof Error) {
           log.error("Failed to create virtual environment", error);
-          updateLoadingStatus("Failed to create virtual environment", 14.5);
+          updateLoadingStatus("Failed to create virtual environment", 7.5);
           throw error;
         }
         updateLoadingStatus(
@@ -131,15 +131,15 @@ export async function ensurePythonAndVenv(backendPath: string) {
       try {
         execSync(`${pythonCommand} -m venv "${venvPath}"`);
         log.info("Virtual environment created successfully");
-        updateLoadingStatus("Virtual environment created successfully", 11.5);
+        updateLoadingStatus("Virtual environment created successfully", 7.5);
       } catch (error: unknown) {
         if (error instanceof Error) {
           log.error("Failed to create virtual environment", error);
-          updateLoadingStatus("Failed to create virtual environment", 12.5);
+          updateLoadingStatus("Failed to create virtual environment", 7.5);
           throw new Error("Failed to create virtual environment");
         } else {
           log.error("Unknown error in ensurePythonAndVenv", error);
-          updateLoadingStatus("Unknown error in ensurePythonAndVenv", 13.5);
+          updateLoadingStatus("Unknown error in ensurePythonAndVenv", 7.5);
           throw new Error("Unknown error in ensurePythonAndVenv");
         }
       }
@@ -155,25 +155,25 @@ export async function ensurePythonAndVenv(backendPath: string) {
     hasNvidiaGpu = false;
     cudaAvailable = false;
     log.info("MacOS detected, using CPU-only mode");
-    updateLoadingStatus("Using CPU-only mode for MacOS", 15.5);
+    updateLoadingStatus("Using CPU-only mode for MacOS", 7.5);
   } else {
     try {
       if (process.platform === "linux" || process.platform === "win32") {
-        updateLoadingStatus("Checking for NVIDIA GPU...", 15.5);
+        updateLoadingStatus("Checking for NVIDIA GPU...", 8.5);
         const gpuInfo = execSync("nvidia-smi").toString();
         // Only enable CUDA if this is a dedicated GPU (not a laptop integrated GPU)
         if (!gpuInfo.toLowerCase().includes("notebook") && !gpuInfo.toLowerCase().includes("laptop")) {
           hasNvidiaGpu = true;
-          updateLoadingStatus("Dedicated NVIDIA GPU detected", 16.5);
+          updateLoadingStatus("Dedicated NVIDIA GPU detected", 9.5);
         } else {
           log.info("Laptop GPU detected, using CPU-only mode");
-          updateLoadingStatus("Using CPU-only mode for laptop GPU", 16.5);
+          updateLoadingStatus("Using CPU-only mode for laptop GPU", 9.5);
           hasNvidiaGpu = false;
         }
       }
     } catch {
       log.info("No NVIDIA GPU detected or nvidia-smi not available, using CPU-only mode");
-      updateLoadingStatus("Using CPU-only mode", 17.5);
+      updateLoadingStatus("Using CPU-only mode", 9.5);
       hasNvidiaGpu = false;
     }
   }
@@ -181,7 +181,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
   // Skip CUDA checks if we're in CPU-only mode
   if (hasNvidiaGpu) {
     try {
-      updateLoadingStatus("Checking for CUDA installation...", 22.5);
+      updateLoadingStatus("Checking for CUDA installation...", 10.5);
       const cudaCheckCommands = [
         "nvcc --version",
         process.platform === "win32"
