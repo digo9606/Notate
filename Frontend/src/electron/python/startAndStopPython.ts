@@ -12,8 +12,6 @@ import { ensurePythonAndVenv } from "./ensurePythonAndVenv.js";
 import { extractFromAsar } from "./extractFromAsar.js";
 import { killProcessOnPort } from "./killProcessOnPort.js";
 
-
-
 log.transports.file.level = "info";
 log.transports.file.resolvePathFn = () =>
   path.join(app.getPath("userData"), "logs/main.log");
@@ -159,6 +157,12 @@ export async function startPythonServer() {
           // Don't treat these as errors since they're actually info messages from uvicorn
           if (errorMessage.includes("INFO:")) {
             log.info(`Python info: ${errorMessage}`);
+          } else if (errorMessage.includes("Download complete.")) {
+            log.error(`Dependency check error: ${errorMessage}`);
+            updateLoadingStatus(`${errorMessage}`, -1);
+          } else if (errorMessage.includes("Downloading")) {
+            log.error(`Dependency check error: ${errorMessage}`);
+            updateLoadingStatus(`${errorMessage}`, -1);
           } else {
             log.error(`Dependency check error: ${errorMessage}`);
             updateLoadingStatus(`Error: ${errorMessage}`, -1);
@@ -203,13 +207,16 @@ export async function startPythonServer() {
 
               pythonProcess.stderr.on("data", async (data: Buffer) => {
                 const errorMessage = data.toString().trim();
-                if (errorMessage.includes("address already in use") || errorMessage.includes("[Errno 10048]")) {
+                if (
+                  errorMessage.includes("address already in use") ||
+                  errorMessage.includes("[Errno 10048]")
+                ) {
                   log.info(
                     "Port 47372 is in use, attempting to kill existing process"
                   );
                   await killProcessOnPort(47372);
                   // Wait for the port to be fully released
-                  await new Promise(resolve => setTimeout(resolve, 5000));
+                  await new Promise((resolve) => setTimeout(resolve, 5000));
                   // Retry starting the server after a delay
                   if (retryCount < MAX_RETRIES) {
                     retryCount++;

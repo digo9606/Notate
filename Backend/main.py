@@ -23,7 +23,6 @@ import threading
 import uvicorn
 import json
 from src.endpoint.api import chat_completion_stream
-from src.vectorstorage.init_store import init_store
 app = FastAPI()
 embedding_task = None
 embedding_event = None
@@ -340,5 +339,4 @@ async def cancel_crawl(user_id: str = Depends(verify_token)):
 
 if __name__ == "__main__":
     print("Starting server...")
-    init_store()
     uvicorn.run(app, host="127.0.0.1", port=47372)

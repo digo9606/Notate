@@ -1,7 +1,19 @@
 import sys
 import os
 import subprocess
+import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from src.vectorstorage.init_store import init_store
+import warnings
+import logging
+
+# Filter transformers model warnings
+warnings.filterwarnings('ignore', category=UserWarning)
+os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = 'true'
+
+# Configure logging to handle progress messages
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def find_python310():
@@ -63,6 +75,39 @@ def get_installed_packages(python_path):
     return {line.split('==')[0].lower(): line.split('==')[1] for line in result.stdout.splitlines()}
 
 
+async def async_init_store():
+    try:
+        # Suppress model initialization warnings
+        import transformers
+        transformers.logging.set_verbosity_error()
+        logging.getLogger(
+            "transformers.modeling_utils").setLevel(logging.ERROR)
+
+        # Configure huggingface_hub logging
+        hf_logger = logging.getLogger("huggingface_hub")
+        hf_logger.setLevel(logging.INFO)
+        sys.stdout.write(
+            "Checking for initial embedding model (dunzhang/stella_en_400M_v5) ...|70\n")
+        sys.stdout.flush()
+
+        # Redirect stderr to capture progress messages
+        with open(os.devnull, 'w') as devnull:
+            old_stderr = sys.stderr
+            sys.stderr = devnull
+            try:
+                model_path = await init_store()
+                sys.stdout.write(
+                    f"Model downloaded successfully to {model_path}|95\n")
+            finally:
+                sys.stderr = old_stderr
+
+        sys.stdout.flush()
+    except Exception as e:
+        sys.stdout.write(f"Error downloading model: {str(e)}|70\n")
+        sys.stdout.flush()
+        raise e
+
+
 def install_requirements(custom_venv_path=None):
     try:
         venv_path = create_venv(custom_venv_path)
@@ -91,7 +136,7 @@ def install_requirements(custom_venv_path=None):
                 to_install.append(req)
 
         completed_deps = total_deps - len(to_install)
-        progress = 50 + (completed_deps / total_deps) * 23
+        progress = 50 + (completed_deps / total_deps) * 20
         sys.stdout.write(f"Checked installed packages|{progress:.1f}\n")
         sys.stdout.flush()
 
@@ -103,7 +148,7 @@ def install_requirements(custom_venv_path=None):
                 pkg_name = pkg.split('==')[0] if '==' in pkg else pkg
                 result, error = future.result()
                 completed_deps += 1
-                progress = 73 + (completed_deps / total_deps) * 23
+                progress = 50 + (completed_deps / total_deps) * 20
 
                 if error:
                     sys.stdout.write(
@@ -112,7 +157,11 @@ def install_requirements(custom_venv_path=None):
                     sys.stdout.write(f"Installed {pkg_name}|{progress:.1f}\n")
                 sys.stdout.flush()
 
-        sys.stdout.write("Dependencies installed successfully!|96\n")
+        # Initialize the store to download the model
+        asyncio.run(async_init_store())
+
+        sys.stdout.write(
+            "Dependencies installed and model initialized successfully!|70\n")
         sys.stdout.flush()
 
     except Exception as e:

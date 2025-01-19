@@ -110,3 +110,4 @@ monitor_resources.ps1
 
 Frontend/models/*
 Backend/models/*
+Backend/src/vectorstorage/__pycache__/init_store.cpython-310.pyc
