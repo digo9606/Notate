@@ -1,6 +1,6 @@
 from src.vectorstorage.init_store import get_models_dir
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 import torch
 import os

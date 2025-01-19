@@ -1,4 +1,4 @@
-from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 import logging
 import torch
 import os
