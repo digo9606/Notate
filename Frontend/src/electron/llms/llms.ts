@@ -179,6 +179,9 @@ export async function chatRequest(
     if (!currentTitle) {
       currentTitle = messages[messages.length - 1].content.substring(0, 20);
     }
+    if (!userSettings.temperature) {
+      userSettings.temperature = 0.5;
+    }
     const result = (await provider(
       messages,
       activeUser,
