@@ -67,16 +67,31 @@ export async function installLlamaCpp(
       } catch (error) {
         if (process.platform === "win32") {
           log.error("Failed to install llama-cpp-python with CUDA support", error);
-          await dialog.showMessageBox({
+          const { response } = await dialog.showMessageBox({
             type: "error",
-            title: "Installation Error",
+            title: "CUDA Installation Error",
             message: "Failed to install llama-cpp-python with CUDA support",
-            detail: "Please make sure you have Visual Studio 2022 with C++ Desktop Development Tools installed. This is required for building CUDA-enabled packages on Windows.\n\nYou can download Visual Studio from: https://visualstudio.microsoft.com/vs/community/",
-            buttons: ["OK"],
+            detail: "This could be due to missing Visual Studio 2022 with C++ Desktop Development Tools. Would you like to proceed with CPU-only version instead?\n\nNote: You can install Visual Studio from https://visualstudio.microsoft.com/vs/community/ and try CUDA installation again later.",
+            buttons: ["Install CPU Version", "Cancel"],
+            defaultId: 0,
+            cancelId: 1,
           });
+
+          if (response === 0) {
+            log.info("Falling back to CPU-only installation");
+            await spawnAsync(venvPython, [
+              "-m",
+              "pip",
+              "install",
+              "--no-cache-dir",
+              "llama-cpp-python",
+            ]);
+          } else {
+            throw error;
+          }
+        } else {
           throw error;
         }
-        throw error;
       }
     } else {
       log.info("Installing CPU-only llama-cpp-python");
