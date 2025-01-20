@@ -67,19 +67,29 @@ export async function installLlamaCpp(
         );
       } catch (error) {
         if (process.platform === "win32") {
-          log.error("Failed to install llama-cpp-python with CUDA support", error);
+          log.error(
+            "Failed to install llama-cpp-python with CUDA support",
+            error
+          );
           const { response } = await dialog.showMessageBox({
             type: "error",
             title: "CUDA Installation Error",
             message: "Failed to install llama-cpp-python with CUDA support",
-            detail: "This could be due to missing Visual Studio 2022 with C++ Desktop Development Tools. Would you like to proceed with CPU-only version instead?\n\nNote: You can install Visual Studio from https://visualstudio.microsoft.com/vs/community/ and try CUDA installation again later.",
-            buttons: ["Install CPU Version", "Cancel"],
+            detail:
+              "This could be due to missing Visual Studio 2022 with C++ Desktop Development Tools. Would you like to proceed with CPU-only version instead?\n\nNote: You can install Visual Studio from https://visualstudio.microsoft.com/vs/community/ and try CUDA installation again later.",
+            buttons: [
+              "Install CPU Version",
+              "Cancel & Bring me to Visual Studio Download Page",
+            ],
             defaultId: 0,
             cancelId: 1,
+            noLink: true,
           });
 
           if (response === 0) {
-            log.info("Falling back to CPU-only installation using pre-built wheel");
+            log.info(
+              "Falling back to CPU-only installation using pre-built wheel"
+            );
             await spawnAsync(venvPython, [
               "-m",
               "pip",
@@ -90,7 +100,7 @@ export async function installLlamaCpp(
               "--extra-index-url",
               "https://abetlen.github.io/llama-cpp-python/whl/cpu",
               "--no-cache-dir",
-              "--verbose"
+              "--verbose",
             ]);
           } else {
             throw error;
@@ -115,14 +125,14 @@ export async function installLlamaCpp(
             "cmake",
             "ninja",
           ]);
-          
+
           await spawnAsync(venvPython, [
             "-m",
             "pip",
             "install",
             "--verbose",
             "--no-cache-dir",
-            "llama-cpp-python"
+            "llama-cpp-python",
           ]);
         } else {
           // For other platforms, try pre-built wheel first
@@ -136,7 +146,7 @@ export async function installLlamaCpp(
             "--extra-index-url",
             "https://abetlen.github.io/llama-cpp-python/whl/cpu",
             "--no-cache-dir",
-            "--verbose"
+            "--verbose",
           ]);
         }
       } catch (error) {
@@ -146,7 +156,8 @@ export async function installLlamaCpp(
             type: "error",
             title: "Installation Error",
             message: "Failed to install llama-cpp-python",
-            detail: "An error occurred while installing the CPU version of llama-cpp-python. Please try again or check your internet connection.",
+            detail:
+              "An error occurred while installing the CPU version of llama-cpp-python. Please try again or check your internet connection.",
             buttons: ["OK"],
           });
         }
