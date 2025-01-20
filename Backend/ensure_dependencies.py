@@ -5,7 +5,6 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import warnings
 import logging
-import torch
 
 # Filter transformers model warnings
 warnings.filterwarnings('ignore', category=UserWarning)
