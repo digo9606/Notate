@@ -48,8 +48,9 @@ Donations are used to cover the costs of running the project, including server c
 
 ### Local Only Mode Requirements
 
-*Windows*
+*Windows CUDA*
 - Microsoft Visual Studio 2022 /w Desktop Development Tools C++ Build Tools
+- CUDA 12.6 toolkit or later
 
 *MacOS*
 - Xcode 15.0 or later
