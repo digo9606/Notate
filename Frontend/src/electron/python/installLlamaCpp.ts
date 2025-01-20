@@ -100,21 +100,45 @@ export async function installLlamaCpp(
         }
       }
     } else {
-      // CPU-only installation using pre-built wheel
-      log.info("Installing CPU-only llama-cpp-python using pre-built wheel");
+      // CPU-only installation
+      log.info("Installing CPU-only llama-cpp-python");
       try {
-        await spawnAsync(venvPython, [
-          "-m",
-          "pip",
-          "install",
-          "--only-binary",
-          ":all:",
-          "llama-cpp-python",
-          "--extra-index-url",
-          "https://abetlen.github.io/llama-cpp-python/whl/cpu",
-          "--no-cache-dir",
-          "--verbose"
-        ]);
+        if (process.platform === "darwin") {
+          // On macOS, build from source
+          await spawnAsync(venvPython, [
+            "-m",
+            "pip",
+            "install",
+            "setuptools",
+            "wheel",
+            "scikit-build-core",
+            "cmake",
+            "ninja",
+          ]);
+          
+          await spawnAsync(venvPython, [
+            "-m",
+            "pip",
+            "install",
+            "--verbose",
+            "--no-cache-dir",
+            "llama-cpp-python"
+          ]);
+        } else {
+          // For other platforms, try pre-built wheel first
+          await spawnAsync(venvPython, [
+            "-m",
+            "pip",
+            "install",
+            "--only-binary",
+            ":all:",
+            "llama-cpp-python",
+            "--extra-index-url",
+            "https://abetlen.github.io/llama-cpp-python/whl/cpu",
+            "--no-cache-dir",
+            "--verbose"
+          ]);
+        }
       } catch (error) {
         if (process.platform === "win32") {
           log.error("Failed to install llama-cpp-python", error);
