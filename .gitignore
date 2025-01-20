@@ -27,7 +27,7 @@ FileCollections
 
 VectorStores/*
 Frontend/chroma_db/chroma.sqlite3
-Backend/src/vectorstorage/__pycache__/embeddings.cpython-310.pyc
+__pycache__/*
 Backend/src/vectorstorage/__pycache__/vectorstore.cpython-310.pyc
 Backend/src/vectorstorage/helpers/__pycache__/sanitizeCollectionName.cpython-310.pyc
 Backend/src/endpoint/__pycache__/models.cpython-310.pyc

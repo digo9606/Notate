@@ -5,7 +5,6 @@ import jwt
 
 import logging
 import os
-from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

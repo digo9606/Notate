@@ -2,7 +2,6 @@ import sqlite3
 import os
 import pathlib
 import platform
-import sys
 
 IS_DEV = os.environ.get("IS_DEV") == "1"
 
