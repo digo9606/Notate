@@ -37,7 +37,12 @@ Donations are used to cover the costs of running the project, including server c
 
 [![PayPal](https://img.shields.io/badge/PayPal-donate-blue.svg)](https://www.paypal.com/donate/?hosted_button_id=W96TCRJ5Q3RJG)
 
-![Notate Screenshot](https://www.hairetsu.com/notate-ss1.png)
+![Notate Chat Screenshot](https://www.hairetsu.com/notate-0.png)
+![Notate LLM Screenshot](https://www.hairetsu.com/notate-1.png)
+![Notate Dev Screenshot](https://www.hairetsu.com/notate-2.png)
+![Notate RAG Screenshot](https://www.hairetsu.com/notate-3.png)
+![Notate Settings Screenshot](https://www.hairetsu.com/notate-4.png)
+![Notate Collections Screenshot](https://www.hairetsu.com/notate-5.png)
 
 ## Prerequisites
 
