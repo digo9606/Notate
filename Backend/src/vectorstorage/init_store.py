@@ -18,7 +18,7 @@ def get_models_dir():
         # For Windows, use %APPDATA%/Notate
         base_dir = os.path.expanduser('~/.notate')
     
-    models_dir = os.path.join(base_dir, 'models')
+    models_dir = os.path.join(base_dir, 'embeddings_models')
     os.makedirs(models_dir, exist_ok=True)
     return models_dir
 

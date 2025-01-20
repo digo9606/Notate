@@ -30,6 +30,7 @@ export function useAppInitialization() {
     setOpenLibrary,
     setOpenAddToCollection,
     fetchCollections,
+    fetchEmbeddingModels
   } = useLibrary();
   const {
     setSettings,
@@ -46,7 +47,7 @@ export function useAppInitialization() {
   // Initial setup that doesn't depend on activeUser
   useEffect(() => {
     initializeShiki();
-
+    fetchEmbeddingModels();
     const fetchUsers = async () => {
       if (window.electron && window.electron.getUsers) {
         try {
