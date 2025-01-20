@@ -64,6 +64,9 @@ interface SysSettingsContextType {
   setSelectedProvider: React.Dispatch<React.SetStateAction<string>>;
   localModel: string;
   setLocalModel: React.Dispatch<React.SetStateAction<string>>;
+  embeddingModels: { name: string }[];
+  setEmbeddingModels: React.Dispatch<React.SetStateAction<{ name: string }[]>>;
+  fetchEmbeddingModels: () => Promise<void>;
 }
 
 const SysSettingsContext = createContext<SysSettingsContextType | undefined>(
@@ -95,6 +98,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [platform, setPlatform] = useState<"win32" | "darwin" | "linux" | null>(
     null
   );
+  const [embeddingModels, setEmbeddingModels] = useState<{ name: string }[]>([]);
 
   const [systemSpecs, setSystemSpecs] = useState<{
     cpu: string;
@@ -309,6 +313,18 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const fetchEmbeddingModels = async () => {
+    try {
+      const result = await window.electron.getEmbeddingsModels();
+      if (result && result.models) {
+        setEmbeddingModels(result.models);
+      }
+    } catch (error) {
+      console.error("Error fetching embedding models:", error);
+      setEmbeddingModels([]);
+    }
+  };
+
   return (
     <SysSettingsContext.Provider
       value={{
@@ -359,6 +375,9 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         setSelectedProvider,
         localModel,
         setLocalModel,
+        embeddingModels,
+        setEmbeddingModels,
+        fetchEmbeddingModels,
       }}
     >
       {children}

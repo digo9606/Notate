@@ -54,9 +54,12 @@ export default function AddLibrary() {
     setFiles,
     setProgressMessage,
     progressMessage,
-    embeddingModels,
-    fetchEmbeddingModels,
   } = useLibrary();
+  const { embeddingModels, fetchEmbeddingModels } = useSysSettings();
+
+  useEffect(() => {
+    fetchEmbeddingModels();
+  }, []);
 
   useEffect(() => {
     const handleProgress = (
@@ -287,36 +290,32 @@ export default function AddLibrary() {
                   Embeddings
                 </Label>
                 <div className="col-span-3">
-                  {embeddingModels.length > 0 ? (
-                    <Select
-                      value={localEmbeddingModel}
-                      onValueChange={(value) => {
-                        setLocalEmbeddingModel(value);
-                        setShowCustomInput(value === "custom");
-                      }}
-                    >
-                      <SelectTrigger id="localEmbeddingModel">
-                        <SelectValue placeholder="Select embedding model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5">
-                          Default: HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5
-                        </SelectItem>
-                        {embeddingModels
-                          .filter(model => model.name !== "HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5")
-                          .map((model) => (
-                            <SelectItem key={model.name} value={model.name}>
-                              {model.name}
-                            </SelectItem>
-                          ))}
-                        <SelectItem value="custom">
-                          Add Hugging Face Model
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <p>Loading models...</p>
-                  )}
+                  <Select
+                    value={localEmbeddingModel}
+                    onValueChange={(value) => {
+                      setLocalEmbeddingModel(value);
+                      setShowCustomInput(value === "custom");
+                    }}
+                  >
+                    <SelectTrigger id="localEmbeddingModel">
+                      <SelectValue placeholder="Select embedding model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5">
+                        Default: HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5
+                      </SelectItem>
+                      {embeddingModels
+                        .filter(model => model.name !== "HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5")
+                        .map((model) => (
+                          <SelectItem key={model.name} value={model.name}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
+                      <SelectItem value="custom">
+                        Add Hugging Face Model
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
