@@ -189,7 +189,7 @@ export default function ChatSettings() {
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className="w-full justify-between bg-secondary/05 px-3 font-normal"
+                    className="w-full justify-between bg-secondary/05 px-3 font-normal bg-background"
                   >
                     <span
                       className={cn(
@@ -351,10 +351,10 @@ export default function ChatSettings() {
                 }
               }}
             >
-              <SelectTrigger className="col-span-3">
+              <SelectTrigger className="col-span-3 bg-background">
                 <SelectValue placeholder="Select model" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background">
                 {apiKeys.map((apiKey) => (
                   <SelectGroup key={apiKey.provider}>
                     <SelectLabel className="font-semibold">
@@ -426,7 +426,7 @@ export default function ChatSettings() {
               type="number"
               value={localMaxTokens}
               onChange={(e) => handleMaxTokensChange(e.target.value)}
-              className="col-span-3"
+              className="col-span-3 bg-background"
             />
           </div>
         </div>

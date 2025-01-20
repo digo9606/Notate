@@ -172,7 +172,7 @@ export default function AddLibrary() {
               <Button
                 variant="outline"
                 size="icon"
-                className="col-span-1"
+                className="flex items-center gap-2"
                 onClick={() => setShowAddStore(false)}
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -186,13 +186,12 @@ export default function AddLibrary() {
               {isLocal && (
                 <div className="col-span-1 flex items-center gap-2 justify-end">
                   <Button
-                    variant="ghost"
-                    size="sm"
+                    variant="outline"
+                    size="icon"
                     type="button"
                     onClick={() =>
                       setShowAdvancedSettings(!showAdvancedSettings)
                     }
-                    className="flex items-center gap-2"
                   >
                     <Settings2 className="h-4 w-4" />
                   </Button>
@@ -202,7 +201,7 @@ export default function AddLibrary() {
           </div>
         </div>
 
-        <div className="rounded-[6px] p-4 bg-gradient-to-br from-secondary/50 via-secondary/30 to-background border">
+        <div className="rounded-[6px] p-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="newStore" className="text-right">
               Store Name
@@ -219,7 +218,7 @@ export default function AddLibrary() {
                   setNewStore(e.target.value);
                   setNewStoreError(null);
                 }}
-                className="resize-none"
+                className="resize-none bg-background"
               />
             </div>
           </div>
@@ -234,7 +233,7 @@ export default function AddLibrary() {
                 placeholder="Enter store description (optional)"
                 value={newStoreDescription}
                 onChange={(e) => setNewStoreDescription(e.target.value)}
-                className="resize-none"
+                className="resize-none bg-background"
               />
             </div>
           </div>
@@ -297,10 +296,13 @@ export default function AddLibrary() {
                       setShowCustomInput(value === "custom");
                     }}
                   >
-                    <SelectTrigger id="localEmbeddingModel">
+                    <SelectTrigger
+                      id="localEmbeddingModel"
+                      className="bg-background"
+                    >
                       <SelectValue placeholder="Select embedding model" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-background">
                       <SelectItem value="HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5">
                         Default:
                         HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5
@@ -422,11 +424,11 @@ export default function AddLibrary() {
               </div>
             </div>
           )}
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="storeType" className="text-right">
+          <div className="grid grid-cols-4 items-center gap-4 ">
+            <Label htmlFor="storeType" className="text-right ">
               Store Type
             </Label>
-            <div className="col-span-3">
+            <div className="col-span-3 bg-background">
               <Select
                 value={newStoreType}
                 onValueChange={(value) => setNewStoreType(value)}
@@ -448,13 +450,15 @@ export default function AddLibrary() {
         <Button
           type="button"
           onClick={() => setShowAddStore(false)}
-          className="w-32"
+          className="w-32 text-red-900"
+          variant="outline"
         >
           Cancel
         </Button>
         <Button
           disabled={isDownloading || !newStore}
           type="button"
+          variant="secondary"
           onClick={handleCreateCollection}
           className="w-32"
         >

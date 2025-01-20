@@ -25,13 +25,8 @@ import { useLibrary } from "@/context/useLibrary";
 
 export const ChatInput = memo(function ChatInput() {
   const { activeUser } = useUser();
-  const {
-    handleChatRequest,
-    cancelRequest,
-    input,
-    setInput,
-    isLoading,
-  } = useChatInput();
+  const { handleChatRequest, cancelRequest, input, setInput, isLoading } =
+    useChatInput();
   const { openLibrary, setOpenLibrary } = useLibrary();
   const [isRecording, setIsRecording] = useState(false);
   const [transcriptionLoading, setTranscriptionLoading] = useState(false);
@@ -48,7 +43,7 @@ export const ChatInput = memo(function ChatInput() {
     }
 
     const interval = setInterval(() => {
-      setLoadingDots((prev: string) => prev === "..." ? "" : prev + ".");
+      setLoadingDots((prev: string) => (prev === "..." ? "" : prev + "."));
     }, 500);
     return () => clearInterval(interval);
   }, [transcriptionLoading]);
@@ -106,12 +101,15 @@ export const ChatInput = memo(function ChatInput() {
   }, [isFFMPEGInstalled, transcriptionLoading, isRecording]);
 
   // Memoize the form submit handler
-  const handleSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    if (input.trim()) {
-      handleChatRequest(selectedCollection?.id || undefined);
-    }
-  }, [input, handleChatRequest, selectedCollection?.id]);
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (input.trim()) {
+        handleChatRequest(selectedCollection?.id || undefined);
+      }
+    },
+    [input, handleChatRequest, selectedCollection?.id]
+  );
 
   // Memoize the send button handler
   const handleSendClick = useCallback(() => {
@@ -120,7 +118,13 @@ export const ChatInput = memo(function ChatInput() {
     } else if (input.trim()) {
       handleChatRequest(selectedCollection?.id || undefined);
     }
-  }, [isLoading, input, cancelRequest, handleChatRequest, selectedCollection?.id]);
+  }, [
+    isLoading,
+    input,
+    cancelRequest,
+    handleChatRequest,
+    selectedCollection?.id,
+  ]);
 
   return (
     <div className="p-4 bg-card border-t border-secondary">
@@ -141,9 +145,7 @@ export const ChatInput = memo(function ChatInput() {
             <DialogContent className="max-h-[100vh] mt-4 overflow-y-auto p-6">
               <DialogHeader>
                 <DialogTitle>Data Store Library</DialogTitle>
-                <DialogDescription>
-                  Select a data store to use for your chat.
-                </DialogDescription>
+                <DialogDescription />
               </DialogHeader>
               <LibraryModal />
             </DialogContent>
