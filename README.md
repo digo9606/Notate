@@ -48,18 +48,17 @@ Donations are used to cover the costs of running the project, including server c
 
 ### Local Only Mode Requirements
 
-- Ollama Installed
 - Python 3.10
 - Node.js v16 or higher
 - Package manager: npm or pnpm
 - At least 2GB of free disk space (Recommended 10GB+ minimum for local models and FileCollections)
 - Minimum 8GB RAM recommended
 - CPU: 4 cores or more
-- GPU recommended for local model inference 10GB VRAM or more preferably
+- Nvidia RTX GPU recommended for local model inference 10GB VRAM or more preferably or Apple Silicon
 - Operating System:
   - macOS 10.15 or later (Intel/Apple Silicon)
   - Windows 10/11
-  - Linux (Ubuntu 20.04 or later)
+  - Linux
 
 ### External Requirements
 
