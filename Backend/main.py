@@ -300,7 +300,7 @@ async def api_vector(query_request: QueryRequest, user_id: str = Depends(api_key
 
 
 @app.post("/api/llm")
-async def api_llm(query_request: QueryRequest, user_id: str = Depends(api_key_auth)):
+async def api_llm(query_request: ChatCompletionRequest, user_id: str = Depends(api_key_auth)):
     if user_id is None:
         return {"status": "error", "message": "Unauthorized"}
     """ check to see if the userId has API key in SQLite """
@@ -311,7 +311,7 @@ async def api_llm(query_request: QueryRequest, user_id: str = Depends(api_key_au
         print("Unauthorized")
         return {"status": "error", "message": "Unauthorized"}
     print("Authorized")
-    return llm_call(query_request, user_id)
+    return await llm_call(query_request, user_id)
 
 
 @app.post("/api/rag")
@@ -329,7 +329,7 @@ async def api_rag(query_request: QueryRequest, user_id: str = Depends(api_key_au
         print("Unauthorized")
         return {"status": "error", "message": "Unauthorized"}
     print("Authorized")
-    return rag_call(query_request, user_id)
+    return await rag_call(query_request, user_id)
 
 
 @app.post("/cancel-crawl")

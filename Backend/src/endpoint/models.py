@@ -166,7 +166,9 @@ class ChatCompletionRequest(BaseModel):
     repetition_penalty: Optional[float] = 1.1
     stop: Optional[List[str]] = None
     stream: Optional[bool] = True
-
+    is_local: Optional[bool] = False
+    is_ooba: Optional[bool] = False
+    is_ollama: Optional[bool] = False
 
 class GenerateRequest(BaseModel):
     """Request model for raw text generation"""

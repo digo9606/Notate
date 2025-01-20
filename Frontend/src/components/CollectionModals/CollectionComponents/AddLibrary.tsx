@@ -302,10 +302,15 @@ export default function AddLibrary() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5">
-                        Default: HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5
+                        Default:
+                        HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5
                       </SelectItem>
                       {embeddingModels
-                        .filter(model => model.name !== "HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5")
+                        .filter(
+                          (model) =>
+                            model.name !==
+                            "HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5"
+                        )
                         .map((model) => (
                           <SelectItem key={model.name} value={model.name}>
                             {model.name}
@@ -447,7 +452,12 @@ export default function AddLibrary() {
         >
           Cancel
         </Button>
-        <Button type="button" onClick={handleCreateCollection} className="w-32">
+        <Button
+          disabled={isDownloading || !newStore}
+          type="button"
+          onClick={handleCreateCollection}
+          className="w-32"
+        >
           Create Store
         </Button>
       </div>
