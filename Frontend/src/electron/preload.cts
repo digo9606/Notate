@@ -345,6 +345,10 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("checkOllama") as unknown as Promise<{
       isOllamaRunning: boolean;
     }>,
+  getEmbeddingsModels: () =>
+    ipcInvoke("getEmbeddingsModels") as unknown as Promise<{
+      models: Model[];
+    }>,
   websiteFetch: (
     url: string,
     userId: number,
@@ -493,6 +497,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
     }) as unknown as Promise<{
       id: number;
     }>,
+  getModelsPath: () => ipcInvoke("getModelsPath") as unknown as Promise<string>,
 } satisfies Window["electron"]);
 
 function ipcInvoke<Key extends keyof EventPayloadMapping>(

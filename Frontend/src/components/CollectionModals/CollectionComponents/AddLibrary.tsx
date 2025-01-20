@@ -8,8 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronLeft, Cloud, Database } from "lucide-react";
-import { useState } from "react";
+import { ChevronLeft, Cloud, Database, Settings2, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { sanitizeStoreName } from "@/lib/utils";
 import { useUser } from "@/context/useUser";
 import { useLibrary } from "@/context/useLibrary";
@@ -19,25 +19,104 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
+import { toast } from "@/hooks/use-toast";
+import { useSysSettings } from "@/context/useSysSettings";
+import { Progress } from "@/components/ui/progress";
 
 export default function AddLibrary() {
   const [newStore, setNewStore] = useState("");
   const [newStoreError, setNewStoreError] = useState<string | null>(null);
   const [newStoreDescription, setNewStoreDescription] = useState("");
   const [isLocal, setIsLocal] = useState(true);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [localEmbeddingModel, setLocalEmbeddingModel] = useState(
     "HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5"
   );
+  const [customModel, setCustomModel] = useState("");
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [newStoreType, setNewStoreType] = useState("Notes");
+  const [currentFile, setCurrentFile] = useState<string>();
+  const [fileProgress, setFileProgress] = useState(0);
   const { activeUser, apiKeys } = useUser();
-
+  const { setLocalModalLoading } = useSysSettings();
+  const [downloadProgress, setDownloadProgress] =
+    useState<DownloadProgressData>({
+      message: "",
+      totalProgress: 0,
+    });
   const {
     setUserCollections,
     setSelectedCollection,
     setShowUpload,
     setShowAddStore,
     setFiles,
+    setProgressMessage,
+    progressMessage,
   } = useLibrary();
+  const { embeddingModels, fetchEmbeddingModels } = useSysSettings();
+
+  useEffect(() => {
+    fetchEmbeddingModels();
+  }, []);
+
+  useEffect(() => {
+    const handleProgress = (
+      _: Electron.IpcRendererEvent,
+      message: string | OllamaProgressEvent | DownloadModelProgress
+    ) => {
+      if (
+        typeof message === "object" &&
+        "type" in message &&
+        message.type === "progress"
+      ) {
+        const {
+          message: progressMessage,
+          fileName,
+          fileProgress,
+          totalProgress,
+          ...rest
+        } = message.data;
+        setProgressMessage(progressMessage);
+        setDownloadProgress({
+          message: progressMessage,
+          totalProgress,
+          ...rest,
+        });
+        if (fileName) setCurrentFile(fileName);
+        if (typeof fileProgress === "number") setFileProgress(fileProgress);
+      }
+    };
+
+    window.electron.removeListener("download-model-progress", handleProgress);
+    window.electron.on("download-model-progress", handleProgress);
+
+    return () => {
+      window.electron.removeListener("download-model-progress", handleProgress);
+    };
+  }, []);
+
+  const handleCancel = async () => {
+    try {
+      const result = await window.electron.cancelDownload();
+      if (result.success) {
+        toast({
+          title: "Download cancelled",
+          description: "Model download was cancelled successfully",
+        });
+      }
+    } catch (error) {
+      console.error("Error cancelling download:", error);
+    } finally {
+      setIsDownloading(false);
+      setLocalModalLoading(false);
+      setDownloadProgress({ message: "", totalProgress: 0 });
+      setFileProgress(0);
+      setProgressMessage("");
+      setCurrentFile(undefined);
+    }
+  };
 
   const handleCreateCollection = async () => {
     if (!activeUser) return;
@@ -89,7 +168,7 @@ export default function AddLibrary() {
       <div className="space-y-4">
         <div className="grid grid-cols-4 items-center gap-4">
           <div className="col-span-4">
-            <div className="grid grid-cols-3 items-center gap-4">
+            <div className="grid grid-cols-4 items-center gap-4">
               <Button
                 variant="outline"
                 size="icon"
@@ -100,10 +179,25 @@ export default function AddLibrary() {
               </Button>
               <Label
                 htmlFor="newStore"
-                className="col-span-2 text-left text-lg"
+                className="col-span-2 text-center text-lg"
               >
                 Create a new store
               </Label>
+              {isLocal && (
+                <div className="col-span-1 flex items-center gap-2 justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    type="button"
+                    onClick={() =>
+                      setShowAdvancedSettings(!showAdvancedSettings)
+                    }
+                    className="flex items-center gap-2"
+                  >
+                    <Settings2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -147,11 +241,8 @@ export default function AddLibrary() {
         </div>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="storeLocation" className="text-right">
-              Embeddings
-            </Label>
-            <div className="col-span-3">
+          <div className="w-full">
+            <div className="">
               <div className="flex gap-4">
                 <TooltipProvider>
                   <Tooltip>
@@ -168,7 +259,7 @@ export default function AddLibrary() {
                           onClick={() => setIsLocal(false)}
                         >
                           <Cloud className="h-4 w-4 mr-2" />
-                          Open AI
+                          Open AI Embeddings
                         </Button>
                       </div>
                     </TooltipTrigger>
@@ -186,36 +277,151 @@ export default function AddLibrary() {
                   onClick={() => setIsLocal(true)}
                 >
                   <Database className="h-4 w-4 mr-2" />
-                  Local
+                  Local Embeddings
                 </Button>
               </div>
             </div>
           </div>
 
-          {isLocal && (
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="localEmbeddingModel" className="text-right">
-                Embedding Model
-              </Label>
-              <div className="col-span-3">
-                <Select
-                  value={localEmbeddingModel}
-                  onValueChange={(value) => setLocalEmbeddingModel(value)}
-                >
-                  <SelectTrigger id="localEmbeddingModel">
-                    <SelectValue placeholder="Select embedding model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5">
-                      Default:
-                      HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+          {isLocal && showAdvancedSettings && (
+            <>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="localEmbeddingModel" className="text-right">
+                  Embeddings
+                </Label>
+                <div className="col-span-3">
+                  <Select
+                    value={localEmbeddingModel}
+                    onValueChange={(value) => {
+                      setLocalEmbeddingModel(value);
+                      setShowCustomInput(value === "custom");
+                    }}
+                  >
+                    <SelectTrigger id="localEmbeddingModel">
+                      <SelectValue placeholder="Select embedding model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5">
+                        Default:
+                        HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5
+                      </SelectItem>
+                      {embeddingModels
+                        .filter(
+                          (model) =>
+                            model.name !==
+                            "HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5"
+                        )
+                        .map((model) => (
+                          <SelectItem key={model.name} value={model.name}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
+                      <SelectItem value="custom">
+                        Add Hugging Face Model
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {showCustomInput && (
+                <div className="space-y-4">
+                  <div className="">
+                    <Input
+                      id="customModel"
+                      placeholder="Enter Model Repo eg: 'HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5'"
+                      value={customModel}
+                      onChange={(e) => setCustomModel(e.target.value)}
+                      className="resize-none"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <Button
+                      type="button"
+                      disabled={isDownloading}
+                      onClick={async () => {
+                        if (customModel.trim()) {
+                          setIsDownloading(true);
+                          try {
+                            const modelsPath =
+                              await window.electron.getModelsPath();
+                            await window.electron.downloadModel({
+                              modelId: customModel.trim(),
+                              dirPath: modelsPath + "/" + customModel.trim(),
+                            });
+                            await fetchEmbeddingModels();
+                            setLocalEmbeddingModel(customModel.trim());
+                            setShowCustomInput(false);
+                          } catch (error) {
+                            console.error("Error downloading model:", error);
+                            // You might want to show an error message to the user here
+                          } finally {
+                            setIsDownloading(false);
+                          }
+                        }
+                      }}
+                      className="w-full"
+                    >
+                      {isDownloading ? "Downloading..." : "Download Model"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+          {progressMessage && (
+            <div className="mt-4 p-4 rounded-md border bg-background">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-secondary-foreground">
+                    {progressMessage}
+                  </p>
+                  {isDownloading && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleCancel}
+                      className="h-6 px-2"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                {currentFile && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs text-muted-foreground truncate flex-1">
+                        {currentFile}
+                      </p>
+                      <p className="text-xs text-muted-foreground ml-2">
+                        {fileProgress}%
+                      </p>
+                    </div>
+                    <Progress value={fileProgress} className="h-1" />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>
+                        {downloadProgress.currentSize || "0 B"} /{" "}
+                        {downloadProgress.totalSize || "0 B"}
+                      </span>
+                      {downloadProgress.speed && (
+                        <span>{downloadProgress.speed}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Total Progress</span>
+                    <span>{downloadProgress.totalProgress}%</span>
+                  </div>
+                  <Progress
+                    value={downloadProgress.totalProgress}
+                    className="h-1"
+                  />
+                </div>
               </div>
             </div>
           )}
-
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="storeType" className="text-right">
               Store Type
@@ -246,7 +452,12 @@ export default function AddLibrary() {
         >
           Cancel
         </Button>
-        <Button type="button" onClick={handleCreateCollection} className="w-32">
+        <Button
+          disabled={isDownloading || !newStore}
+          type="button"
+          onClick={handleCreateCollection}
+          className="w-32"
+        >
           Create Store
         </Button>
       </div>

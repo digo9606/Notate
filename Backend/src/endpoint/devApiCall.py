@@ -4,6 +4,7 @@ from src.endpoint.models import VectorStoreQueryRequest
 from src.endpoint.ragQuery import rag_query
 from src.endpoint.vectorQuery import query_vectorstore
 from src.llms.llmQuery import llm_query
+from src.endpoint.models import ChatCompletionRequest
 
 
 def vector_call(query_request: VectorStoreQueryRequest, user_id: str):
@@ -33,7 +34,7 @@ def vector_call(query_request: VectorStoreQueryRequest, user_id: str):
         return query_vectorstore(vectorStoreData, collectionSettings.is_local)
 
 
-def rag_call(query_request: VectorStoreQueryRequest, user_id: str):
+async def rag_call(query_request: VectorStoreQueryRequest, user_id: str):
     print(f"Model provided in request body for user {user_id}")
     """ MODEL + VECTORSTORE QUERY IF MODEL AND COLLECTION NAME PROVIDED IN REQUEST BODY """
     collectionSettings = get_collection_settings(
@@ -62,10 +63,10 @@ def rag_call(query_request: VectorStoreQueryRequest, user_id: str):
         model=query_request.model,
         is_ooba=query_request.is_ooba
     )
-    return rag_query(ragData, collectionSettings)
+    return await rag_query(ragData, collectionSettings)
 
 
-def llm_call(query_request: VectorStoreQueryRequest, user_id: str):
+async def llm_call(query_request: ChatCompletionRequest, user_id: str):
     print(
         f"Model and collection name provided in request body for user {user_id}")
     """ MODEL QUERY IF MODEL BUT NO COLLECTION NAME PROVIDED IN REQUEST BODY """
@@ -73,7 +74,4 @@ def llm_call(query_request: VectorStoreQueryRequest, user_id: str):
         api_key = get_llm_api_key(int(user_id), query_request.provider)
     else:
         api_key = None
-    # Set a default system prompt for direct LLM queries
-    if not query_request.prompt:
-        query_request.prompt = "You are a helpful AI assistant. Please provide accurate and relevant information in response to the user's query."
-    return llm_query(query_request, api_key)
+    return await llm_query(query_request, api_key)

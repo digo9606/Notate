@@ -328,6 +328,8 @@ interface EventPayloadMapping {
     endpoint: string;
     api_key: string;
   };
+  getModelsPath: string;
+  getEmbeddingsModels: { models: Model[] };
 }
 
 interface Model {
@@ -595,6 +597,7 @@ interface Window {
         ogImage: string;
       };
     }>;
+    getEmbeddingsModels: () => Promise<{ models: Model[] }>;
     webcrawl: (payload: {
       base_url: string;
       user_id: number;
@@ -703,6 +706,7 @@ interface Window {
       model_type?: string;
       user_id: number;
     }) => Promise<void>;
+    getModelsPath: () => Promise<string>;
   };
 }
 type Keys = {

@@ -25,6 +25,8 @@ interface LibraryContextType {
   setSelectedCollection: React.Dispatch<
     React.SetStateAction<Collection | null>
   >;
+  embeddingModels: Model[];
+  fetchEmbeddingModels: () => Promise<void>;
   showUpload: boolean;
   setShowUpload: React.Dispatch<React.SetStateAction<boolean>>;
   showAddStore: boolean;
@@ -72,6 +74,7 @@ const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({
   const [selectedLinkType, setSelectedLinkType] = useState<
     "website" | "youtube" | "crawl" | "documentation" | null
   >(null);
+  const [embeddingModels, setEmbeddingModels] = useState<Model[]>([]);
   const loadFiles = useCallback(async () => {
     if (!activeUser?.id || !activeUser?.name || !selectedCollection?.id) return;
     const fileList = await window.electron.getFilesInCollection(
@@ -91,6 +94,12 @@ const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error("Error cancelling embed:", error);
     }
   };
+
+  const fetchEmbeddingModels = async () => {
+    const models = await window.electron.getEmbeddingsModels();
+    setEmbeddingModels(models.models);
+  };
+
   const handleDeleteCollection = () => {
     if (!activeUser?.id || !selectedCollection?.id || !setShowUpload) return;
     setShowUpload(false);
@@ -269,7 +278,11 @@ const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const handleProgress = (
       _: Electron.IpcRendererEvent,
-      message: string | ProgressData | OllamaProgressEvent | DownloadModelProgress
+      message:
+        | string
+        | ProgressData
+        | OllamaProgressEvent
+        | DownloadModelProgress
     ) => {
       try {
         const data =
@@ -282,7 +295,10 @@ const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({
           return;
         }
 
-        if ("type" in data && (data.type === "pull" || data.type === "verify")) {
+        if (
+          "type" in data &&
+          (data.type === "pull" || data.type === "verify")
+        ) {
           // Handle Ollama progress
           setProgressMessage(`Ollama: ${data.status || data.type}`);
           return;
@@ -310,7 +326,7 @@ const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({
       window.electron.removeListener("ingest-progress", handleProgress);
     };
   }, [setProgressMessage, setProgress, setShowProgress]);
-  
+
   return (
     <LibraryContext.Provider
       value={{
@@ -350,6 +366,8 @@ const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({
         setShowProgress,
         handleUpload,
         handleDeleteCollection,
+        embeddingModels,
+        fetchEmbeddingModels,
       }}
     >
       {children}

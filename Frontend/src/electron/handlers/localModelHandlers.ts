@@ -6,9 +6,24 @@ import { loadModel } from "../localLLMs/loadModel.js";
 import { modelInfo } from "../localLLMs/modelInfo.js";
 import * as fs from "fs";
 import * as path from "path";
-import { BrowserWindow } from "electron";
+import { BrowserWindow, app } from "electron";
+import { platform } from "os";
 
 let currentDownloadController: AbortController | null = null;
+
+function getModelsPath() {
+  const home = app.getPath("home");
+  if (platform() === "darwin") {
+    return path.join(
+      home,
+      "Library/Application Support/Notate/embeddings_models"
+    );
+  } else if (platform() === "linux") {
+    return path.join(home, ".local/share/Notate/embeddings_models");
+  } else {
+    return path.join(home, ".notate/embeddings_models");
+  }
+}
 
 async function downloadModel(payload: {
   modelId: string;
@@ -17,7 +32,7 @@ async function downloadModel(payload: {
 }) {
   const windows = BrowserWindow.getAllWindows();
   const mainWindow = windows[0];
-
+  console.log("Downloading model:", payload);
   const sendProgress = (data: DownloadProgress) => {
     mainWindow?.webContents.send("download-model-progress", data);
   };
@@ -290,6 +305,17 @@ async function downloadModel(payload: {
 }
 
 export function setupLocalModelHandlers() {
+  ipcMainDatabaseHandle("getModelsPath", async () => {
+    const modelsPath = getModelsPath();
+    fs.mkdirSync(modelsPath, { recursive: true });
+    return modelsPath;
+  });
+
+  ipcMainDatabaseHandle("getEmbeddingsModels", async () => {
+    const models = await getDirModels({ dirPath: getModelsPath() });
+    return { models };
+  });
+
   ipcMainDatabaseHandle("getDirModels", async (payload) => {
     const models = await getDirModels(payload);
     return { dirPath: payload.dirPath, models };
