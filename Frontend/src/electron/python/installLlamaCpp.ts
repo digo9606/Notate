@@ -1,7 +1,7 @@
 import { spawnAsync } from "../helpers/spawnAsync.js";
 import log from "electron-log";
 import { ifFedora } from "./ifFedora.js";
-import { dialog } from "electron";
+import { dialog, shell } from "electron";
 
 export async function installLlamaCpp(
   venvPython: string,
@@ -76,10 +76,10 @@ export async function installLlamaCpp(
             title: "CUDA Installation Error",
             message: "Failed to install llama-cpp-python with CUDA support",
             detail:
-              "This could be due to missing Visual Studio 2022 with C++ Desktop Development Tools. Would you like to proceed with CPU-only version instead?\n\nNote: You can install Visual Studio from https://visualstudio.microsoft.com/vs/community/ and try CUDA installation again later.",
+              "This could be due to missing Visual Studio 2022 with C++ Desktop Development Tools. Would you like to proceed with CPU-only version instead?\n\nNote: You can install Visual Studio and try CUDA installation again later.",
             buttons: [
               "Install CPU Version",
-              "Cancel & Bring me to Visual Studio Download Page",
+              "Open Visual Studio Download Page",
             ],
             defaultId: 0,
             cancelId: 1,
@@ -103,6 +103,9 @@ export async function installLlamaCpp(
               "--verbose",
             ]);
           } else {
+            // Open Visual Studio download page
+
+            await shell.openExternal('https://visualstudio.microsoft.com/vs/community/');
             throw error;
           }
         } else {
