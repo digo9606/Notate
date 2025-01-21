@@ -271,8 +271,16 @@ export default function ChatSettings() {
                               if (activeUser) {
                                 window.electron.updateUserSettings({
                                   userId: activeUser.id,
-                                  promptId: prompt.id,
+                                  promptId:
+                                    prompts.find((p) => p.name === currentValue)
+                                      ?.id ?? 0,
                                 });
+                                setSettings((prev) => ({
+                                  ...prev,
+                                  promptId:
+                                    prompts.find((p) => p.name === currentValue)
+                                      ?.id ?? 0,
+                                }));
                               }
                               toast({
                                 title: "Prompt set",
