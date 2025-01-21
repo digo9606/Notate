@@ -15,22 +15,50 @@ const cudaLoadingMessages = [
   "Running llama benchmarks (they're on a coffee break)...",
   "Almost there! Just waking up some sleepy llamas...",
   "Turns out llamas need a lot of CUDA cores...",
+  "Negotiating with llamas for better compute rates...",
+  "Explaining parallel processing to skeptical llamas...",
+  "Llamas are attending their mandatory CUDA training...",
+  "Debugging llama logic (they're not very logical)...",
+  "Waiting for llamas to finish their GPU meditation...",
+  "Converting llama thoughts to tensor operations...",
+  "Llamas are studying the CUDA documentation...",
+  "Teaching llamas to count in parallel...",
+  "Llamas insist on taking another GPU coffee break...",
+  "Optimizing llama memory allocation patterns...",
+  "Convincing llamas that GPUs aren't scary...",
+  "Llamas are doing their morning CUDA yoga...",
+  "Synchronizing llama thread schedules...",
+  "Llamas are debating quantum superposition...",
+  "Installing llama-friendly CUDA drivers...",
+  "Waiting for llamas to finish their GPU snack...",
+  "Llamas are practicing their parallel humming...",
+  "Teaching llamas about memory bandwidth...",
+  "Llamas are computing their optimal nap times...",
+  "Running anti-spitting protocols on CUDA llamas...",
+  "Llamas are calibrating their tensor wool...",
+  "Scheduling llama GPU time-sharing meetings...",
+  "Defragmenting llama memory banks...",
+  "Llamas are reviewing their CUDA certification...",
+  "Installing advanced llama parallel-spitting modules...",
+  "Llamas are optimizing their cache coherency...",
+  "Running llama-approved stress tests on GPU...",
+  "Llamas insist on following proper CUDA protocols...",
+  "Upgrading llama neural pathways to CUDA spec...",
+  "Llamas are performing their GPU diagnostics dance...",
 ];
 
-let messageIndex = 0;
 let messageInterval: NodeJS.Timeout | null = null;
 
 function startRotatingMessages(baseProgress: number) {
-  messageIndex = 0;
   if (messageInterval) clearInterval(messageInterval);
 
   messageInterval = setInterval(() => {
+    const randomIndex = Math.floor(Math.random() * cudaLoadingMessages.length);
     updateLoadingStatus(
       "Installing CUDA llama-cpp-python (this may take a while) " +
-        cudaLoadingMessages[messageIndex],
+        cudaLoadingMessages[randomIndex],
       baseProgress
     );
-    messageIndex = (messageIndex + 1) % cudaLoadingMessages.length;
   }, 15000); // Rotate message every 15 seconds
 }
 
