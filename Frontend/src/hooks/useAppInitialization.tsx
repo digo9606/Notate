@@ -129,9 +129,7 @@ export function useAppInitialization() {
     const fetchSettings = async () => {
       if (activeUser) {
         const settings = await window.electron.getUserSettings(activeUser.id);
-        console.log(settings.ollamaIntegration);
         if (parseInt(settings?.ollamaIntegration?.toString() ?? "0") === 1) {
-          console.log("ollamaIntegration is 1");
           handleOllamaIntegration();
         }
         setSettings(settings);
