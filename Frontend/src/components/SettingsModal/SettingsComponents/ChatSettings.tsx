@@ -44,7 +44,7 @@ export default function ChatSettings() {
     openRouterModels,
   } = useUser();
   const { setSelectedCollection, setFiles } = useLibrary();
-  const { activeUser, apiKeys, prompts, azureModels } = useUser();
+  const { activeUser, apiKeys, prompts, azureModels, customModels } = useUser();
   const [open, setOpen] = useState<boolean>(false);
   const [value, setValue] = useState<string>("");
   const [showNewPrompt, setShowNewPrompt] = useState<boolean>(false);
@@ -81,7 +81,7 @@ export default function ChatSettings() {
     value: string | number | undefined
   ) => {
     setSettings((prev) => ({ ...prev, [setting]: value }));
-    if (setting === "prompt") {
+    if (setting === "prompt" || setting === "promptId") {
       const promptId = typeof value === "string" ? parseInt(value) : value;
       const selectedPromptName =
         prompts.find((p) => p.id === promptId)?.name || "";
@@ -91,7 +91,7 @@ export default function ChatSettings() {
       if (activeUser) {
         await window.electron.updateUserSettings(
           activeUser.id,
-          setting,
+          setting as keyof UserSettings,
           value?.toString() ?? ""
         );
       }
@@ -117,6 +117,7 @@ export default function ChatSettings() {
     local: 2048,
     ollama: 2048,
     "azure open ai": 4096,
+    custom: 2048,
   };
 
   const modelOptions = {
@@ -138,8 +139,9 @@ export default function ChatSettings() {
       : [],
     ollama: ollamaModels?.map((model) => model.name) || [],
     "azure open ai": azureModels?.map((model) => model.name) || [],
+    custom: customModels?.map((model) => model.name) || [],
   };
-
+  console.log(customModels);
   const handleAddPrompt = async () => {
     if (activeUser) {
       const newPromptObject = await window.electron.addUserPrompt(
@@ -162,13 +164,13 @@ export default function ChatSettings() {
   };
 
   useEffect(() => {
-    if (settings.prompt) {
-      const promptId = parseInt(settings.prompt);
+    if (settings.promptId) {
+      const promptId = settings.promptId.toString();
       const selectedPromptName =
-        prompts.find((p) => p.id === promptId)?.name || "";
+        prompts.find((p) => p.id === parseInt(promptId))?.name || "";
       setValue(selectedPromptName);
     }
-  }, [settings.prompt, prompts]);
+  }, [settings.promptId, prompts]);
 
   return (
     <div className="space-y-6">
@@ -230,7 +232,7 @@ export default function ChatSettings() {
                               setValue(currentValue);
                               setOpen(false);
                               handleSettingChange(
-                                "prompt",
+                                "promptId",
                                 prompt.id.toString()
                               );
                               toast({
@@ -291,16 +293,41 @@ export default function ChatSettings() {
                 ) as LLMProvider;
 
                 if (modelOptions.ollama.includes(value)) {
-                  provider = "Ollama";
+                  provider = "ollama";
                 }
-
-                if (provider === "Ollama") {
-                  setLocalModalLoading(true);
-                }
-
                 handleSettingChange("model", value);
                 handleSettingChange("provider", provider);
+                if (provider === "ollama") {
+                  setLocalModalLoading(true);
+                }
+                if (provider === "custom") {
+                  handleSettingChange(
+                    "baseUrl",
+                    customModels?.find((model) => model.name === value)
+                      ?.endpoint ?? ""
+                  );
+                  handleSettingChange(
+                    "selectedCustomId",
+                    customModels?.find((model) => model.name === value)?.id ?? 0
+                  );
+                  handleSettingChange(
+                    "model",
+                    customModels?.find((model) => model.name === value)
+                      ?.model ?? ""
+                  );
+                }
 
+                if (provider === "azure open ai") {
+                  handleSettingChange(
+                    "baseUrl",
+                    azureModels?.find((model) => model.name === value)
+                      ?.endpoint ?? ""
+                  );
+                  handleSettingChange(
+                    "selectedAzureId",
+                    azureModels?.find((model) => model.name === value)?.id ?? 0
+                  );
+                }
                 const newMaxTokens =
                   modelTokenDefaults[
                     value as keyof typeof modelTokenDefaults
@@ -380,6 +407,14 @@ export default function ChatSettings() {
                 <SelectGroup>
                   <SelectLabel className="font-semibold">OLLAMA</SelectLabel>
                   {modelOptions.ollama.map((model) => (
+                    <SelectItem key={model} value={model}>
+                      {model}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel className="font-semibold">CUSTOM</SelectLabel>
+                  {modelOptions.custom.map((model) => (
                     <SelectItem key={model} value={model}>
                       {model}
                     </SelectItem>

@@ -58,8 +58,8 @@ export function setupDbHandlers() {
     try {
       const result = await db.updateUserSettings(
         payload.userId,
-        payload.key,
-        payload.value
+        payload.key as keyof UserSettings,
+        typeof payload.value === 'boolean' ? (payload.value ? 1 : 0) : (payload.value ?? '')
       );
       return {
         userId: payload.userId,

@@ -23,6 +23,7 @@ export function useAppInitialization() {
     fetchPrompts,
     setOpenRouterModels,
     setAzureModels,
+    setCustomModels,
   } = useUser();
   const {
     setUserCollections,
@@ -30,7 +31,7 @@ export function useAppInitialization() {
     setOpenLibrary,
     setOpenAddToCollection,
     fetchCollections,
-    fetchEmbeddingModels
+    fetchEmbeddingModels,
   } = useLibrary();
   const {
     setSettings,
@@ -95,10 +96,18 @@ export function useAppInitialization() {
         setAzureModels(
           models.models.map((m) => ({
             ...m,
-            id: Date.now(),
+            id: m.id,
             deployment: m.model,
+            apiKey: m.api_key,
           }))
         );
+      }
+    };
+
+    const fetchCustomModels = async () => {
+      if (activeUser) {
+        const models = await window.electron.getCustomAPIs(activeUser.id);
+        setCustomModels(models.api);
       }
     };
 
@@ -112,7 +121,7 @@ export function useAppInitialization() {
         await window.electron.updateUserSettings(
           activeUser.id,
           "ollamaIntegration",
-          "true"
+          1
         );
         setOllamaModels(filteredModels);
       }
@@ -120,25 +129,25 @@ export function useAppInitialization() {
     const fetchSettings = async () => {
       if (activeUser) {
         const settings = await window.electron.getUserSettings(activeUser.id);
-        if (settings.ollamaIntegration === "true") {
+        if (parseInt(String(settings.ollamaIntegration)) === 1) {
           handleOllamaIntegration();
         }
         setSettings(settings);
-        if (settings.model_dir) {
-          setLocalModelDir(settings.model_dir);
+        if (settings.modelDirectory) {
+          setLocalModelDir(settings.modelDirectory);
           const models = (await window.electron.getDirModels(
-            settings.model_dir
+            settings.modelDirectory
           )) as unknown as { dirPath: string; models: Model[] };
           setLocalModels(models.models);
           if (
             settings.provider === "local" &&
             settings.model &&
-            settings.model_type
+            settings.modelType
           ) {
             await window.electron.loadModel({
-              model_location: settings.model_location as string,
+              model_location: settings.modelLocation as string,
               model_name: settings.model,
-              model_type: settings.model_type as string,
+              model_type: settings.modelType as string,
               user_id: activeUser.id,
             });
           }
@@ -155,6 +164,7 @@ export function useAppInitialization() {
       fetchDevAPIKeys();
       fetchCollections();
       fetchAzureModels();
+      fetchCustomModels();
     }
   }, [activeUser]);
 

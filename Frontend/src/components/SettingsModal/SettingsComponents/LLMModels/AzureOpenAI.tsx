@@ -40,7 +40,7 @@ export default function AzureOpenAI() {
       );
       await window.electron.updateUserSettings(
         activeUser.id,
-        "base_url",
+        "baseUrl",
         customBaseUrl
       );
       await window.electron.updateUserSettings(

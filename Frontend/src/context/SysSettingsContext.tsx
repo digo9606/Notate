@@ -98,7 +98,9 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [platform, setPlatform] = useState<"win32" | "darwin" | "linux" | null>(
     null
   );
-  const [embeddingModels, setEmbeddingModels] = useState<{ name: string }[]>([]);
+  const [embeddingModels, setEmbeddingModels] = useState<{ name: string }[]>(
+    []
+  );
 
   const [systemSpecs, setSystemSpecs] = useState<{
     cpu: string;
@@ -173,12 +175,12 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     );
     await window.electron.updateUserSettings(
       Number(user_id),
-      "model_type",
+      "modelType",
       model_type
     );
     await window.electron.updateUserSettings(
       Number(user_id),
-      "model_location",
+      "modelLocation",
       model_location
     );
     if (result.status === "success") {
@@ -244,7 +246,11 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     setLocalModalLoading(true);
     setProgressLocalOutput([]);
-
+    await window.electron.updateUserSettings(
+      activeUser.id,
+      "ollamaModel",
+      model
+    );
     try {
       const result = await window.electron.runOllama(model, activeUser);
 

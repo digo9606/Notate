@@ -85,7 +85,6 @@ export async function installLlamaCpp(
             cancelId: 1,
             noLink: true,
           });
-
           if (response === 0) {
             log.info(
               "Falling back to CPU-only installation using pre-built wheel"
@@ -104,7 +103,6 @@ export async function installLlamaCpp(
             ]);
           } else {
             // Open Visual Studio download page
-
             await shell.openExternal('https://visualstudio.microsoft.com/vs/community/');
             throw error;
           }

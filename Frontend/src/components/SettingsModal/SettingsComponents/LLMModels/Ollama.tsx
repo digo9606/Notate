@@ -39,7 +39,7 @@ export default function Ollama() {
       await window.electron.updateUserSettings(
         activeUser.id,
         "ollamaIntegration",
-        "true"
+        1
       );
       setOllamaModels(filteredModels);
     }
@@ -49,13 +49,10 @@ export default function Ollama() {
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <Button
-          variant={
-            settings.ollamaIntegration === "true" ? "default" : "outline"
-          }
+          variant={settings.ollamaIntegration === 1 ? "default" : "outline"}
           className="w-full"
           onClick={async () => {
-            const newValue =
-              settings.ollamaIntegration === "true" ? "false" : "true";
+            const newValue = settings.ollamaIntegration === 1 ? 0 : 1;
             if (activeUser) {
               setSettings({
                 ...settings,
@@ -68,7 +65,7 @@ export default function Ollama() {
                 newValue
               );
 
-              if (newValue === "true") {
+              if (newValue === 1) {
                 await handleOllamaIntegration();
               } else {
                 setOllamaModels([]);
@@ -76,12 +73,12 @@ export default function Ollama() {
             }
           }}
         >
-          {settings.ollamaIntegration === "true"
+          {settings.ollamaIntegration === 1
             ? "Ollama Integration Enabled"
             : "Integrate with Ollama"}
         </Button>
       </div>
-      {settings.ollamaIntegration === "true" && (
+      {settings.ollamaIntegration === 1 && (
         <div className="flex flex-row gap-2">
           <Select value={selectedModel} onValueChange={setSelectedModel}>
             <SelectTrigger className="w-full">

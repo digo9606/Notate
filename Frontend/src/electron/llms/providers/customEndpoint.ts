@@ -7,11 +7,11 @@ import type { ChatCompletionMessageParam } from "openai/resources/chat/completio
 
 let openai: OpenAI;
 
-async function initializeOpenAI(apiKey: string) {
-  openai = new OpenAI({ apiKey });
+async function initializeCustom(apiKey: string, baseURL: string) {
+  openai = new OpenAI({ apiKey, baseURL });
 }
 
-export async function OpenAIProvider(
+export async function CustomProvider(
   messages: Message[],
   activeUser: User,
   userSettings: UserSettings,
@@ -29,13 +29,20 @@ export async function OpenAIProvider(
   } | null,
   signal?: AbortSignal
 ) {
-  const apiKey = db.getApiKey(activeUser.id, "openai");
-
-  if (!apiKey) {
-    throw new Error("OpenAI API key not found for the active user");
+  let customAPIs;
+  if (userSettings.provider == "custom") {
+    customAPIs = db.getCustomAPI(activeUser.id);
+    if (customAPIs.length == 0 || userSettings.selectedCustomId == null) {
+      throw new Error("No custom API selected");
+    }
+    const customAPI = customAPIs.find(
+      (api) => api.id == userSettings.selectedCustomId
+    );
+    if (!customAPI) {
+      throw new Error("Custom API not found");
+    }
+    await initializeCustom(customAPI.api_key, customAPI.endpoint);
   }
-
-  await initializeOpenAI(apiKey);
 
   if (!openai) {
     throw new Error("OpenAI instance not initialized");

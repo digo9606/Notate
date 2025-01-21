@@ -3,13 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useUser } from "@/context/useUser";
 import { toast } from "@/hooks/use-toast";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 export default function CustomLLM() {
   const { apiKeyInput, setApiKeyInput, activeUser } = useUser();
   const [customProvider, setCustomProvider] = useState("");
@@ -22,11 +16,11 @@ export default function CustomLLM() {
       await window.electron.updateUserSettings(
         activeUser.id,
         "provider",
-        customProvider
+        "custom"
       );
       await window.electron.updateUserSettings(
         activeUser.id,
-        "base_url",
+        "baseUrl",
         customBaseUrl
       );
       await window.electron.updateUserSettings(
@@ -34,10 +28,18 @@ export default function CustomLLM() {
         "model",
         customModel
       );
-      await window.electron.addAPIKey(
+      const apiId = await window.electron.addCustomAPI(
         activeUser.id,
+        customProvider,
+        customBaseUrl,
         apiKeyInput,
-        customProvider
+        customModel
+      );
+      console.log(apiId);
+      await window.electron.updateUserSettings(
+        activeUser.id,
+        "selectedCustomId",
+        apiId.id.toString()
       );
       toast({
         title: "Custom provider added",
@@ -67,7 +69,7 @@ export default function CustomLLM() {
         onChange={(e) => setCustomProvider(e.target.value)}
         className="input-field"
       />
-      <Select>
+      {/*      <Select>
         <SelectTrigger>
           <SelectValue placeholder="Select a endpoint type" />
         </SelectTrigger>
@@ -78,7 +80,7 @@ export default function CustomLLM() {
           <SelectItem value="openai">anthropic</SelectItem>
           <SelectItem value="openai">gemini</SelectItem>
         </SelectContent>
-      </Select>
+      </Select> */}
       <Input
         id="custom-base-url"
         type="text"
@@ -109,3 +111,5 @@ export default function CustomLLM() {
     </div>
   );
 }
+
+

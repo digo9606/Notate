@@ -39,8 +39,20 @@ class DatabaseService {
         CREATE TABLE IF NOT EXISTS settings (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user_id INTEGER,
-          key TEXT NOT NULL,
-          value TEXT,
+          model TEXT,
+          promptId INTEGER,
+          temperature FLOAT,
+          provider TEXT,
+          maxTokens INTEGER,
+          vectorstore TEXT,
+          modelDirectory TEXT,
+          modelType TEXT,
+          modelLocation TEXT,
+          ollamaIntegration INTEGER DEFAULT 0,
+          ollamaModel TEXT,
+          baseUrl TEXT,
+          selectedAzureId INTEGER,
+          selectedCustomId INTEGER,
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
 
@@ -61,6 +73,16 @@ class DatabaseService {
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
 
+        CREATE TABLE IF NOT EXISTS custom_api (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER,
+          name TEXT NOT NULL,
+          endpoint TEXT NOT NULL,
+          api_key TEXT NOT NULL,
+          model TEXT,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+          
         CREATE TABLE IF NOT EXISTS api_keys (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user_id INTEGER,
@@ -134,8 +156,80 @@ class DatabaseService {
         );
       `);
       console.log("Database initialized successfully");
+      this.migrateSettingsTable();
     } catch (error) {
       console.error("Error initializing database:", error);
+    }
+  };
+
+  migrateSettingsTable = () => {
+    try {
+      // Check if old columns exist
+      const tableInfo = this.db
+        .prepare("PRAGMA table_info(settings)")
+        .all() as { name: string; type: string }[];
+
+      const hasOldSchema = tableInfo.some(
+        (col) => col.name === "key" || col.name === "value"
+      );
+
+      if (hasOldSchema) {
+        // Create new table with correct schema
+        this.db.exec(`
+          CREATE TABLE settings_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            model TEXT,
+            promptId INTEGER,
+            temperature FLOAT,
+            provider TEXT,
+            maxTokens INTEGER,
+            vectorstore TEXT,
+            modelDirectory TEXT,
+            modelType TEXT,
+            modelLocation TEXT,
+            ollamaIntegration INTEGER,
+            ollamaModel TEXT,
+            baseUrl TEXT,
+            selectedAzureId INTEGER,
+            selectedCustomId INTEGER,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+          );
+
+          -- Copy existing data with correct types
+          INSERT INTO settings_new (
+            id, user_id, model, promptId, temperature, provider, maxTokens,
+            vectorstore, modelDirectory, modelType, modelLocation,
+            ollamaIntergration, ollamaModel, baseUrl, selectedAzureId, selectedCustomId
+          )
+          SELECT 
+            id, user_id,
+            CASE WHEN key = 'model' THEN value ELSE model END,
+            CASE WHEN key = 'promptId' THEN CAST(value AS INTEGER) ELSE CAST(promptId AS INTEGER) END,
+            CASE WHEN key = 'temperature' THEN CAST(value AS FLOAT) ELSE CAST(temperature AS FLOAT) END,
+            CASE WHEN key = 'provider' THEN value ELSE provider END,
+            CASE WHEN key = 'maxTokens' THEN CAST(value AS INTEGER) ELSE CAST(maxTokens AS INTEGER) END,
+            CASE WHEN key = 'vectorstore' THEN value ELSE vectorstore END,
+            CASE WHEN key = 'modelDirectory' THEN value ELSE modelDirectory END,
+            CASE WHEN key = 'modelType' THEN value ELSE modelType END,
+            CASE WHEN key = 'modelLocation' THEN value ELSE modelLocation END,
+            CASE WHEN key = 'ollamaIntegration' THEN CAST(value AS INTEGER) ELSE CAST(ollamaIntegration AS INTEGER) END,
+            CASE WHEN key = 'ollamaModel' THEN value ELSE ollamaModel END,
+            CASE WHEN key = 'baseUrl' THEN value ELSE baseUrl END,
+            CASE WHEN key = 'selectedAzureId' THEN CAST(value AS INTEGER) ELSE CAST(selectedAzureId AS INTEGER) END,
+            CASE WHEN key = 'selectedCustomId' THEN CAST(value AS INTEGER) ELSE CAST(selectedCustomId AS INTEGER) END
+          FROM settings;
+
+          -- Drop old table
+          DROP TABLE settings;
+
+          -- Rename new table
+          ALTER TABLE settings_new RENAME TO settings;
+        `);
+        console.log("Settings table migrated successfully");
+      }
+    } catch (error) {
+      console.error("Error migrating settings table:", error);
     }
   };
 
@@ -161,8 +255,26 @@ class DatabaseService {
           "endpoint",
           "api_key",
         ],
+        custom_api: ["id", "user_id", "name", "endpoint", "api_key", "model"],
         users: ["id", "name", "created_at"],
-        settings: ["id", "user_id", "key", "value"],
+        settings: [
+          "id",
+          "user_id",
+          "model",
+          "promptId",
+          "temperature",
+          "provider",
+          "maxTokens",
+          "vectorstore",
+          "modelDirectory",
+          "modelType",
+          "modelLocation",
+          "ollamaIntegration",
+          "ollamaModel",
+          "baseUrl",
+          "selectedAzureId",
+          "selectedCustomId",
+        ],
         api_keys: ["id", "user_id", "key", "provider", "created_at"],
         prompts: ["id", "user_id", "name", "prompt", "created_at"],
         conversations: ["id", "user_id", "title", "created_at"],
@@ -269,39 +381,31 @@ class DatabaseService {
   getUserSettings(userId: string | number): Promise<UserSettings> {
     const settings = this.db
       .prepare("SELECT * FROM settings WHERE user_id = ?")
-      .all(userId) as { key: string; value: string }[];
+      .get(userId) as UserSettings;
 
-    const settingsObject: UserSettings = {};
-    settings.forEach((setting) => {
-      if (setting.key === "temperature") {
-        settingsObject[setting.key] = parseFloat(setting.value);
-      } else {
-        settingsObject[setting.key] = setting.value;
-      }
-    });
-    return Promise.resolve(settingsObject);
+    return Promise.resolve(settings || {});
   }
 
   updateUserSettings(
     userId: number,
-    key: string,
-    value: string
-  ): { userId: number; key: string; value: string } {
-    const existingUserSettings = this.db
-      .prepare("SELECT * FROM settings WHERE user_id = ? AND key = ?")
-      .get(userId, key);
+    key: keyof UserSettings,
+    value: string | number | boolean
+  ): Promise<UserSettings> {
+    const existingSettings = this.db
+      .prepare("SELECT * FROM settings WHERE user_id = ?")
+      .get(userId);
 
-    if (existingUserSettings) {
+    if (existingSettings) {
       this.db
-        .prepare("UPDATE settings SET value = ? WHERE user_id = ? AND key = ?")
-        .run(value, userId, key);
+        .prepare(`UPDATE settings SET ${key} = ? WHERE user_id = ?`)
+        .run(value, userId);
     } else {
       this.db
-        .prepare("INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?)")
-        .run(userId, key, value);
+        .prepare(`INSERT INTO settings (user_id, ${key}) VALUES (?, ?)`)
+        .run(userId, value);
     }
 
-    return { userId, key, value };
+    return this.getUserSettings(userId);
   }
 
   getUserPrompts(userId: number) {
@@ -401,7 +505,7 @@ class DatabaseService {
   }
   addFileToCollection(userId: number, id: number, file: string) {
     const collection = this.db
-      .prepare("SELECT * FROM collections WHERE id = ? AND user_id = ?")
+      .prepare("SELECT * FROM collections WHERE id = ? AND user_id =?")
       .get(id, userId) as Collection;
     if (collection) {
       // files is a string and needs to be split into an array
@@ -630,6 +734,7 @@ class DatabaseService {
     const rows = this.db
       .prepare("SELECT * FROM azure_openai_models WHERE user_id = ?")
       .all(userId) as {
+      id: number;
       name: string;
       model: string;
       endpoint: string;
@@ -658,13 +763,56 @@ class DatabaseService {
   }
   getAzureOpenAIModel(userId: number, id: number) {
     return this.db
-      .prepare("SELECT * FROM azure_openai_models WHERE id = ? AND user_id = ?")
+      .prepare("SELECT * FROM azure_openai_models WHERE id = ? AND user_id =?")
       .get(id, userId) as {
       name: string;
       model: string;
       endpoint: string;
       api_key: string;
     };
+  }
+  getCustomAPI(userId: number) {
+    return this.db
+      .prepare("SELECT * FROM custom_api WHERE user_id = ?")
+      .all(userId) as {
+      id: number;
+      user_id: number;
+      name: string;
+      endpoint: string;
+      api_key: string;
+      model: string;
+    }[];
+  }
+  getCustomAPIs(userId: number) {
+    return this.db
+      .prepare("SELECT * FROM custom_api WHERE user_id = ?")
+      .all(userId) as {
+      id: number;
+      user_id: number;
+      name: string;
+      endpoint: string;
+      api_key: string;
+      model: string;
+    }[];
+  }
+  deleteCustomAPI(userId: number, id: number) {
+    return this.db
+      .prepare("DELETE FROM custom_api WHERE id = ? AND user_id = ?")
+      .run(id, userId);
+  }
+  addCustomAPI(
+    userId: number,
+    name: string,
+    endpoint: string,
+    api_key: string,
+    model: string
+  ) {
+    const result = this.db
+      .prepare(
+        "INSERT INTO custom_api (user_id, name, endpoint, api_key, model) VALUES (?, ?, ?, ?, ?)"
+      )
+      .run(userId, name, endpoint, api_key, model);
+    return result.lastInsertRowid as number;
   }
 }
 

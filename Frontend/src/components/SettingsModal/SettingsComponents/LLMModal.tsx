@@ -95,7 +95,7 @@ export default function LLMPanel() {
           "provider",
           provider.toLowerCase()
         );
-        if (provider === "Openrouter") {
+        if (provider === "openrouter") {
           await window.electron.addOpenRouterModel(
             activeUser.id,
             "openai/gpt-3.5-turbo"
@@ -133,7 +133,7 @@ export default function LLMPanel() {
         return <Openrouter />;
       case "Azure Open AI":
         return <AzureOpenAI />;
-      case "Custom":
+      case "custom":
         return <CustomLLM />;
       default:
         return null;
@@ -168,7 +168,6 @@ export default function LLMPanel() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                disabled
                 onClick={() => {
                   setSelectedProvider("custom" as LLMProvider);
                   setApiKeyInput("");

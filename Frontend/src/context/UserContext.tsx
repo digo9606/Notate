@@ -56,6 +56,8 @@ interface UserContextType {
   setApiKeyInput: React.Dispatch<React.SetStateAction<string>>;
   azureModels: AzureModel[];
   setAzureModels: React.Dispatch<React.SetStateAction<AzureModel[]>>;
+  customModels: CustomModel[];
+  setCustomModels: React.Dispatch<React.SetStateAction<CustomModel[]>>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -78,6 +80,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [title, setTitle] = useState<string | null>(null);
   const [input, setInput] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [customModels, setCustomModels] = useState<CustomModel[]>([]);
   const [streamingMessage, setStreamingMessage] = useState<string>("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [prompts, setPrompts] = useState<Prompt[]>([]);
@@ -349,6 +352,8 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       setApiKeyInput,
       azureModels,
       setAzureModels,
+      customModels,
+      setCustomModels,
     }),
     [
       activeUser,
@@ -378,6 +383,8 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       setApiKeyInput,
       azureModels,
       setAzureModels,
+      customModels,
+      setCustomModels,
     ]
   );
 
