@@ -287,7 +287,6 @@ export async function generateTitle(
   model?: string
 ) {
   const userSettings = await db.getUserSettings(userId);
-  console.log("User settings:", userSettings);
   switch (userSettings.provider?.toLowerCase()) {
     case "openai":
       return generateTitleOpenAI(input, userId);

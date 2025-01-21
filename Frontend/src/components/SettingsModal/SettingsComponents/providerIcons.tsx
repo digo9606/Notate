@@ -5,6 +5,7 @@ import xai from "@/assets/providers/xai.svg";
 import openrouter from "@/assets/providers/openrouter.svg";
 import ollama from "@/assets/providers/ollama.svg";
 import azure from "@/assets/providers/azure.svg";
+import custom from "@/assets/providers/network.svg";
 import { HouseIcon } from "lucide-react";
 import { ReactNode } from "react";
 
@@ -19,12 +20,13 @@ const SvgIcon = ({ src, alt }: { src: string; alt: string }) => (
 );
 
 export const providerIcons: Record<string, ReactNode> = {
-  OpenAI: <SvgIcon src={openai} alt="OpenAI" />,
-  Anthropic: <SvgIcon src={anthropic} alt="Anthropic" />,
-  Gemini: <SvgIcon src={gemini} alt="Gemini" />,
-  XAI: <SvgIcon src={xai} alt="XAI" />,
-  Local: <HouseIcon className="h-3 w-3" />,
-  OpenRouter: <SvgIcon src={openrouter} alt="OpenRouter" />,
-  Ollama: <SvgIcon src={ollama} alt="Ollama" />,
-  "Azure Open AI": <SvgIcon src={azure} alt="Azure" />,
+  openai: <SvgIcon src={openai} alt="OpenAI" />,
+  anthropic: <SvgIcon src={anthropic} alt="Anthropic" />,
+  gemini: <SvgIcon src={gemini} alt="Gemini" />,
+  xai: <SvgIcon src={xai} alt="XAI" />,
+  local: <HouseIcon className="h-3 w-3" />,
+  openrouter: <SvgIcon src={openrouter} alt="OpenRouter" />,
+  ollama: <SvgIcon src={ollama} alt="Ollama" />,
+  "azure open ai": <SvgIcon src={azure} alt="Azure" />,
+  custom: <SvgIcon src={custom} alt="Custom" />,
 };

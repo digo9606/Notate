@@ -146,7 +146,6 @@ export async function chatRequest(
       prompt = "You are a helpful assistant.";
     }
     let provider;
-    log.info(`User settings: ${JSON.stringify(userSettings)}`);
     switch (userSettings.provider?.toLowerCase()) {
       case "openai":
         provider = OpenAIProvider;
