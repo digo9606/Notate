@@ -4,6 +4,39 @@ import { ifFedora } from "./ifFedora.js";
 import { dialog, shell } from "electron";
 import { updateLoadingStatus } from "../loadingWindow.js";
 
+const cudaLoadingMessages = [
+  "Herding CUDA llamas into the pen...",
+  "Teaching llamas quantum physics...",
+  "Boy, these CUDA llamas take forever to train...",
+  "Convincing llamas that parallel processing is fun...",
+  "Feeding llamas their favorite CUDA treats...",
+  "Still working... llamas are notoriously stubborn...",
+  "Optimizing llama performance (they're a bit lazy)...",
+  "Running llama benchmarks (they're on a coffee break)...",
+  "Almost there! Just waking up some sleepy llamas...",
+  "Turns out llamas need a lot of CUDA cores...",
+];
+
+let messageIndex = 0;
+let messageInterval: NodeJS.Timeout | null = null;
+
+function startRotatingMessages(baseProgress: number) {
+  messageIndex = 0;
+  if (messageInterval) clearInterval(messageInterval);
+  
+  messageInterval = setInterval(() => {
+    updateLoadingStatus(cudaLoadingMessages[messageIndex], baseProgress);
+    messageIndex = (messageIndex + 1) % cudaLoadingMessages.length;
+  }, 5000); // Rotate message every 5 seconds
+}
+
+function stopRotatingMessages() {
+  if (messageInterval) {
+    clearInterval(messageInterval);
+    messageInterval = null;
+  }
+}
+
 export async function installLlamaCpp(
   venvPython: string,
   hasNvidiaGpu: boolean,
@@ -53,6 +86,7 @@ export async function installLlamaCpp(
         25.5
       );
       try {
+        startRotatingMessages(25.5);
         await spawnAsync(
           venvPython,
           [
@@ -75,6 +109,7 @@ export async function installLlamaCpp(
             },
           }
         );
+        stopRotatingMessages();
         updateLoadingStatus("llama-cpp-python installed successfully", 30.5);
       } catch (error) {
         if (process.platform === "win32") {
