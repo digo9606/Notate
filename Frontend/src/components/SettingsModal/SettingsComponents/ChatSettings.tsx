@@ -141,7 +141,7 @@ export default function ChatSettings() {
     "azure open ai": azureModels?.map((model) => model.name) || [],
     custom: customModels?.map((model) => model.name) || [],
   };
-  console.log(customModels);
+
   const handleAddPrompt = async () => {
     if (activeUser) {
       const newPromptObject = await window.electron.addUserPrompt(

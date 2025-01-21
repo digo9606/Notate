@@ -556,8 +556,8 @@ class DatabaseService {
       .run(user.lastInsertRowid, promptName, defaultPrompt);
     const promptId = addDefaultPrompt.lastInsertRowid;
     this.db
-      .prepare("INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?)")
-      .run(user.lastInsertRowid, "prompt_id", promptId);
+      .prepare("INSERT INTO settings (user_id, promptId) VALUES (?, ?)")
+      .run(user.lastInsertRowid, promptId);
     return { id: user.lastInsertRowid as number, name };
   }
 
