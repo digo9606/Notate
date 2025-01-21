@@ -23,11 +23,15 @@ let messageInterval: NodeJS.Timeout | null = null;
 function startRotatingMessages(baseProgress: number) {
   messageIndex = 0;
   if (messageInterval) clearInterval(messageInterval);
-  
+
   messageInterval = setInterval(() => {
-    updateLoadingStatus(cudaLoadingMessages[messageIndex], baseProgress);
+    updateLoadingStatus(
+      "Installing CUDA llama-cpp-python (this may take a while) " +
+        cudaLoadingMessages[messageIndex],
+      baseProgress
+    );
     messageIndex = (messageIndex + 1) % cudaLoadingMessages.length;
-  }, 5000); // Rotate message every 5 seconds
+  }, 15000); // Rotate message every 15 seconds
 }
 
 function stopRotatingMessages() {
