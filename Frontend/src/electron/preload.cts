@@ -83,7 +83,11 @@ electron.contextBridge.exposeInMainWorld("electron", {
   onStreamEnd: (callback) => ipcOn("streamEnd", () => callback()),
   offStreamEnd: (callback) => ipcOff("streamEnd", () => callback()),
   getUsers: () => ipcInvoke("getUsers"),
-  addUser: (name: string) => ipcInvoke("addUser", { name }),
+  addUser: (name: string) =>
+    ipcInvoke("addUser", { name }) as Promise<{
+      name: string;
+      error?: string;
+    }>,
   updateUserSettings: (
     userId: number,
     key: keyof UserSettings,

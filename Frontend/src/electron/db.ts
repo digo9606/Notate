@@ -545,7 +545,17 @@ class DatabaseService {
       .all(userId);
   }
 
-  addUser(name: string): { id: number; name: string } {
+  addUser(name: string): { id: number; name: string; error?: string } {
+    const existingUser = this.db
+      .prepare("SELECT * FROM users WHERE name = ?")
+      .get(name);
+    if (existingUser) {
+      return {
+        id: -1,
+        name: "",
+        error: "User already exists",
+      };
+    }
     const user = this.db
       .prepare("INSERT INTO users (name) VALUES (?)")
       .run(name);
@@ -583,7 +593,7 @@ class DatabaseService {
 
   getUserConversationTitle(userId: number, conversationId: number) {
     return this.db
-      .prepare("SELECT title FROM conversations WHERE id = ? AND user_id = ?")
+      .prepare("SELECT title FROM conversations WHERE id = ? AND user_id =?")
       .get(conversationId, userId) as { title: string };
   }
 
@@ -643,7 +653,7 @@ class DatabaseService {
 
   getUserPrompt(userId: number, promptId: number) {
     return this.db
-      .prepare("SELECT * FROM prompts WHERE id = ? AND user_id = ?")
+      .prepare("SELECT * FROM prompts WHERE id = ? AND user_id =?")
       .get(promptId, userId) as { prompt: string };
   }
   updateMessageDataId(messageId: number, dataId: number) {

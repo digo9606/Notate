@@ -473,7 +473,10 @@ interface Window {
       apiKey?: string
     ) => Promise<{ success: boolean; apiKey?: string }>;
     getUsers: () => Promise<{ users: { name: string; id: number }[] }>;
-    addUser: (name: string) => Promise<{ name: string }>;
+    addUser: (name: string) => Promise<{
+      name: string;
+      error?: string;
+    }>;
     updateUserSettings: (
       userId: number,
       key: keyof UserSettings,

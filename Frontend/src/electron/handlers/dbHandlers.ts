@@ -14,7 +14,10 @@ export function setupDbHandlers() {
   });
   ipcMainHandle("addUser", async (_, { name }) => {
     try {
-      const result = db.addUser(name as string);
+      const result = await db.addUser(name as string);
+      if (result.error) {
+        return { name: result.name, error: result.error };
+      }
       return { name: result.name };
     } catch (error) {
       console.error("Error adding user:", error);
@@ -59,7 +62,11 @@ export function setupDbHandlers() {
       const result = await db.updateUserSettings(
         payload.userId,
         payload.key as keyof UserSettings,
-        typeof payload.value === 'boolean' ? (payload.value ? 1 : 0) : (payload.value ?? '')
+        typeof payload.value === "boolean"
+          ? payload.value
+            ? 1
+            : 0
+          : payload.value ?? ""
       );
       return {
         userId: payload.userId,
