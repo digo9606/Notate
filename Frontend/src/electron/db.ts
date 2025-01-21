@@ -161,7 +161,6 @@ class DatabaseService {
       console.error("Error initializing database:", error);
     }
   };
-
   migrateSettingsTable = () => {
     try {
       // Check if old columns exist

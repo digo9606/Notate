@@ -396,30 +396,36 @@ export default function ChatSettings() {
                     ))}
                   </SelectGroup>
                 ))}
-                <SelectGroup>
-                  <SelectLabel className="font-semibold">LOCAL</SelectLabel>
-                  {modelOptions.local.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-                <SelectGroup>
-                  <SelectLabel className="font-semibold">OLLAMA</SelectLabel>
-                  {modelOptions.ollama.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-                <SelectGroup>
-                  <SelectLabel className="font-semibold">CUSTOM</SelectLabel>
-                  {modelOptions.custom.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
+                {localModels.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="font-semibold">LOCAL</SelectLabel>
+                    {modelOptions.local.map((model) => (
+                      <SelectItem key={model} value={model}>
+                        {model}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+                {ollamaModels.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="font-semibold">OLLAMA</SelectLabel>
+                    {modelOptions.ollama.map((model) => (
+                      <SelectItem key={model} value={model}>
+                        {model}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+                {customModels.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="font-semibold">CUSTOM</SelectLabel>
+                    {modelOptions.custom.map((model) => (
+                      <SelectItem key={model} value={model}>
+                        {model}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
               </SelectContent>
             </Select>
           </div>
