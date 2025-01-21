@@ -2,6 +2,7 @@ import { spawnAsync } from "../helpers/spawnAsync.js";
 import log from "electron-log";
 import { ifFedora } from "./ifFedora.js";
 import { dialog, shell } from "electron";
+import { updateLoadingStatus } from "../loadingWindow.js";
 
 export async function installLlamaCpp(
   venvPython: string,
@@ -11,6 +12,7 @@ export async function installLlamaCpp(
   try {
     if (hasNvidiaGpu && cudaAvailable) {
       // Install build dependencies for CUDA
+      updateLoadingStatus("Installing build dependencies for CUDA", 22.5);
       await spawnAsync(venvPython, [
         "-m",
         "pip",
@@ -21,6 +23,10 @@ export async function installLlamaCpp(
         "cmake",
         "ninja",
       ]);
+      updateLoadingStatus(
+        "Installing typing-extensions, numpy, diskcache, msgpack",
+        23.5
+      );
       await spawnAsync(venvPython, [
         "-m",
         "pip",
@@ -33,7 +39,7 @@ export async function installLlamaCpp(
 
       // Check for Fedora and install CUDA toolkit if needed
       await ifFedora();
-
+      updateLoadingStatus("Installing CUDA toolkit for Fedora", 24.5);
       process.env.CMAKE_ARGS = "-DGGML_CUDA=ON";
       process.env.FORCE_CMAKE = "1";
       process.env.LLAMA_CUDA = "1";
@@ -42,6 +48,10 @@ export async function installLlamaCpp(
       process.env.GGML_CUDA_ENABLE_UNIFIED_MEMORY = "1";
 
       log.info("Installing llama-cpp-python with CUDA support");
+      updateLoadingStatus(
+        "Installing llama-cpp-python with CUDA support (this may take a while)",
+        25.5
+      );
       try {
         await spawnAsync(
           venvPython,
@@ -65,16 +75,22 @@ export async function installLlamaCpp(
             },
           }
         );
+        updateLoadingStatus("llama-cpp-python installed successfully", 30.5);
       } catch (error) {
         if (process.platform === "win32") {
           log.error(
             "Failed to install llama-cpp-python with CUDA support",
             error
           );
+          updateLoadingStatus(
+            "Failed to install llama-cpp-python with CUDA support. Asking user to install CPU version.",
+            30.5
+          );
           const { response } = await dialog.showMessageBox({
             type: "error",
             title: "CUDA Installation Error",
-            message: "Failed to install llama-cpp-python with CUDA support",
+            message:
+              "Failed to install llama-cpp-python with CUDA support. Would you like to proceed with CPU-only version instead?",
             detail:
               "This could be due to missing Visual Studio 2022 with C++ Desktop Development Tools. Would you like to proceed with CPU-only version instead?\n\nNote: You can install Visual Studio and try CUDA installation again later.",
             buttons: [
@@ -89,6 +105,10 @@ export async function installLlamaCpp(
             log.info(
               "Falling back to CPU-only installation using pre-built wheel"
             );
+            updateLoadingStatus(
+              "Falling back to CPU-only installation using pre-built wheel",
+              31.5
+            );
             await spawnAsync(venvPython, [
               "-m",
               "pip",
@@ -101,9 +121,12 @@ export async function installLlamaCpp(
               "--no-cache-dir",
               "--verbose",
             ]);
+            updateLoadingStatus("CPU-only installation completed", 32.5);
           } else {
             // Open Visual Studio download page
-            await shell.openExternal('https://visualstudio.microsoft.com/vs/community/');
+            await shell.openExternal(
+              "https://visualstudio.microsoft.com/vs/community/"
+            );
             throw error;
           }
         } else {
@@ -112,6 +135,7 @@ export async function installLlamaCpp(
       }
     } else {
       // CPU-only installation
+      updateLoadingStatus("Installing CPU-only llama-cpp-python", 26.5);
       log.info("Installing CPU-only llama-cpp-python");
       try {
         if (process.platform === "darwin") {
@@ -126,7 +150,10 @@ export async function installLlamaCpp(
             "cmake",
             "ninja",
           ]);
-
+          updateLoadingStatus(
+            "Installing CPU-only llama-cpp-python (this may take a while)",
+            27.5
+          );
           await spawnAsync(venvPython, [
             "-m",
             "pip",
@@ -135,6 +162,7 @@ export async function installLlamaCpp(
             "--no-cache-dir",
             "llama-cpp-python",
           ]);
+          updateLoadingStatus("CPU-only installation completed", 28.5);
         } else {
           // For other platforms, try pre-built wheel first
           await spawnAsync(venvPython, [
@@ -149,6 +177,7 @@ export async function installLlamaCpp(
             "--no-cache-dir",
             "--verbose",
           ]);
+          updateLoadingStatus("CPU-only installation completed", 28.5);
         }
       } catch (error) {
         if (process.platform === "win32") {

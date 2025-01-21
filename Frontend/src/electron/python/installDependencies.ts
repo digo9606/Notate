@@ -12,7 +12,7 @@ export async function installDependencies(
     // Upgrade pip first
     await spawnAsync(venvPython, ["-m", "pip", "install", "--upgrade", "pip"]);
     log.info("Pip upgraded successfully");
-    updateLoadingStatus("Pip upgraded successfully", 36.5);
+    updateLoadingStatus("Pip upgraded successfully", 14.5);
 
     // Install NumPy with specific version
     await spawnAsync(venvPython, [
@@ -24,7 +24,7 @@ export async function installDependencies(
       "--no-cache-dir",
     ]);
     log.info("NumPy 1.24.3 installed successfully");
-    updateLoadingStatus("NumPy 1.24.3 installed successfully", 39.5);
+    updateLoadingStatus("NumPy 1.24.3 installed successfully", 15.5);
 
     // Install FastAPI and dependencies
     const fastApiDeps =
@@ -54,7 +54,7 @@ export async function installDependencies(
     log.info("FastAPI and dependencies installed successfully");
     updateLoadingStatus(
       "FastAPI and dependencies installed successfully",
-      42.5
+      16.5
     );
 
     // Install PyTorch
@@ -86,7 +86,7 @@ export async function installDependencies(
       ]);
     }
     log.info("PyTorch installed successfully");
-    updateLoadingStatus("PyTorch installed successfully", 44.5);
+    updateLoadingStatus("PyTorch installed successfully", 20.5);
 
     // Install transformers and related packages
     await spawnAsync(venvPython, [
@@ -98,13 +98,13 @@ export async function installDependencies(
       "sentence-transformers==3.3.1",
     ]);
     log.info("Transformers installed successfully");
-    updateLoadingStatus("Transformers installed successfully", 46.5);
+    updateLoadingStatus("Transformers installed successfully", 21.5);
 
     // Install llama-cpp-python if needed
     if (process.platform === "darwin" || hasNvidiaGpu) {
       await installLlamaCpp(venvPython, hasNvidiaGpu, cudaAvailable);
     }
-
+    updateLoadingStatus("Dependencies installed successfully", 30.5);
     return { venvPython, hasNvidiaGpu };
   } catch (error) {
     log.error("Failed to install dependencies", error);

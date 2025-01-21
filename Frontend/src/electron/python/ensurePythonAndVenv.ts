@@ -219,14 +219,27 @@ export async function ensurePythonAndVenv(backendPath: string) {
         log.info(
           "CUDA not found on Linux, attempting to install CUDA toolkit..."
         );
+        updateLoadingStatus(
+          "CUDA not found on Linux, attempting to install CUDA toolkit...",
+          10.5
+        );
+
         const packageManager = getLinuxPackageManager();
 
         // Check if we're on Fedora - if so, handle CUDA installation in ifFedora.ts
         if (fs.existsSync("/etc/fedora-release")) {
           // Re-check CUDA availability after Fedora-specific installation
+          updateLoadingStatus(
+            "Re-checking CUDA availability after Fedora-specific installation",
+            11.5
+          );
           try {
             const nvccVersion = execSync("nvcc --version").toString();
             if (nvccVersion) {
+              updateLoadingStatus(
+                "CUDA toolkit installed successfully via Fedora-specific process",
+                12.5
+              );
               log.info(
                 "CUDA toolkit installed successfully via Fedora-specific process"
               );
@@ -238,27 +251,34 @@ export async function ensurePythonAndVenv(backendPath: string) {
         } else {
           // Non-Fedora Linux systems
           try {
+            updateLoadingStatus(
+              "Installing CUDA toolkit and development tools...",
+              11.5
+            );
             await runWithPrivileges([
               // Update package list
               `${packageManager.command} update`,
               // Install CUDA toolkit and development tools
               `${packageManager.installCommand} nvidia-cuda-toolkit build-essential`,
             ]);
-
+            updateLoadingStatus("CUDA toolkit installed successfully", 12.5);
             // Verify installation
             const nvccVersion = execSync("nvcc --version").toString();
             if (nvccVersion) {
               log.info("CUDA toolkit installed successfully");
+              updateLoadingStatus("CUDA toolkit installed successfully", 13.5);
               cudaAvailable = true;
             }
           } catch (error) {
             log.error("Failed to install CUDA toolkit:", error);
+            updateLoadingStatus("Failed to install CUDA toolkit", 13.5);
             // Continue without CUDA support
           }
         }
       }
     } catch (error) {
       log.info("Failed to detect CUDA installation details", error);
+      updateLoadingStatus("Failed to detect CUDA installation details", 13.5);
     }
   } else {
     cudaAvailable = false;
