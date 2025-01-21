@@ -100,10 +100,8 @@ export async function installDependencies(
     log.info("Transformers installed successfully");
     updateLoadingStatus("Transformers installed successfully", 21.5);
 
-    // Install llama-cpp-python if needed
-    if (process.platform === "darwin" || hasNvidiaGpu) {
-      await installLlamaCpp(venvPython, hasNvidiaGpu, cudaAvailable);
-    }
+    await installLlamaCpp(venvPython, hasNvidiaGpu, cudaAvailable);
+
     updateLoadingStatus("Dependencies installed successfully", 30.5);
     return { venvPython, hasNvidiaGpu };
   } catch (error) {
