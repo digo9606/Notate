@@ -36,11 +36,10 @@ export default function Ollama() {
       const filteredModels = (models.models as unknown as string[])
         .filter((model) => !model.includes("granite"))
         .map((model) => ({ name: model, type: "ollama" }));
-      await window.electron.updateUserSettings(
-        activeUser.id,
-        "ollamaIntegration",
-        1
-      );
+      await window.electron.updateUserSettings({
+        ...activeUser,
+        ollamaIntegration: 1,
+      });
       setOllamaModels(filteredModels);
     }
   };
@@ -58,11 +57,10 @@ export default function Ollama() {
                 ollamaIntegration: settings.ollamaIntegration === 1 ? 0 : 1,
               });
 
-              await window.electron.updateUserSettings(
-                activeUser.id,
-                "ollamaIntegration",
-                settings.ollamaIntegration === 1 ? 0 : 1
-              );
+              await window.electron.updateUserSettings({
+                userId: activeUser.id,
+                ollamaIntegration: settings.ollamaIntegration === 1 ? 0 : 1,
+              });
 
               if (settings.ollamaIntegration === 1) {
                 await handleOllamaIntegration();

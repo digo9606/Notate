@@ -84,22 +84,23 @@ export default function LLMPanel() {
     }));
     try {
       if (activeUser) {
-        await window.electron.updateUserSettings(
-          activeUser.id,
-          "provider",
-          provider.toLowerCase()
-        );
+        await window.electron.updateUserSettings({
+          ...activeUser,
+          provider: provider.toLowerCase(),
+        });
         if (provider === "openrouter") {
           await window.electron.addOpenRouterModel(
             activeUser.id,
             "openai/gpt-3.5-turbo"
           );
         } else {
-          await window.electron.updateUserSettings(
-            activeUser.id,
-            "model",
-            defaultProviderModel[provider as keyof typeof defaultProviderModel]
-          );
+          await window.electron.updateUserSettings({
+            ...activeUser,
+            model:
+              defaultProviderModel[
+                provider as keyof typeof defaultProviderModel
+              ],
+          });
         }
       }
     } catch (error) {

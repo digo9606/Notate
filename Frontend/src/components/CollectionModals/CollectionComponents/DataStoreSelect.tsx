@@ -35,11 +35,10 @@ export default function DataStoreSelect() {
 
   const handleSelectCollection = async (collection: Collection) => {
     if (!activeUser) return;
-    await window.electron.updateUserSettings(
-      activeUser.id,
-      "vectorstore",
-      collection.id.toString()
-    );
+    await window.electron.updateUserSettings({
+      userId: activeUser.id,
+      vectorstore: collection.id.toString(),
+    });
     setSelectedCollection(collection);
     await loadFiles();
     setOpen(false);
@@ -74,7 +73,9 @@ export default function DataStoreSelect() {
               aria-expanded={open}
               className="w-full justify-between bg-background"
             >
-              <span className={cn("truncate", !value && "text-muted-foreground")}>
+              <span
+                className={cn("truncate", !value && "text-muted-foreground")}
+              >
                 {selectedCollection?.name || "Select Data Store"}
               </span>
               <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />

@@ -19,8 +19,8 @@ interface UserContextType {
   setActiveConversation: React.Dispatch<React.SetStateAction<number | null>>;
   conversations: Conversation[];
   setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
-  prompts: Prompt[];
-  setPrompts: React.Dispatch<React.SetStateAction<Prompt[]>>;
+  prompts: UserPrompts[];
+  setPrompts: React.Dispatch<React.SetStateAction<UserPrompts[]>>;
   streamingMessage: string;
   setStreamingMessage: React.Dispatch<React.SetStateAction<string>>;
   filteredConversations: Conversation[];
@@ -58,6 +58,9 @@ interface UserContextType {
   setAzureModels: React.Dispatch<React.SetStateAction<AzureModel[]>>;
   customModels: CustomModel[];
   setCustomModels: React.Dispatch<React.SetStateAction<CustomModel[]>>;
+  fetchOpenRouterModels: () => Promise<void>;
+  fetchAzureModels: () => Promise<void>;
+  fetchCustomModels: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -83,7 +86,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [customModels, setCustomModels] = useState<CustomModel[]>([]);
   const [streamingMessage, setStreamingMessage] = useState<string>("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [prompts, setPrompts] = useState<UserPrompts[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const searchRef = useRef<HTMLDivElement>(null);
@@ -111,7 +114,33 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+  const fetchOpenRouterModels = useCallback(async () => {
+    if (activeUser) {
+      const models = await window.electron.getOpenRouterModels(activeUser.id);
+      setOpenRouterModels(models.models);
+    }
+  }, [activeUser]);
 
+  const fetchAzureModels = useCallback(async () => {
+    if (activeUser) {
+      const models = await window.electron.getAzureOpenAIModels(activeUser.id);
+      setAzureModels(
+        models.models.map((m) => ({
+          ...m,
+          id: m.id,
+          deployment: m.model,
+          apiKey: m.api_key,
+        }))
+      );
+    }
+  }, [activeUser]);
+
+  const fetchCustomModels = useCallback(async () => {
+    if (activeUser) {
+      const models = await window.electron.getCustomAPIs(activeUser.id);
+      setCustomModels(models.api);
+    }
+  }, [activeUser]);
   const fetchMessages = useCallback(async () => {
     if (activeConversation) {
       const conversation = conversations.find(
@@ -184,7 +213,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       const fetchedPrompts = await window.electron.getUserPrompts(
         activeUser.id
       );
-      setPrompts(fetchedPrompts.prompts as Prompt[]);
+      setPrompts(fetchedPrompts.prompts as UserPrompts[]);
     }
   }, [activeUser]);
 
@@ -354,6 +383,9 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       setAzureModels,
       customModels,
       setCustomModels,
+      fetchOpenRouterModels,
+      fetchAzureModels,
+      fetchCustomModels,
     }),
     [
       activeUser,
@@ -385,6 +417,9 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       setAzureModels,
       customModels,
       setCustomModels,
+      fetchOpenRouterModels,
+      fetchAzureModels,
+      fetchCustomModels,
     ]
   );
 

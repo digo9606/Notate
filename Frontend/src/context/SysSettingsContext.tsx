@@ -50,6 +50,7 @@ interface SysSettingsContextType {
   localModelDir: string;
   setLocalModelDir: React.Dispatch<React.SetStateAction<string>>;
   loadModelsFromDirectory: (dirPath: string) => Promise<void>;
+  fetchSettings: (activeUser: User) => Promise<void>;
   handleRunModel: (
     model_name: string,
     model_location: string,
@@ -144,6 +145,12 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       });
     }
   };
+  const fetchSettings = async (activeUser: User) => {
+    if (activeUser) {
+      const userSettings = await window.electron.getUserSettings(activeUser.id);
+      setSettings(userSettings);
+    }
+  };
 
   const handleRunModel = async (
     model_name: string,
@@ -163,26 +170,14 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       model: model_name,
       provider: "local",
     }));
-    await window.electron.updateUserSettings(
-      Number(user_id),
-      "model",
-      model_name
-    );
-    await window.electron.updateUserSettings(
-      Number(user_id),
-      "provider",
-      "Local"
-    );
-    await window.electron.updateUserSettings(
-      Number(user_id),
-      "modelType",
-      model_type
-    );
-    await window.electron.updateUserSettings(
-      Number(user_id),
-      "modelLocation",
-      model_location
-    );
+    await window.electron.updateUserSettings({
+      userId: Number(user_id),
+      model: model_name,
+      provider: "local",
+      modelType: model_type,
+      modelLocation: model_location,
+    });
+
     if (result.status === "success") {
       toast({
         title: "Model loaded",
@@ -246,11 +241,10 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     setLocalModalLoading(true);
     setProgressLocalOutput([]);
-    await window.electron.updateUserSettings(
-      activeUser.id,
-      "ollamaModel",
-      model
-    );
+    await window.electron.updateUserSettings({
+      ...activeUser,
+      ollamaModel: model,
+    });
     try {
       const result = await window.electron.runOllama(model, activeUser);
 
@@ -384,6 +378,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         embeddingModels,
         setEmbeddingModels,
         fetchEmbeddingModels,
+        fetchSettings,
       }}
     >
       {children}

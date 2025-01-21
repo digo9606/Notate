@@ -385,26 +385,51 @@ class DatabaseService {
     return Promise.resolve(settings || {});
   }
 
-  updateUserSettings(
-    userId: number,
-    key: keyof UserSettings,
-    value: string | number | boolean
-  ): Promise<UserSettings> {
-    const existingSettings = this.db
+  updateUserSettings(settings: UserSettings) {
+    // First, get the current settings
+    const currentSettings = this.db
       .prepare("SELECT * FROM settings WHERE user_id = ?")
-      .get(userId);
+      .get(settings.userId) as UserSettings;
 
-    if (existingSettings) {
-      this.db
-        .prepare(`UPDATE settings SET ${key} = ? WHERE user_id = ?`)
-        .run(value, userId);
-    } else {
-      this.db
-        .prepare(`INSERT INTO settings (user_id, ${key}) VALUES (?, ?)`)
-        .run(userId, value);
-    }
+    // Merge current settings with new settings, preserving non-null values
+    const updatedSettings = {
+      model: settings.model ?? currentSettings?.model,
+      promptId: settings.promptId ?? currentSettings?.promptId,
+      temperature: settings.temperature ?? currentSettings?.temperature,
+      provider: settings.provider ?? currentSettings?.provider,
+      maxTokens: settings.maxTokens ?? currentSettings?.maxTokens,
+      vectorstore: settings.vectorstore ?? currentSettings?.vectorstore,
+      modelDirectory: settings.modelDirectory ?? currentSettings?.modelDirectory,
+      modelType: settings.modelType ?? currentSettings?.modelType,
+      modelLocation: settings.modelLocation ?? currentSettings?.modelLocation,
+      ollamaIntegration: settings.ollamaIntegration ?? currentSettings?.ollamaIntegration,
+      ollamaModel: settings.ollamaModel ?? currentSettings?.ollamaModel,
+      baseUrl: settings.baseUrl ?? currentSettings?.baseUrl,
+      selectedAzureId: settings.selectedAzureId ?? currentSettings?.selectedAzureId,
+      selectedCustomId: settings.selectedCustomId ?? currentSettings?.selectedCustomId,
+    };
 
-    return this.getUserSettings(userId);
+    return this.db
+      .prepare(
+        "UPDATE settings SET model = ?, promptId = ?, temperature = ?, provider = ?, maxTokens = ?, vectorstore = ?, modelDirectory = ?, modelType = ?, modelLocation = ?, ollamaIntegration = ?, ollamaModel = ?, baseUrl = ?, selectedAzureId = ?, selectedCustomId = ? WHERE user_id = ?"
+      )
+      .run(
+        updatedSettings.model,
+        updatedSettings.promptId,
+        updatedSettings.temperature,
+        updatedSettings.provider,
+        updatedSettings.maxTokens,
+        updatedSettings.vectorstore,
+        updatedSettings.modelDirectory,
+        updatedSettings.modelType,
+        updatedSettings.modelLocation,
+        updatedSettings.ollamaIntegration,
+        updatedSettings.ollamaModel,
+        updatedSettings.baseUrl,
+        updatedSettings.selectedAzureId,
+        updatedSettings.selectedCustomId,
+        settings.userId
+      );
   }
 
   getUserPrompts(userId: number) {

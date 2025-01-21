@@ -13,21 +13,6 @@ export default function CustomLLM() {
     e.preventDefault();
     try {
       if (!activeUser) return;
-      await window.electron.updateUserSettings(
-        activeUser.id,
-        "provider",
-        "custom"
-      );
-      await window.electron.updateUserSettings(
-        activeUser.id,
-        "baseUrl",
-        customBaseUrl
-      );
-      await window.electron.updateUserSettings(
-        activeUser.id,
-        "model",
-        customModel
-      );
       const apiId = await window.electron.addCustomAPI(
         activeUser.id,
         customProvider,
@@ -35,12 +20,13 @@ export default function CustomLLM() {
         apiKeyInput,
         customModel
       );
-      console.log(apiId);
-      await window.electron.updateUserSettings(
-        activeUser.id,
-        "selectedCustomId",
-        apiId.id.toString()
-      );
+      await window.electron.updateUserSettings({
+        provider: "custom",
+        baseUrl: customBaseUrl,
+        model: customModel,
+        isLocal: false,
+        selectedCustomId: apiId.id,
+      });
       toast({
         title: "Custom provider added",
         description: "Your custom provider has been added",
@@ -69,22 +55,10 @@ export default function CustomLLM() {
         onChange={(e) => setCustomProvider(e.target.value)}
         className="input-field"
       />
-      {/*      <Select>
-        <SelectTrigger>
-          <SelectValue placeholder="Select a endpoint type" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="openai">OpenAI</SelectItem>
-          <SelectItem value="openai">ooba</SelectItem>
-          <SelectItem value="openai">ollama</SelectItem>
-          <SelectItem value="openai">anthropic</SelectItem>
-          <SelectItem value="openai">gemini</SelectItem>
-        </SelectContent>
-      </Select> */}
       <Input
         id="custom-base-url"
         type="text"
-        placeholder="Enter custom base url (e.g. https://api.custom.com/v1)"
+        placeholder="Enter base url (e.g. https://api.custom.com/v1)"
         value={customBaseUrl}
         onChange={(e) => setCustomBaseUrl(e.target.value)}
         className="input-field"
@@ -111,5 +85,3 @@ export default function CustomLLM() {
     </div>
   );
 }
-
-

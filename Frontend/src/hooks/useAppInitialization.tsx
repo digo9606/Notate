@@ -21,9 +21,9 @@ export function useAppInitialization() {
     getUserConversations,
     fetchApiKey,
     fetchPrompts,
-    setOpenRouterModels,
-    setAzureModels,
-    setCustomModels,
+    fetchOpenRouterModels,
+    fetchAzureModels,
+    fetchCustomModels,
   } = useUser();
   const {
     setUserCollections,
@@ -81,36 +81,6 @@ export function useAppInitialization() {
 
   // User-dependent initialization
   useEffect(() => {
-    const fetchOpenRouterModels = async () => {
-      if (activeUser) {
-        const models = await window.electron.getOpenRouterModels(activeUser.id);
-        setOpenRouterModels(models.models);
-      }
-    };
-
-    const fetchAzureModels = async () => {
-      if (activeUser) {
-        const models = await window.electron.getAzureOpenAIModels(
-          activeUser.id
-        );
-        setAzureModels(
-          models.models.map((m) => ({
-            ...m,
-            id: m.id,
-            deployment: m.model,
-            apiKey: m.api_key,
-          }))
-        );
-      }
-    };
-
-    const fetchCustomModels = async () => {
-      if (activeUser) {
-        const models = await window.electron.getCustomAPIs(activeUser.id);
-        setCustomModels(models.api);
-      }
-    };
-
     const handleOllamaIntegration = async () => {
       const startUpOllama = await window.electron.checkOllama();
       if (activeUser && startUpOllama) {
@@ -118,11 +88,10 @@ export function useAppInitialization() {
         const filteredModels = (models.models as unknown as string[])
           .filter((model) => !model.includes("granite"))
           .map((model) => ({ name: model, type: "ollama" }));
-        await window.electron.updateUserSettings(
-          activeUser.id,
-          "ollamaIntegration",
-          1
-        );
+        await window.electron.updateUserSettings({
+          ...activeUser,
+          ollamaIntegration: 1,
+        });
         setOllamaModels(filteredModels);
       }
     };

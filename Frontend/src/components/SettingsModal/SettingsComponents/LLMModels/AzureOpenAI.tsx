@@ -28,26 +28,14 @@ export default function AzureOpenAI() {
         customBaseUrl,
         apiKeyInput
       );
-      await window.electron.updateUserSettings(
-        activeUser.id,
-        "provider",
-        "azure open ai"
-      );
-      await window.electron.updateUserSettings(
-        activeUser.id,
-        "selectedAzureId",
-        azureId.id.toString()
-      );
-      await window.electron.updateUserSettings(
-        activeUser.id,
-        "baseUrl",
-        customBaseUrl
-      );
-      await window.electron.updateUserSettings(
-        activeUser.id,
-        "model",
-        customModel
-      );
+      await window.electron.updateUserSettings({
+        userId: activeUser.id,
+        provider: "azure open ai",
+        selectedAzureId: azureId.id,
+        baseUrl: customBaseUrl,
+        model: customModel,
+      });
+
       await window.electron.addAPIKey(
         activeUser.id,
         apiKeyInput,

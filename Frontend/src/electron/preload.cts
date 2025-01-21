@@ -88,20 +88,11 @@ electron.contextBridge.exposeInMainWorld("electron", {
       name: string;
       error?: string;
     }>,
-  updateUserSettings: (
-    userId: number,
-    key: keyof UserSettings,
-    value: string | number | boolean | undefined
-  ) =>
-    ipcInvoke("updateUserSettings", {
-      userId,
-      key,
-      value,
-    }) as unknown as Promise<{
-      userId: number;
-      key: keyof UserSettings;
-      value: string | number | boolean | undefined;
-    }>,
+  updateUserSettings: (userSettings: UserSettings) =>
+    ipcInvoke(
+      "updateUserSettings",
+      userSettings
+    ) as unknown as Promise<UserSettings>,
   getUserSettings: (userId: number) =>
     ipcInvoke("getUserSettings", {
       userId,

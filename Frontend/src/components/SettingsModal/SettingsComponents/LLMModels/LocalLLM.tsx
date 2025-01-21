@@ -49,7 +49,10 @@ export default function LocalLLM() {
       const dirPath = await window.electron.openDirectory();
       if (dirPath) {
         setLocalModelDir(dirPath);
-        window.electron.updateUserSettings(activeUser.id, "modelDirectory", dirPath);
+        window.electron.updateUserSettings({
+          userId: activeUser.id,
+          modelDirectory: dirPath,
+        });
         const response = (await window.electron.getDirModels(
           dirPath
         )) as unknown as { dirPath: string; models: Model[] };

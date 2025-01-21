@@ -59,21 +59,8 @@ export function setupDbHandlers() {
   });
   ipcMainDatabaseHandle("updateUserSettings", async (payload) => {
     try {
-      const result = await db.updateUserSettings(
-        payload.userId,
-        payload.key as keyof UserSettings,
-        typeof payload.value === "boolean"
-          ? payload.value
-            ? 1
-            : 0
-          : payload.value ?? ""
-      );
-      return {
-        userId: payload.userId,
-        key: payload.key,
-        value: payload.value,
-        result,
-      };
+      await db.updateUserSettings(payload);
+      return payload;
     } catch (error) {
       console.error("Error updating user settings:", error);
       throw error;

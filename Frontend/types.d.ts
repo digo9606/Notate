@@ -45,21 +45,9 @@ type Message = {
   data_content?: string;
 };
 
-type Settings = {
-  vectorstore: string;
-  prompt: string;
-  temperature: number;
-  model: string;
-  provider: string;
-};
-
-interface UserPrompts {
-  id: number;
-  name: string;
-  prompt: string;
-  userId: number;
-}
 interface UserSettings {
+  userId?: number;
+  id?: number;
   vectorstore?: string;
   prompt?: string;
   temperature?: number;
@@ -101,13 +89,12 @@ type Conversation = {
   created_at: Date;
 };
 
-type Prompt = {
+interface UserPrompts {
   id: number;
   name: string;
   prompt: string;
   userId: number;
-};
-
+}
 type FrameWindowAction = "close" | "minimize" | "maximize" | "unmaximize";
 
 interface TranscribeAudioInput {
@@ -183,11 +170,7 @@ interface EventPayloadMapping {
   offStreamEnd: void;
   getUsers: { users: { name: string; id: number }[] };
   addUser: { name: string };
-  updateUserSettings: {
-    userId: number;
-    key: string;
-    value: string | number | boolean | undefined;
-  };
+  updateUserSettings: UserSettings;
   getUserSettings: { userId: number };
   getUserPrompts: { userId: number };
   addUserPrompt: { userId: number; name: string; prompt: string };
@@ -477,15 +460,7 @@ interface Window {
       name: string;
       error?: string;
     }>;
-    updateUserSettings: (
-      userId: number,
-      key: keyof UserSettings,
-      value: string | number | boolean | undefined
-    ) => Promise<{
-      userId: number;
-      key: keyof UserSettings;
-      value: string | number | boolean | undefined;
-    }>;
+    updateUserSettings: (UserSettings: UserSettings) => Promise<UserSettings>;
     getUserSettings: (userId: number) => Promise<UserSettings>;
     getUserPrompts: (userId: number) => Promise<{ prompts: UserPrompts[] }>;
     addUserPrompt: (

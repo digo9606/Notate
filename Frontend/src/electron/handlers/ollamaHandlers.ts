@@ -57,8 +57,8 @@ export async function setupOllamaHandlers() {
         await checkOllama();
         await runOllama({ model });
 
-        db.updateUserSettings(user.id, "provider", "ollama");
-        db.updateUserSettings(user.id, "model", model);
+        db.updateUserSettings({ ...user, provider: "ollama" });
+        db.updateUserSettings({ ...user, model });
         return { model, user };
       } catch (error) {
         const errorMessage =
