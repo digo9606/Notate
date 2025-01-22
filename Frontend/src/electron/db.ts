@@ -245,7 +245,9 @@ class DatabaseService {
         }[]) {
           try {
             // Check if user exists before restoring their settings
-            const userExists = this.db.prepare("SELECT 1 FROM users WHERE id = ?").get(row.user_id);
+            const userExists = this.db
+              .prepare("SELECT 1 FROM users WHERE id = ?")
+              .get(row.user_id);
             if (!userExists) continue;
 
             this.db
