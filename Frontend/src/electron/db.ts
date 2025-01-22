@@ -163,19 +163,48 @@ class DatabaseService {
   };
   migrateSettingsTable = () => {
     try {
-      // Check if old columns exist
+      // Define expected schema
+      const expectedColumns = [
+        { name: "id", type: "INTEGER" },
+        { name: "user_id", type: "INTEGER" },
+        { name: "model", type: "TEXT" },
+        { name: "promptId", type: "INTEGER" },
+        { name: "temperature", type: "FLOAT" },
+        { name: "provider", type: "TEXT" },
+        { name: "maxTokens", type: "INTEGER" },
+        { name: "vectorstore", type: "TEXT" },
+        { name: "modelDirectory", type: "TEXT" },
+        { name: "modelType", type: "TEXT" },
+        { name: "modelLocation", type: "TEXT" },
+        { name: "ollamaIntegration", type: "INTEGER" },
+        { name: "ollamaModel", type: "TEXT" },
+        { name: "baseUrl", type: "TEXT" },
+        { name: "selectedAzureId", type: "INTEGER" },
+        { name: "selectedCustomId", type: "INTEGER" },
+      ];
+
+      // Get current table info
       const tableInfo = this.db
         .prepare("PRAGMA table_info(settings)")
         .all() as { name: string; type: string }[];
 
-      const hasOldSchema = tableInfo.some(
-        (col) => col.name === "key" || col.name === "value"
-      );
+      // Check if schema matches exactly
+      const needsReset =
+        tableInfo.length !== expectedColumns.length ||
+        !tableInfo.every(
+          (col, i) =>
+            col.name === expectedColumns[i].name &&
+            col.type.toUpperCase().includes(expectedColumns[i].type)
+        );
 
-      if (hasOldSchema) {
-        // Create new table with correct schema
+      if (needsReset) {
+        // Backup existing data
+        const existingData = this.db.prepare("SELECT * FROM settings").all();
+
+        // Drop and recreate table with correct schema
         this.db.exec(`
-          CREATE TABLE settings_new (
+          DROP TABLE IF EXISTS settings;
+          CREATE TABLE settings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
             model TEXT,
@@ -194,41 +223,66 @@ class DatabaseService {
             selectedCustomId INTEGER,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
           );
-
-          -- Copy existing data with correct types
-          INSERT INTO settings_new (
-            id, user_id, model, promptId, temperature, provider, maxTokens,
-            vectorstore, modelDirectory, modelType, modelLocation,
-            ollamaIntergration, ollamaModel, baseUrl, selectedAzureId, selectedCustomId
-          )
-          SELECT 
-            id, user_id,
-            CASE WHEN key = 'model' THEN value ELSE model END,
-            CASE WHEN key = 'promptId' THEN CAST(value AS INTEGER) ELSE CAST(promptId AS INTEGER) END,
-            CASE WHEN key = 'temperature' THEN CAST(value AS FLOAT) ELSE CAST(temperature AS FLOAT) END,
-            CASE WHEN key = 'provider' THEN value ELSE provider END,
-            CASE WHEN key = 'maxTokens' THEN CAST(value AS INTEGER) ELSE CAST(maxTokens AS INTEGER) END,
-            CASE WHEN key = 'vectorstore' THEN value ELSE vectorstore END,
-            CASE WHEN key = 'modelDirectory' THEN value ELSE modelDirectory END,
-            CASE WHEN key = 'modelType' THEN value ELSE modelType END,
-            CASE WHEN key = 'modelLocation' THEN value ELSE modelLocation END,
-            CASE WHEN key = 'ollamaIntegration' THEN CAST(value AS INTEGER) ELSE CAST(ollamaIntegration AS INTEGER) END,
-            CASE WHEN key = 'ollamaModel' THEN value ELSE ollamaModel END,
-            CASE WHEN key = 'baseUrl' THEN value ELSE baseUrl END,
-            CASE WHEN key = 'selectedAzureId' THEN CAST(value AS INTEGER) ELSE CAST(selectedAzureId AS INTEGER) END,
-            CASE WHEN key = 'selectedCustomId' THEN CAST(value AS INTEGER) ELSE CAST(selectedCustomId AS INTEGER) END
-          FROM settings;
-
-          -- Drop old table
-          DROP TABLE settings;
-
-          -- Rename new table
-          ALTER TABLE settings_new RENAME TO settings;
         `);
-        console.log("Settings table migrated successfully");
+
+        // Attempt to restore data that matches the new schema
+        for (const row of existingData as {
+          user_id: number;
+          model: string;
+          promptId: number;
+          temperature: number;
+          provider: string;
+          maxTokens: number;
+          vectorstore: string;
+          modelDirectory: string;
+          modelType: string;
+          modelLocation: string;
+          ollamaIntegration: number;
+          ollamaModel: string;
+          baseUrl: string;
+          selectedAzureId: number;
+          selectedCustomId: number;
+        }[]) {
+          try {
+            // Check if user exists before restoring their settings
+            const userExists = this.db.prepare("SELECT 1 FROM users WHERE id = ?").get(row.user_id);
+            if (!userExists) continue;
+
+            this.db
+              .prepare(
+                `
+              INSERT INTO settings (
+                user_id, model, promptId, temperature, provider, maxTokens,
+                vectorstore, modelDirectory, modelType, modelLocation,
+                ollamaIntegration, ollamaModel, baseUrl, selectedAzureId, selectedCustomId
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `
+              )
+              .run(
+                row.user_id,
+                row.model,
+                row.promptId,
+                row.temperature,
+                row.provider,
+                row.maxTokens,
+                row.vectorstore,
+                row.modelDirectory,
+                row.modelType,
+                row.modelLocation,
+                row.ollamaIntegration,
+                row.ollamaModel,
+                row.baseUrl,
+                row.selectedAzureId,
+                row.selectedCustomId
+              );
+          } catch (error) {
+            console.error("Error restoring settings row:", error);
+          }
+        }
+        console.log("Settings table reset and migrated to exact schema");
       }
     } catch (error) {
-      console.error("Error migrating settings table:", error);
+      console.error("Error checking/resetting settings table:", error);
     }
   };
 
@@ -399,14 +453,18 @@ class DatabaseService {
       provider: settings.provider ?? currentSettings?.provider,
       maxTokens: settings.maxTokens ?? currentSettings?.maxTokens,
       vectorstore: settings.vectorstore ?? currentSettings?.vectorstore,
-      modelDirectory: settings.modelDirectory ?? currentSettings?.modelDirectory,
+      modelDirectory:
+        settings.modelDirectory ?? currentSettings?.modelDirectory,
       modelType: settings.modelType ?? currentSettings?.modelType,
       modelLocation: settings.modelLocation ?? currentSettings?.modelLocation,
-      ollamaIntegration: settings.ollamaIntegration ?? currentSettings?.ollamaIntegration,
+      ollamaIntegration:
+        settings.ollamaIntegration ?? currentSettings?.ollamaIntegration,
       ollamaModel: settings.ollamaModel ?? currentSettings?.ollamaModel,
       baseUrl: settings.baseUrl ?? currentSettings?.baseUrl,
-      selectedAzureId: settings.selectedAzureId ?? currentSettings?.selectedAzureId,
-      selectedCustomId: settings.selectedCustomId ?? currentSettings?.selectedCustomId,
+      selectedAzureId:
+        settings.selectedAzureId ?? currentSettings?.selectedAzureId,
+      selectedCustomId:
+        settings.selectedCustomId ?? currentSettings?.selectedCustomId,
     };
 
     return this.db
