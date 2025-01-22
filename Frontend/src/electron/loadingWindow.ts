@@ -29,6 +29,12 @@ export function createLoadingWindow(icon?: Electron.NativeImage) {
     center: true,
     title: app.getName(),
     icon: icon || path.join(__dirname, "../../src/assets/icon.png"),
+    backgroundColor: '#00000000', // Fully transparent background
+    vibrancy: 'under-window', // Add vibrancy effect on macOS
+    // @ts-ignore
+    titleBarStyle: 'hidden', // Hide title bar
+    // @ts-ignore
+    trafficLightPosition: { x: 16, y: 16 }, // Position window controls for macOS
   };
 
   loadingWindow = new BrowserWindow(windowOptions);
