@@ -1,86 +1,337 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Loading</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            animation: {
+              orbit: "orbit calc(var(--duration)*1s) linear infinite",
+            },
+            keyframes: {
+              orbit: {
+                "0%": {
+                  transform:
+                    "rotate(calc(var(--angle) * 1deg)) translateX(calc(var(--radius) * 1px)) rotate(calc(var(--angle) * -1deg))",
+                },
+                "100%": {
+                  transform:
+                    "rotate(calc(var(--angle) * 1deg + 360deg)) translateX(calc(var(--radius) * 1px)) rotate(calc((var(--angle) * -1deg) - 360deg))",
+                },
+              },
+            },
+          },
+        },
+      };
+    </script>
     <style>
-        @keyframes writing {
-            0% { transform: translateX(-20px) rotate(-5deg); opacity: 0; }
-            100% { transform: translateX(0) rotate(0deg); opacity: 1; }
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        body {
-            -webkit-app-region: drag;
-            background: transparent;
-        }
-        .no-drag {
-            -webkit-app-region: no-drag;
-        }
-        .status-container {
-            height: 3em;
-            overflow: hidden;
-        }
-        .failure-message {
-            display: none;
-        }
-        .failure-message.show {
-            display: block;
-            animation: fadeIn 0.5s ease-out forwards;
-        }
-    </style>
-</head>
-<body class="h-screen flex items-center justify-center p-6 bg-gray-900">
-    <div class="bg-gray-800/95 backdrop-blur-sm rounded-[10px] shadow-lg p-12 w-[480px] text-center">
-        <h2 class="text-3xl font-semibold text-white mb-6">Notate</h2>
-        
-        <div class="status-container text-gray-300 mt-8" id="status">
-            Initializing...
-        </div>
-        
-        <div class="w-full bg-gray-700 rounded-full h-2.5 dark:bg-gray-700 mb-4">
-            <div id="progress-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
-        </div>
+      :root {
+        --background: 187 36.4% 4.48%;
+        --foreground: 187 5.6% 97.8%;
+        --muted: 187 28% 16.8%;
+        --primary: 187 56% 56%;
+        --secondary: 187 28% 16.8%;
+        --border: 187 28% 16.8%;
+        --window-radius: 12px;
+      }
 
-        <div id="failure-message" class="failure-message mt-4">
-            <p class="text-red-400 mb-4">Failed to start Notate</p>
-            <div class="flex justify-center space-x-4">
-                <button onclick="openLogs()" class="no-drag px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[8px] transition-colors">
-                    View Logs
-                </button>
-                <button onclick="openGithubIssue()" class="no-drag px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-[8px] transition-colors">
-                    Report Issue
-                </button>
+      @keyframes writing {
+        0% {
+          transform: translateX(-20px) rotate(-5deg);
+          opacity: 0;
+        }
+        100% {
+          transform: translateX(0) rotate(0deg);
+          opacity: 1;
+        }
+      }
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      body {
+        -webkit-app-region: drag;
+        background-color: hsl(var(--background));
+        color: hsl(var(--foreground));
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+        border-radius: var(--window-radius);
+      }
+      .no-drag {
+        -webkit-app-region: no-drag;
+      }
+      .status-container {
+        height: 3em;
+        overflow: hidden;
+      }
+      .failure-message {
+        display: none;
+      }
+      .failure-message.show {
+        display: block;
+        animation: fadeIn 0.5s ease-out forwards;
+      }
+      .orbit-container {
+        position: relative;
+        width: 320px;
+        height: 320px;
+      }
+      .orbit-circle {
+        position: absolute;
+        inset: 0;
+      }
+      .orbit-dot {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform-origin: center;
+        margin-left: calc(var(--icon-size) / -2);
+        margin-top: calc(var(--icon-size) / -2);
+      }
+      .glass-panel {
+        backdrop-filter: blur(12px);
+        border: 1px solid hsl(var(--border) / 0.5);
+        box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+        border-radius: var(--window-radius);
+        overflow: hidden;
+        background: linear-gradient(to bottom right, hsl(var(--secondary) / 0.5), hsl(var(--secondary) / 0.3), hsl(var(--background)));
+      }
+      .progress-bar {
+        background-color: hsl(var(--muted));
+        border-radius: 9999px;
+        height: 0.625rem;
+      }
+      .progress-bar-fill {
+        background-color: hsl(var(--primary));
+        height: 100%;
+        border-radius: 9999px;
+        transition: width 300ms;
+      }
+    </style>
+  </head>
+  <body class="h-screen flex items-center justify-center p-6 bg-background">
+    <div class="glass-panel p-8 w-[480px] text-center">
+      <div class="flex justify-center">
+        <div class="orbit-container mb-8 relative">
+          <h2
+            class="text-4xl font-semibold text-[#ffffff] absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
+          >
+            Notate
+          </h2>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            version="1.1"
+            class="orbit-circle pointer-events-none size-full"
+            viewBox="0 0 320 320"
+          >
+            <circle
+              class="stroke-white/10"
+              cx="160"
+              cy="160"
+              r="120"
+              fill="none"
+              stroke-width="1"
+            />
+          </svg>
+
+          <!-- Orbiting Icons -->
+          <div
+            style="
+              --duration: 20;
+              --radius: 120;
+              --angle: 70;
+              --icon-size: 24px;
+            "
+            class="orbit-dot flex size-[var(--icon-size)] transform-gpu animate-orbit items-center justify-center"
+          >
+            <div class="flex items-center justify-center">
+              <svg
+                class="size-14 pl-3 pt-2"
+                style="color: #00ff9d"
+                fill="currentColor"
+                fill-rule="evenodd"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M13.85 7.6 13 6.77 8.35 2.15a.48.48 0 0 0-.7 0L3 6.72l-.83.82a.5.5 0 1 0 .7.71v5.2a.5.5 0 0 0 .5.5h9.29a.5.5 0 0 0 .5-.5V8.3a.52.52 0 0 0 .35.14.51.51 0 0 0 .36-.15.49.49 0 0 0-.02-.69ZM6.38 13V8.92h3V13Zm5.76 0H10.4V8.42a.51.51 0 0 0-.5-.5h-4a.51.51 0 0 0-.5.5V13H3.85V7.31L8 3.2l4.14 4.11Z"
+                ></path>
+              </svg>
             </div>
+          </div>
+          <div
+            style="
+              --duration: 20;
+              --radius: 120;
+              --angle: 140;
+              --icon-size: 24px;
+            "
+            class="orbit-dot flex size-[var(--icon-size)] transform-gpu animate-orbit items-center justify-center"
+          >
+            <div class="flex items-center justify-center">
+              <svg
+                class="size-6"
+                style="color: #ff6b6b"
+                fill="currentColor"
+                fill-rule="evenodd"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <title>Ollama</title>
+                <path
+                  d="M7.905 1.09c.216.085.411.225.588.41.295.306.544.744.734 1.263.191.522.315 1.1.362 1.68a5.054 5.054 0 012.049-.636l.051-.004c.87-.07 1.73.087 2.48.474.101.053.2.11.297.17.05-.569.172-1.134.36-1.644.19-.52.439-.957.733-1.264a1.67 1.67 0 01.589-.41c.257-.1.53-.118.796-.042.401.114.745.368 1.016.737.248.337.434.769.561 1.287.23.934.27 2.163.115 3.645l.053.04.026.019c.757.576 1.284 1.397 1.563 2.35.435 1.487.216 3.155-.534 4.088l-.018.021.002.003c.417.762.67 1.567.724 2.4l.002.03c.064 1.065-.2 2.137-.814 3.19l-.007.01.01.024c.472 1.157.62 2.322.438 3.486l-.006.039a.651.651 0 01-.747.536.648.648 0 01-.54-.742c.167-1.033.01-2.069-.48-3.123a.643.643 0 01.04-.617l.004-.006c.604-.924.854-1.83.8-2.72-.046-.779-.325-1.544-.8-2.273a.644.644 0 01.18-.886l.009-.006c.243-.159.467-.565.58-1.12a4.229 4.229 0 00-.095-1.974c-.205-.7-.58-1.284-1.105-1.683-.595-.454-1.383-.673-2.38-.61a.653.653 0 01-.632-.371c-.314-.665-.772-1.141-1.343-1.436a3.288 3.288 0 00-1.772-.332c-1.245.099-2.343.801-2.67 1.686a.652.652 0 01-.61.425c-1.067.002-1.893.252-2.497.703-.522.39-.878.935-1.066 1.588a4.07 4.07 0 00-.068 1.886c.112.558.331 1.02.582 1.269l.008.007c.212.207.257.53.109.785-.36.622-.629 1.549-.673 2.44-.05 1.018.186 1.902.719 2.536l.016.019a.643.643 0 01.095.69c-.576 1.236-.753 2.252-.562 3.052a.652.652 0 01-1.269.298c-.243-1.018-.078-2.184.473-3.498l.014-.035-.008-.012a4.339 4.339 0 01-.598-1.309l-.005-.019a5.764 5.764 0 01-.177-1.785c.044-.91.278-1.842.622-2.59l.012-.026-.002-.002c-.293-.418-.51-.953-.63-1.545l-.005-.024a5.352 5.352 0 01.093-2.49c.262-.915.777-1.701 1.536-2.269.06-.045.123-.09.186-.132-.159-1.493-.119-2.73.112-3.67.127-.518.314-.95.562-1.287.27-.368.614-.622 1.015-.737.266-.076.54-.059.797.042z"
+                ></path>
+              </svg>
+            </div>
+          </div>
+          <div
+            style="
+              --duration: 20;
+              --radius: 120;
+              --angle: 210;
+              --icon-size: 24px;
+            "
+            class="orbit-dot flex size-[var(--icon-size)] transform-gpu animate-orbit items-center justify-center"
+          >
+            <div class="flex items-center justify-center">
+              <svg
+                class="size-6"
+                style="color: #ff47d2"
+                fill="currentColor"
+                fill-rule="evenodd"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <title>Anthropic</title>
+                <path
+                  d="M13.827 3.52h3.603L24 20h-3.603l-6.57-16.48zm-7.258 0h3.767L16.906 20h-3.674l-1.343-3.461H5.017l-1.344 3.46H0L6.57 3.522zm4.132 9.959L8.453 7.687 6.205 13.48H10.7z"
+                ></path>
+              </svg>
+            </div>
+          </div>
+          <div
+            style="
+              --duration: 20;
+              --radius: 120;
+              --angle: 280;
+              --icon-size: 24px;
+            "
+            class="orbit-dot flex size-[var(--icon-size)] transform-gpu animate-orbit items-center justify-center"
+          >
+            <div class="flex items-center justify-center">
+              <svg
+                class="size-6"
+                style="color: #47b3ff"
+                fill="currentColor"
+                fill-rule="evenodd"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <title>Grok</title>
+                <path
+                  d="M6.469 8.776L16.512 23h-4.464L2.005 8.776H6.47zm-.004 7.9l2.233 3.164L6.467 23H2l4.465-6.324zM22 2.582V23h-3.659V7.764L22 2.582zM22 1l-9.952 14.095-2.233-3.163L17.533 1H22z"
+                ></path>
+              </svg>
+            </div>
+          </div>
+          <div
+            style="
+              --duration: 20;
+              --radius: 120;
+              --angle: 360;
+              --icon-size: 24px;
+            "
+            class="orbit-dot flex size-[var(--icon-size)] transform-gpu animate-orbit items-center justify-center"
+          >
+            <div class="flex items-center justify-center">
+              <svg
+                class="size-6"
+                fill="currentColor"
+                fill-rule="evenodd"
+                style="color: #9747ff"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <title>OpenAI</title>
+                <path
+                  d="M21.55 10.004a5.416 5.416 0 00-.478-4.501c-1.217-2.09-3.662-3.166-6.05-2.66A5.59 5.59 0 0010.831 1C8.39.995 6.224 2.546 5.473 4.838A5.553 5.553 0 001.76 7.496a5.487 5.487 0 00.691 6.5 5.416 5.416 0 00.477 4.502c1.217 2.09 3.662 3.165 6.05 2.66A5.586 5.586 0 0013.168 23c2.443.006 4.61-1.546 5.361-3.84a5.553 5.553 0 003.715-2.66 5.488 5.488 0 00-.693-6.497v.001zm-8.381 11.558a4.199 4.199 0 01-2.675-.954c.034-.018.093-.05.132-.074l4.44-2.53a.71.71 0 00.364-.623v-6.176l1.877 1.069c.02.01.033.029.036.05v5.115c-.003 2.274-1.87 4.118-4.174 4.123zM4.192 17.78a4.059 4.059 0 01-.498-2.763c.032.02.09.055.131.078l4.44 2.53c.225.13.504.13.73 0l5.42-3.088v2.138a.068.068 0 01-.027.057L9.9 19.288c-1.999 1.136-4.552.46-5.707-1.51h-.001zM3.023 8.216A4.15 4.15 0 015.198 6.41l-.002.151v5.06a.711.711 0 00.364.624l5.42 3.087-1.876 1.07a.067.067 0 01-.063.005l-4.489-2.559c-1.995-1.14-2.679-3.658-1.53-5.63h.001zm15.417 3.54l-5.42-3.088L14.896 7.6a.067.067 0 01.063-.006l4.489 2.557c1.998 1.14 2.683 3.662 1.529 5.633a4.163 4.163 0 01-2.174 1.807V12.38a.71.71 0 00-.363-.623zm1.867-2.773a6.04 6.04 0 00-.132-.078l-4.44-2.53a.731.731 0 00-.729 0l-5.42 3.088V7.325a.068.068 0 01.027-.057L14.1 4.713c2-1.137 4.555-.46 5.707 1.513.487.833.664 1.809.499 2.757h.001zm-11.741 3.81l-1.877-1.068a.065.065 0 01-.036-.051V6.559c.001-2.277 1.873-4.122 4.181-4.12.976 0 1.92.338 2.671.954-.034.018-.092.05-.131.073l-4.44 2.53a.71.71 0 00-.365.623l-.003 6.173v.002zm1.02-2.168L12 9.25l2.414 1.375v2.75L12 14.75l-2.415-1.375v-2.75z"
+                ></path>
+              </svg>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div class="status-container text-foreground/80 mt-8" id="status">
+        Initializing...
+      </div>
+
+      <div class="progress-bar mb-4">
+        <div
+          id="progress-bar"
+          class="progress-bar-fill transition-all duration-300"
+          style="width: 0%"
+        ></div>
+      </div>
+
+      <div id="failure-message" class="failure-message mt-4">
+        <p class="text-red-400 mb-4">Failed to start Notate</p>
+        <div class="flex justify-center space-x-4">
+          <button
+            onclick="openLogs()"
+            class="no-drag px-4 py-2 bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/.9)] text-white rounded-[8px] transition-colors"
+          >
+            View Logs
+          </button>
+          <button
+            onclick="openGithubIssue()"
+            class="no-drag px-4 py-2 bg-[hsl(var(--secondary))] hover:bg-[hsl(var(--secondary)/.9)] text-white rounded-[8px] transition-colors"
+          >
+            Report Issue
+          </button>
+        </div>
+      </div>
     </div>
 
     <script>
-        const { ipcRenderer } = require('electron');
-    
+      const { ipcRenderer } = require("electron");
 
-        ipcRenderer.on('update-status', (event, { text, progress, failed }) => {
-            document.getElementById('status').textContent = text;
-            document.getElementById('progress-bar').style.width = `${progress}%`;
-            
-            if (failed) {
-                document.getElementById('failure-message').classList.add('show');
-            }
-        });
+      ipcRenderer.on("update-status", (event, { text, progress, failed }) => {
+        document.getElementById("status").textContent = text;
+        document.getElementById("progress-bar").style.width = `${progress}%`;
 
-        function openLogs() {
-            ipcRenderer.send('open-logs');
+        if (failed) {
+          document.getElementById("failure-message").classList.add("show");
         }
+      });
 
-        function openGithubIssue() {
-            ipcRenderer.send('open-github-issue');
-        }
+      function openLogs() {
+        ipcRenderer.send("open-logs");
+      }
+
+      function openGithubIssue() {
+        ipcRenderer.send("open-github-issue");
+      }
     </script>
-</body>
+  </body>
 </html>

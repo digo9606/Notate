@@ -83,10 +83,20 @@ electron.contextBridge.exposeInMainWorld("electron", {
   onStreamEnd: (callback) => ipcOn("streamEnd", () => callback()),
   offStreamEnd: (callback) => ipcOff("streamEnd", () => callback()),
   getUsers: () => ipcInvoke("getUsers"),
-  addUser: (name: string) => ipcInvoke("addUser", { name }),
-  updateUserSettings: (userId: number, key: string, value: string) =>
-    ipcInvoke("updateUserSettings", { userId, key, value }),
-  getUserSettings: (userId: number) => ipcInvoke("getUserSettings", { userId }),
+  addUser: (name: string) =>
+    ipcInvoke("addUser", { name }) as Promise<{
+      name: string;
+      error?: string;
+    }>,
+  updateUserSettings: (userSettings: UserSettings) =>
+    ipcInvoke(
+      "updateUserSettings",
+      userSettings
+    ) as unknown as Promise<UserSettings>,
+  getUserSettings: (userId: number) =>
+    ipcInvoke("getUserSettings", {
+      userId,
+    }) as unknown as Promise<UserSettings>,
   getUserPrompts: (userId: number) =>
     ipcInvoke("getUserPrompts", { userId }) as unknown as Promise<{
       prompts: UserPrompts[];
@@ -349,6 +359,33 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("getEmbeddingsModels") as unknown as Promise<{
       models: Model[];
     }>,
+  getCustomAPI: (userId: number) =>
+    ipcInvoke("getCustomAPI", { userId }) as unknown as Promise<{
+      api: {
+        id: number;
+        user_id: number;
+        name: string;
+        endpoint: string;
+        api_key: string;
+        model: string;
+      }[];
+    }>,
+  addCustomAPI: (
+    userId: number,
+    name: string,
+    endpoint: string,
+    api_key: string,
+    model: string
+  ) =>
+    ipcInvoke("addCustomAPI", {
+      userId,
+      name,
+      endpoint,
+      api_key,
+      model,
+    }) as unknown as Promise<{ id: number }>,
+  deleteCustomAPI: (userId: number, id: number) =>
+    ipcInvoke("deleteCustomAPI", { userId, id }) as unknown as Promise<void>,
   websiteFetch: (
     url: string,
     userId: number,
@@ -468,14 +505,26 @@ electron.contextBridge.exposeInMainWorld("electron", {
   getAzureOpenAIModels: (userId: number) =>
     ipcInvoke("getAzureOpenAIModels", { userId }) as unknown as Promise<{
       models: {
+        id: number;
         name: string;
         model: string;
         endpoint: string;
         api_key: string;
       }[];
     }>,
+  getCustomAPIs: (userId: number) =>
+    ipcInvoke("getCustomAPIs", { userId }) as unknown as Promise<{
+      api: {
+        id: number;
+        user_id: number;
+        name: string;
+        endpoint: string;
+        api_key: string;
+      }[];
+    }>,
   getAzureOpenAIModel: (userId: number, id: number) =>
     ipcInvoke("getAzureOpenAIModel", { userId, id }) as unknown as Promise<{
+      id: number;
       name: string;
       model: string;
       endpoint: string;
@@ -496,6 +545,17 @@ electron.contextBridge.exposeInMainWorld("electron", {
       api_key,
     }) as unknown as Promise<{
       id: number;
+    }>,
+  getCustomModels: (userId: number) =>
+    ipcInvoke("getCustomModels", { userId }) as unknown as Promise<{
+      models: {
+        id: number;
+        user_id: number;
+        name: string;
+        endpoint: string;
+        api_key: string;
+        model: string;
+      }[];
     }>,
   getModelsPath: () => ipcInvoke("getModelsPath") as unknown as Promise<string>,
 } satisfies Window["electron"]);

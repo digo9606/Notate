@@ -3,13 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useUser } from "@/context/useUser";
 import { toast } from "@/hooks/use-toast";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 export default function CustomLLM() {
   const { apiKeyInput, setApiKeyInput, activeUser } = useUser();
   const [customProvider, setCustomProvider] = useState("");
@@ -19,26 +13,20 @@ export default function CustomLLM() {
     e.preventDefault();
     try {
       if (!activeUser) return;
-      await window.electron.updateUserSettings(
+      const apiId = await window.electron.addCustomAPI(
         activeUser.id,
-        "provider",
-        customProvider
-      );
-      await window.electron.updateUserSettings(
-        activeUser.id,
-        "base_url",
-        customBaseUrl
-      );
-      await window.electron.updateUserSettings(
-        activeUser.id,
-        "model",
+        customProvider,
+        customBaseUrl,
+        apiKeyInput,
         customModel
       );
-      await window.electron.addAPIKey(
-        activeUser.id,
-        apiKeyInput,
-        customProvider
-      );
+      await window.electron.updateUserSettings({
+        provider: "custom",
+        baseUrl: customBaseUrl,
+        model: customModel,
+        isLocal: false,
+        selectedCustomId: apiId.id,
+      });
       toast({
         title: "Custom provider added",
         description: "Your custom provider has been added",
@@ -67,22 +55,10 @@ export default function CustomLLM() {
         onChange={(e) => setCustomProvider(e.target.value)}
         className="input-field"
       />
-      <Select>
-        <SelectTrigger>
-          <SelectValue placeholder="Select a endpoint type" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="openai">OpenAI</SelectItem>
-          <SelectItem value="openai">ooba</SelectItem>
-          <SelectItem value="openai">ollama</SelectItem>
-          <SelectItem value="openai">anthropic</SelectItem>
-          <SelectItem value="openai">gemini</SelectItem>
-        </SelectContent>
-      </Select>
       <Input
         id="custom-base-url"
         type="text"
-        placeholder="Enter custom base url (e.g. https://api.custom.com/v1)"
+        placeholder="Enter base url (e.g. https://api.custom.com/v1)"
         value={customBaseUrl}
         onChange={(e) => setCustomBaseUrl(e.target.value)}
         className="input-field"

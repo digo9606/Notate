@@ -58,10 +58,6 @@ export default function AddLibrary() {
   const { embeddingModels, fetchEmbeddingModels } = useSysSettings();
 
   useEffect(() => {
-    fetchEmbeddingModels();
-  }, []);
-
-  useEffect(() => {
     const handleProgress = (
       _: Electron.IpcRendererEvent,
       message: string | OllamaProgressEvent | DownloadModelProgress
@@ -144,11 +140,10 @@ export default function AddLibrary() {
       return;
     }
 
-    window.electron.updateUserSettings(
-      activeUser.id,
-      "vectorstore",
-      newCollection.id.toString()
-    );
+    window.electron.updateUserSettings({
+      ...activeUser,
+      vectorstore: newCollection.id.toString(),
+    });
 
     setUserCollections((prevCollections) => [
       ...prevCollections,

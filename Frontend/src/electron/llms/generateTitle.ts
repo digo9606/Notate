@@ -38,6 +38,46 @@ async function generateTitleOpenRouter(input: string, userId: number) {
   return generatedTitle;
 }
 
+async function generateTitleCustom(
+  input: string,
+  userId: number,
+  customAPI: number,
+  userSettings: UserSettings
+) {
+  console.log("Generating title for custom API:", customAPI);
+  const customApis = db.getCustomAPI(userId);
+  if (customApis.length == 0) {
+    throw new Error("No custom API selected");
+  }
+  const api = customApis.find((api) => api.id == customAPI);
+  if (!customAPI) {
+    throw new Error("Custom API not found");
+  }
+  if (!api) {
+    throw new Error("Custom API not found");
+  }
+  const openai = new OpenAI({
+    apiKey: api.api_key,
+    baseURL: api.endpoint,
+  });
+  const stream = await openai.chat.completions.create({
+    model: userSettings.model || "",
+    messages: titleMessages(input),
+    stream: true,
+    temperature: 0.7,
+    max_tokens: 20,
+    top_p: 0.95,
+    presence_penalty: 0.1,
+    frequency_penalty: 0.1,
+  });
+  let generatedTitle = "";
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content || "";
+    generatedTitle += content;
+  }
+  return generatedTitle;
+}
+
 async function generateTitleAnthropic(input: string, userId: number) {
   let apiKey = "";
   try {
@@ -184,7 +224,6 @@ async function generateTitleAzureOpenAI(input: string, userId: number) {
     userId,
     Number(userSettings.selectedAzureId)
   );
-  console.log("Azure model:", azureModel);
   if (!azureModel) {
     throw new Error("Azure OpenAI model not found for the active user");
   }
@@ -213,14 +252,18 @@ async function generateTitleAzureOpenAI(input: string, userId: number) {
   }
 }
 
-async function generateTitleLocalOpenAI(input: string, userId: number) {
+async function generateTitleLocalOpenAI(
+  input: string,
+  userId: number,
+  userSettings: UserSettings
+) {
   const apiKey = await getToken({ userId: userId.toString() });
   if (!apiKey) {
     throw new Error("Local OpenAI API key not found for the active user");
   }
   const openai = new OpenAI({ apiKey, baseURL: "http://127.0.0.1:47372" });
   const stream = await openai.chat.completions.create({
-    model: "local-model",
+    model: userSettings.model || "",
     messages: titleMessages(input),
     stream: true,
     temperature: 0.7,
@@ -243,7 +286,6 @@ export async function generateTitle(
   model?: string
 ) {
   const userSettings = await db.getUserSettings(userId);
-  console.log("User settings:", userSettings);
   switch (userSettings.provider?.toLowerCase()) {
     case "openai":
       return generateTitleOpenAI(input, userId);
@@ -258,9 +300,16 @@ export async function generateTitle(
     case "xai":
       return generateTitleXAI(input, userId);
     case "local":
-      return generateTitleLocalOpenAI(input, userId);
+      return generateTitleLocalOpenAI(input, userId, userSettings);
     case "ollama":
       return generateOllamaTitle(input, model || "llama3.2");
+    case "custom":
+      return generateTitleCustom(
+        input,
+        userId,
+        Number(userSettings.selectedCustomId),
+        userSettings
+      );
     default:
       return "New Conversation";
   }

@@ -12,6 +12,7 @@ import { OllamaProvider } from "./providers/ollama.js";
 import log from "electron-log";
 import os from "os";
 import { AzureOpenAIProvider } from "./providers/azureOpenAI.js";
+import { CustomProvider } from "./providers/customEndpoint.js";
 
 interface ProviderResponse {
   id: bigint | number;
@@ -136,7 +137,7 @@ export async function chatRequest(
     let prompt;
     const getPrompt = await db.getUserPrompt(
       activeUser.id,
-      Number(userSettings.prompt)
+      Number(userSettings.promptId)
     );
     log.info(`Get prompt: ${getPrompt}`);
     if (getPrompt) {
@@ -145,7 +146,6 @@ export async function chatRequest(
       prompt = "You are a helpful assistant.";
     }
     let provider;
-    log.info(`User settings: ${JSON.stringify(userSettings)}`);
     switch (userSettings.provider?.toLowerCase()) {
       case "openai":
         provider = OpenAIProvider;
@@ -170,6 +170,9 @@ export async function chatRequest(
         break;
       case "ollama":
         provider = OllamaProvider;
+        break;
+      case "custom":
+        provider = CustomProvider;
         break;
       default:
         throw new Error(

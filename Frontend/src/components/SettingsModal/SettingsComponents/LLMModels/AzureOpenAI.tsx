@@ -12,7 +12,8 @@ import {
 import { HelpCircle } from "lucide-react";
 
 export default function AzureOpenAI() {
-  const { apiKeyInput, setApiKeyInput, activeUser } = useUser();
+  const { apiKeyInput, setApiKeyInput, activeUser, fetchAzureModels } =
+    useUser();
   const [customProvider, setCustomProvider] = useState("");
   const [customBaseUrl, setCustomBaseUrl] = useState("");
   const [customModel, setCustomModel] = useState("");
@@ -28,26 +29,14 @@ export default function AzureOpenAI() {
         customBaseUrl,
         apiKeyInput
       );
-      await window.electron.updateUserSettings(
-        activeUser.id,
-        "provider",
-        "azure open ai"
-      );
-      await window.electron.updateUserSettings(
-        activeUser.id,
-        "selectedAzureId",
-        azureId.id.toString()
-      );
-      await window.electron.updateUserSettings(
-        activeUser.id,
-        "base_url",
-        customBaseUrl
-      );
-      await window.electron.updateUserSettings(
-        activeUser.id,
-        "model",
-        customModel
-      );
+      await window.electron.updateUserSettings({
+        userId: activeUser.id,
+        provider: "azure open ai",
+        selectedAzureId: azureId.id,
+        baseUrl: customBaseUrl,
+        model: customModel,
+      });
+
       await window.electron.addAPIKey(
         activeUser.id,
         apiKeyInput,
@@ -61,6 +50,7 @@ export default function AzureOpenAI() {
       setCustomBaseUrl("");
       setApiKeyInput("");
       setCustomModel("");
+      fetchAzureModels();
     } catch (error) {
       toast({
         title: "Error",

@@ -21,8 +21,9 @@ export function useAppInitialization() {
     getUserConversations,
     fetchApiKey,
     fetchPrompts,
-    setOpenRouterModels,
-    setAzureModels,
+    fetchOpenRouterModels,
+    fetchAzureModels,
+    fetchCustomModels,
   } = useUser();
   const {
     setUserCollections,
@@ -30,7 +31,7 @@ export function useAppInitialization() {
     setOpenLibrary,
     setOpenAddToCollection,
     fetchCollections,
-    fetchEmbeddingModels
+    fetchEmbeddingModels,
   } = useLibrary();
   const {
     setSettings,
@@ -39,15 +40,12 @@ export function useAppInitialization() {
     checkFFMPEG,
     fetchSystemSpecs,
     setPlatform,
-    setLocalModelDir,
-    setLocalModels,
-    setOllamaModels,
+    fetchSettings,
   } = useSysSettings();
 
   // Initial setup that doesn't depend on activeUser
   useEffect(() => {
     initializeShiki();
-    fetchEmbeddingModels();
     const fetchUsers = async () => {
       if (window.electron && window.electron.getUsers) {
         try {
@@ -80,81 +78,17 @@ export function useAppInitialization() {
 
   // User-dependent initialization
   useEffect(() => {
-    const fetchOpenRouterModels = async () => {
-      if (activeUser) {
-        const models = await window.electron.getOpenRouterModels(activeUser.id);
-        setOpenRouterModels(models.models);
-      }
-    };
-
-    const fetchAzureModels = async () => {
-      if (activeUser) {
-        const models = await window.electron.getAzureOpenAIModels(
-          activeUser.id
-        );
-        setAzureModels(
-          models.models.map((m) => ({
-            ...m,
-            id: Date.now(),
-            deployment: m.model,
-          }))
-        );
-      }
-    };
-
-    const handleOllamaIntegration = async () => {
-      const startUpOllama = await window.electron.checkOllama();
-      if (activeUser && startUpOllama) {
-        const models = await window.electron.fetchOllamaModels();
-        const filteredModels = (models.models as unknown as string[])
-          .filter((model) => !model.includes("granite"))
-          .map((model) => ({ name: model, type: "ollama" }));
-        await window.electron.updateUserSettings(
-          activeUser.id,
-          "ollamaIntegration",
-          "true"
-        );
-        setOllamaModels(filteredModels);
-      }
-    };
-    const fetchSettings = async () => {
-      if (activeUser) {
-        const settings = await window.electron.getUserSettings(activeUser.id);
-        if (settings.ollamaIntegration === "true") {
-          handleOllamaIntegration();
-        }
-        setSettings(settings);
-        if (settings.model_dir) {
-          setLocalModelDir(settings.model_dir);
-          const models = (await window.electron.getDirModels(
-            settings.model_dir
-          )) as unknown as { dirPath: string; models: Model[] };
-          setLocalModels(models.models);
-          if (
-            settings.provider === "local" &&
-            settings.model &&
-            settings.model_type
-          ) {
-            await window.electron.loadModel({
-              model_location: settings.model_location as string,
-              model_name: settings.model,
-              model_type: settings.model_type as string,
-              user_id: activeUser.id,
-            });
-          }
-        }
-      }
-    };
-
     if (activeUser) {
       fetchOpenRouterModels();
-      fetchSettings();
+      fetchSettings(activeUser);
       getUserConversations();
       fetchApiKey();
       fetchPrompts();
+      fetchEmbeddingModels();
       fetchDevAPIKeys();
       fetchCollections();
       fetchAzureModels();
+      fetchCustomModels();
     }
   }, [activeUser]);
 

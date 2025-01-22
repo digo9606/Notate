@@ -24,8 +24,6 @@ async def api_key_auth(token: Optional[str] = Depends(get_optional_token)):
     if token is None:
         return None
     try:
-        print(f"Decoding token: {token}")
-        print(f"SECRET_KEY: {SECRET_KEY}")
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         user_id: str = payload.get("userId")
         logger.info(f"User ID: {user_id}")

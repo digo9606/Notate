@@ -19,12 +19,11 @@ export function createLoadingWindow(icon?: Electron.NativeImage) {
     width: 800,
     height: 600,
     frame: false,
-    transparent: true,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
     },
-    show: false,
+    roundedCorners: true,
     center: true,
     title: app.getName(),
     icon: icon || path.join(__dirname, "../../src/assets/icon.png"),

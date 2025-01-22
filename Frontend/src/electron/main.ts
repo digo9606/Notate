@@ -29,6 +29,7 @@ import { setupOpenRouterHandlers } from "./handlers/openRouterHandlers.js";
 import { setupLocalModelHandlers } from "./handlers/localModelHandlers.js";
 import crypto from "crypto";
 import { setupAzureOpenAI } from "./handlers/azureHandlers.js";
+import { setupCustomApiHandlers } from "./handlers/customApiHandlers.js";
 
 // Configure logging first
 log.transports.file.level = "debug";
@@ -201,6 +202,7 @@ app.on("ready", async () => {
     setupOllamaHandlers();
     setupAzureOpenAI();
     setupFileHandlers();
+    setupCustomApiHandlers();
     setupOpenRouterHandlers();
     handleCloseEvents(mainWindow);
     setupLocalModelHandlers();

@@ -50,6 +50,11 @@ export default function CreateAccount() {
 
     try {
       const user = await window.electron.addUser(accountName);
+      console.log(user);
+      if (user.error) {
+        setError(user.error);
+        return;
+      }
       const allUsers = (await window.electron.getUsers()).users;
       const activeUser = allUsers.find((u) => u.name === user.name);
       if (activeUser) {

@@ -44,7 +44,7 @@ export default function ChatSettings() {
     openRouterModels,
   } = useUser();
   const { setSelectedCollection, setFiles } = useLibrary();
-  const { activeUser, apiKeys, prompts, azureModels } = useUser();
+  const { activeUser, apiKeys, prompts, azureModels, customModels } = useUser();
   const [open, setOpen] = useState<boolean>(false);
   const [value, setValue] = useState<string>("");
   const [showNewPrompt, setShowNewPrompt] = useState<boolean>(false);
@@ -60,6 +60,7 @@ export default function ChatSettings() {
     setMaxTokens,
     ollamaModels,
     setLocalModalLoading,
+    fetchSettings,
   } = useSysSettings();
   const [localMaxTokens, setLocalMaxTokens] = useState<string>("");
 
@@ -67,37 +68,70 @@ export default function ChatSettings() {
     setLocalMaxTokens(maxTokens?.toString() || "");
   }, [maxTokens]);
 
-  const handleMaxTokensChange = (value: string) => {
+  const handleMaxTokensChange = async (value: string) => {
     setLocalMaxTokens(value);
     const parsedValue = parseInt(value);
     if (!isNaN(parsedValue)) {
       setMaxTokens(parsedValue);
-      handleSettingChange("maxTokens", parsedValue);
+      if (activeUser) {
+        await window.electron.updateUserSettings({
+          userId: activeUser.id,
+          maxTokens: parsedValue,
+        });
+        setSettings((prev) => ({ ...prev, maxTokens: parsedValue }));
+      }
     }
   };
 
-  const handleSettingChange = async (
-    setting: string,
-    value: string | number | undefined
+  const handleProviderModelChange = async (
+    provider: string,
+    model_name: string
   ) => {
-    setSettings((prev) => ({ ...prev, [setting]: value }));
-    if (setting === "prompt") {
-      const promptId = typeof value === "string" ? parseInt(value) : value;
-      const selectedPromptName =
-        prompts.find((p) => p.id === promptId)?.name || "";
-      setValue(selectedPromptName);
+    console.log(provider, model_name);
+    if (!activeUser) {
+      return;
     }
-    try {
-      if (activeUser) {
-        await window.electron.updateUserSettings(
-          activeUser.id,
-          setting,
-          value?.toString() ?? ""
-        );
-      }
-    } catch (error) {
-      console.error("Error updating user settings:", error);
+    await window.electron.updateUserSettings({
+      userId: activeUser.id,
+      provider: provider.toLowerCase(),
+      model: model_name,
+    });
+    if (provider === "ollama") {
+      await window.electron.updateUserSettings({
+        userId: activeUser.id,
+        ollamaModel: model_name,
+      });
     }
+    if (provider === "azure open ai") {
+      console.log("modelName", model_name);
+      await window.electron.updateUserSettings({
+        userId: activeUser.id,
+        baseUrl:
+          azureModels?.find((model) => model.name === model_name)?.endpoint ??
+          "",
+        selectedAzureId:
+          azureModels?.find((model) => model.name === model_name)?.id ?? 0,
+      });
+    }
+    if (provider === "custom") {
+      console.log("modelName", model_name);
+      await window.electron.updateUserSettings({
+        userId: activeUser.id,
+        model:
+          customModels?.find((model) => model.name === model_name)?.model ?? "",
+        baseUrl:
+          customModels?.find((model) => model.name === model_name)?.endpoint ??
+          "",
+        selectedCustomId:
+          customModels?.find((model) => model.name === model_name)?.id ?? 0,
+      });
+    }
+
+    setSettings((prev) => ({
+      ...prev,
+      model: model_name,
+      provider: provider.toLowerCase(),
+    }));
   };
 
   const modelTokenDefaults = {
@@ -117,6 +151,7 @@ export default function ChatSettings() {
     local: 2048,
     ollama: 2048,
     "azure open ai": 4096,
+    custom: 2048,
   };
 
   const modelOptions = {
@@ -138,6 +173,7 @@ export default function ChatSettings() {
       : [],
     ollama: ollamaModels?.map((model) => model.name) || [],
     "azure open ai": azureModels?.map((model) => model.name) || [],
+    custom: customModels?.map((model) => model.name) || [],
   };
 
   const handleAddPrompt = async () => {
@@ -147,8 +183,11 @@ export default function ChatSettings() {
         newPrompt,
         newPrompt
       );
-
-      await handleSettingChange("prompt", newPromptObject.id.toString());
+      await window.electron.updateUserSettings({
+        userId: activeUser.id,
+        promptId: newPromptObject.id,
+      });
+      setSettings((prev) => ({ ...prev, promptId: newPromptObject.id }));
       setPrompts((prev) => [
         ...prev,
         {
@@ -162,13 +201,13 @@ export default function ChatSettings() {
   };
 
   useEffect(() => {
-    if (settings.prompt) {
-      const promptId = parseInt(settings.prompt);
+    if (settings.promptId) {
+      const promptId = settings.promptId.toString();
       const selectedPromptName =
-        prompts.find((p) => p.id === promptId)?.name || "";
+        prompts.find((p) => p.id === parseInt(promptId))?.name || "";
       setValue(selectedPromptName);
     }
-  }, [settings.prompt, prompts]);
+  }, [settings.promptId, prompts]);
 
   return (
     <div className="space-y-6">
@@ -229,10 +268,20 @@ export default function ChatSettings() {
                             onSelect={(currentValue) => {
                               setValue(currentValue);
                               setOpen(false);
-                              handleSettingChange(
-                                "prompt",
-                                prompt.id.toString()
-                              );
+                              if (activeUser) {
+                                window.electron.updateUserSettings({
+                                  userId: activeUser.id,
+                                  promptId:
+                                    prompts.find((p) => p.name === currentValue)
+                                      ?.id ?? 0,
+                                });
+                                setSettings((prev) => ({
+                                  ...prev,
+                                  promptId:
+                                    prompts.find((p) => p.name === currentValue)
+                                      ?.id ?? 0,
+                                }));
+                              }
                               toast({
                                 title: "Prompt set",
                                 description: `Prompt set to ${currentValue}`,
@@ -291,15 +340,30 @@ export default function ChatSettings() {
                 ) as LLMProvider;
 
                 if (modelOptions.ollama.includes(value)) {
-                  provider = "Ollama";
+                  provider = "ollama";
+                }
+                if (!activeUser) {
+                  return;
                 }
 
-                if (provider === "Ollama") {
-                  setLocalModalLoading(true);
+                if (provider === "local") {
+                  await handleProviderModelChange(provider, value);
+                  await window.electron.updateUserSettings({
+                    userId: activeUser.id,
+                    model:
+                      localModels.find((model) => model.name === value)?.name ??
+                      "",
+                    provider: "local",
+                    modelType:
+                      localModels.find((model) => model.name === value)?.type ??
+                      "",
+                    modelLocation:
+                      localModels.find((model) => model.name === value)
+                        ?.model_location ?? "",
+                  });
                 }
-
-                handleSettingChange("model", value);
-                handleSettingChange("provider", provider);
+                await handleProviderModelChange(provider, value);
+                await fetchSettings(activeUser);
 
                 const newMaxTokens =
                   modelTokenDefaults[
@@ -307,7 +371,6 @@ export default function ChatSettings() {
                   ] || modelTokenDefaults.local;
 
                 setMaxTokens(newMaxTokens);
-                handleSettingChange("maxTokens", newMaxTokens);
                 setLocalMaxTokens(newMaxTokens.toString());
 
                 const isLocalModel = modelOptions.local.includes(value);
@@ -369,22 +432,36 @@ export default function ChatSettings() {
                     ))}
                   </SelectGroup>
                 ))}
-                <SelectGroup>
-                  <SelectLabel className="font-semibold">LOCAL</SelectLabel>
-                  {modelOptions.local.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-                <SelectGroup>
-                  <SelectLabel className="font-semibold">OLLAMA</SelectLabel>
-                  {modelOptions.ollama.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
+                {localModels.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="font-semibold">LOCAL</SelectLabel>
+                    {modelOptions.local.map((model) => (
+                      <SelectItem key={model} value={model}>
+                        {model}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+                {ollamaModels.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="font-semibold">OLLAMA</SelectLabel>
+                    {modelOptions.ollama.map((model) => (
+                      <SelectItem key={model} value={model}>
+                        {model}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+                {customModels.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="font-semibold">CUSTOM</SelectLabel>
+                    {modelOptions.custom.map((model) => (
+                      <SelectItem key={model} value={model}>
+                        {model}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -404,7 +481,13 @@ export default function ChatSettings() {
                 step={0.1}
                 value={[settings.temperature ?? 0.7]}
                 onValueChange={(value) => {
-                  handleSettingChange("temperature", value[0]);
+                  setSettings((prev) => ({ ...prev, temperature: value[0] }));
+                  if (activeUser) {
+                    window.electron.updateUserSettings({
+                      userId: activeUser.id,
+                      temperature: value[0],
+                    });
+                  }
                 }}
                 className="flex-grow"
               />
@@ -442,27 +525,15 @@ export default function ChatSettings() {
             onClick={() => {
               setSettingsOpen(false);
               if (activeUser) {
-                window.electron.updateUserSettings(
-                  activeUser.id,
-                  "vectorstore",
-                  settings.vectorstore ?? ""
-                );
-                window.electron.updateUserSettings(
-                  activeUser.id,
-                  "temperature",
-                  settings.temperature?.toString() ?? "0.7"
-                );
-                window.electron.updateUserSettings(
-                  activeUser.id,
-                  "model",
-                  settings.model ?? ""
-                );
-                window.electron.updateUserSettings(
-                  activeUser.id,
-                  "provider",
-                  settings.provider ?? ""
-                );
+                window.electron.updateUserSettings({
+                  ...settings,
+                  vectorstore: settings.vectorstore ?? "",
+                  temperature: Number(settings.temperature),
+                  model: settings.model ?? "",
+                  provider: settings.provider ?? "",
+                });
               }
+
               toast({
                 title: "Settings saved",
                 description: `Settings saved`,

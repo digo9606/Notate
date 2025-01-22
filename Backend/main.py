@@ -1,6 +1,6 @@
 import logging
 from src.authentication.api_key_authorization import api_key_auth
-from src.authentication.token import verify_token
+from src.authentication.token import verify_token, verify_token_or_api_key
 from src.data.database.checkAPIKey import check_api_key
 from src.data.dataFetch.youtube import youtube_transcript
 from src.endpoint.deleteStore import delete_vectorstore_collection
@@ -43,9 +43,18 @@ logger = logging.getLogger(__name__)
 
 
 @app.post("/chat/completions")
-async def chat_completion(request: ChatCompletionRequest, user_id: str = Depends(verify_token)) -> StreamingResponse:
+async def chat_completion(request: ChatCompletionRequest, user_id: str = Depends(verify_token_or_api_key)) -> StreamingResponse:
     """Stream chat completion from the model"""
     print("Chat completion request received")
+    print(user_id, request)
+    info = model_manager.get_model_info()
+    print(info)
+    if request.model != info["model_name"]:
+        model_load_request = ModelLoadRequest(
+            model_name=request.model)
+        model, tokenizer = model_manager.load_model(model_load_request)
+        print("Model mismatch")
+        return {"status": "error", "message": "Model mismatch"}
     if user_id is None:
         return {"status": "error", "message": "Unauthorized"}
     print("Authorized")

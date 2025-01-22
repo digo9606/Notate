@@ -36,11 +36,10 @@ export default function Ollama() {
       const filteredModels = (models.models as unknown as string[])
         .filter((model) => !model.includes("granite"))
         .map((model) => ({ name: model, type: "ollama" }));
-      await window.electron.updateUserSettings(
-        activeUser.id,
-        "ollamaIntegration",
-        "true"
-      );
+      await window.electron.updateUserSettings({
+        ...activeUser,
+        ollamaIntegration: 1,
+      });
       setOllamaModels(filteredModels);
     }
   };
@@ -49,26 +48,21 @@ export default function Ollama() {
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <Button
-          variant={
-            settings.ollamaIntegration === "true" ? "default" : "outline"
-          }
+          variant={ollamaModels.length > 0 ? "default" : "outline"}
           className="w-full"
           onClick={async () => {
-            const newValue =
-              settings.ollamaIntegration === "true" ? "false" : "true";
             if (activeUser) {
               setSettings({
                 ...settings,
-                ollamaIntegration: newValue,
+                ollamaIntegration: settings.ollamaIntegration === 1 ? 0 : 1,
               });
 
-              await window.electron.updateUserSettings(
-                activeUser.id,
-                "ollamaIntegration",
-                newValue
-              );
+              await window.electron.updateUserSettings({
+                userId: activeUser.id,
+                ollamaIntegration: settings.ollamaIntegration === 1 ? 0 : 1,
+              });
 
-              if (newValue === "true") {
+              if (settings.ollamaIntegration === 1) {
                 await handleOllamaIntegration();
               } else {
                 setOllamaModels([]);
@@ -76,12 +70,12 @@ export default function Ollama() {
             }
           }}
         >
-          {settings.ollamaIntegration === "true"
+          {ollamaModels.length > 0
             ? "Ollama Integration Enabled"
             : "Integrate with Ollama"}
         </Button>
       </div>
-      {settings.ollamaIntegration === "true" && (
+      {ollamaModels.length > 0 && (
         <div className="flex flex-row gap-2">
           <Select value={selectedModel} onValueChange={setSelectedModel}>
             <SelectTrigger className="w-full">

@@ -31,6 +31,7 @@ type AzureModel = {
   name: string;
   endpoint: string;
   deployment: string;
+  apiKey: string;
 };
 
 type Message = {
@@ -44,30 +45,26 @@ type Message = {
   data_content?: string;
 };
 
-type Settings = {
-  vectorstore: string;
-  prompt: string;
-  temperature: number;
-  model: string;
-  provider: string;
-};
-
-interface UserPrompts {
-  id: number;
-  name: string;
-  prompt: string;
-  userId: number;
-}
 interface UserSettings {
+  userId?: number;
+  id?: number;
   vectorstore?: string;
   prompt?: string;
   temperature?: number;
   model?: string;
   provider?: string;
-  is_local?: boolean;
-  model_dir?: string;
-  local_embedding_model?: string;
-  [key: string]: string | number | boolean | undefined;
+  isLocal?: boolean;
+  modelDirectory?: string;
+  modelType?: string;
+  modelLocation?: string;
+  ollamaIntegration?: number;
+  ollamaModel?: string;
+  baseUrl?: string;
+  selectedAzureId?: number;
+  selectedCustomId?: number;
+  maxTokens?: number;
+  topP?: number;
+  promptId?: number;
 }
 
 type Collection = {
@@ -92,13 +89,12 @@ type Conversation = {
   created_at: Date;
 };
 
-type Prompt = {
+interface UserPrompts {
   id: number;
   name: string;
   prompt: string;
   userId: number;
-};
-
+}
 type FrameWindowAction = "close" | "minimize" | "maximize" | "unmaximize";
 
 interface TranscribeAudioInput {
@@ -111,6 +107,15 @@ interface TranscribeAudioOutput {
   transcription?: string;
   language?: string;
   error?: string;
+}
+
+interface CustomModel {
+  id: number;
+  user_id: number;
+  name: string;
+  endpoint: string;
+  api_key: string;
+  model?: string;
 }
 
 interface DownloadModelProgress {
@@ -137,6 +142,7 @@ interface EventPayloadMapping {
     width: number;
     height: number;
   };
+  getCustomAPIs: { userId: number };
   chatRequest: {
     messages: Message[];
     activeUser: User;
@@ -164,7 +170,7 @@ interface EventPayloadMapping {
   offStreamEnd: void;
   getUsers: { users: { name: string; id: number }[] };
   addUser: { name: string };
-  updateUserSettings: { userId: number; key: string; value: string };
+  updateUserSettings: UserSettings;
   getUserSettings: { userId: number };
   getUserPrompts: { userId: number };
   addUserPrompt: { userId: number; name: string; prompt: string };
@@ -330,6 +336,33 @@ interface EventPayloadMapping {
   };
   getModelsPath: string;
   getEmbeddingsModels: { models: Model[] };
+  getCustomAPI: { userId: number };
+  addCustomAPI: {
+    userId: number;
+    name: string;
+    endpoint: string;
+    api_key: string;
+    model: string;
+  };
+  deleteCustomAPI: { userId: number; id: number };
+  addCustomApi: {
+    userId: number;
+    name: string;
+    endpoint: string;
+    api_key: string;
+    model: string;
+  };
+  deleteCustomApi: {
+    userId: number;
+    id: number;
+  };
+  getCustomAPI: {
+    userId: number;
+    id: number;
+  };
+  getCustomModels: {
+    userId: number;
+  };
 }
 
 interface Model {
@@ -391,6 +424,15 @@ interface Window {
       id: bigint | number;
       title: string;
     }>;
+    getCustomAPIs: (userId: number) => Promise<{
+      api: {
+        id: number;
+        user_id: number;
+        name: string;
+        endpoint: string;
+        api_key: string;
+      }[];
+    }>;
     chatRequest: (
       messages: Message[],
       activeUser: User,
@@ -414,12 +456,11 @@ interface Window {
       apiKey?: string
     ) => Promise<{ success: boolean; apiKey?: string }>;
     getUsers: () => Promise<{ users: { name: string; id: number }[] }>;
-    addUser: (name: string) => Promise<{ name: string }>;
-    updateUserSettings: (
-      userId: number,
-      key: string,
-      value: string
-    ) => Promise<{ userId: number; key: string; value: string }>;
+    addUser: (name: string) => Promise<{
+      name: string;
+      error?: string;
+    }>;
+    updateUserSettings: (UserSettings: UserSettings) => Promise<UserSettings>;
     getUserSettings: (userId: number) => Promise<UserSettings>;
     getUserPrompts: (userId: number) => Promise<{ prompts: UserPrompts[] }>;
     addUserPrompt: (
@@ -624,6 +665,7 @@ interface Window {
     }>;
     getAzureOpenAIModels: (userId: number) => Promise<{
       models: {
+        id: number;
         name: string;
         model: string;
         endpoint: string;
@@ -634,6 +676,7 @@ interface Window {
       userId: number,
       id: number
     ) => Promise<{
+      id: number;
       name: string;
       model: string;
       endpoint: string;
@@ -707,6 +750,39 @@ interface Window {
       user_id: number;
     }) => Promise<void>;
     getModelsPath: () => Promise<string>;
+    getCustomAPI: (
+      userId: number,
+      id: number
+    ) => Promise<{
+      api: {
+        id: number;
+        user_id: number;
+        name: string;
+        endpoint: string;
+        api_key: string;
+        model: string;
+      }[];
+    }>;
+    getCustomModels: (userId: number) => Promise<{
+      models: {
+        id: number;
+        user_id: number;
+        name: string;
+        endpoint: string;
+        api_key: string;
+        model: string;
+      }[];
+    }>;
+    addCustomAPI: (
+      userId: number,
+      name: string,
+      endpoint: string,
+      api_key: string,
+      model: string
+    ) => Promise<{
+      id: number;
+    }>;
+    deleteCustomAPI: (userId: number, id: number) => Promise<void>;
   };
 }
 type Keys = {
@@ -734,15 +810,15 @@ type OpenRouterModel = string;
 interface ProgressData extends CustomProgressData, OllamaProgressEvent {}
 
 type LLMProvider =
-  | "OpenAI"
-  | "Anthropic"
-  | "Gemini"
-  | "XAI"
-  | "Openrouter"
-  | "Local"
-  | "Ollama"
-  | "Azure Open AI"
-  | "Custom";
+  | "openai"
+  | "anthropic"
+  | "gemini"
+  | "xai"
+  | "openrouter"
+  | "local"
+  | "ollama"
+  | "azure open ai"
+  | "custom";
 
 interface OllamaProgressEvent {
   type: "pull" | "verify";

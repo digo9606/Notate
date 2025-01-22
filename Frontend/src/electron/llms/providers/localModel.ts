@@ -97,7 +97,6 @@ export async function LocalModelProvider(
   );
   truncatedMessages.unshift(sysPrompt);
 
-
   const newMessage: Message = {
     role: "assistant",
     content: "",
@@ -108,12 +107,12 @@ export async function LocalModelProvider(
   try {
     const stream = await openai.chat.completions.create(
       {
-        model: "local-model",
+        model: userSettings.model || "",
         messages: truncatedMessages,
         stream: true,
         temperature: Number(userSettings.temperature) || 0.7,
         max_tokens: Number(maxOutputTokens),
-        top_p: Number(userSettings.top_p) || 0.95,
+        top_p: Number(userSettings.topP) || 0.95,
         presence_penalty: 0.1,
         frequency_penalty: 0.1,
       },

@@ -41,13 +41,13 @@ export default function SelectAccount({ users }: { users: User[] }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/30 to-muted/50">
       <motion.div
-        className="w-full max-w-md mx-auto pt-8 flex flex-col h-screen pb-2"
+        className="w-full max-w-md mx-auto pt-12 flex flex-col h-screen pb-4"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        <div className="flex-none space-y-2 mb-6 px-4">
-          <div className="flex items-center justify-between mb-4">
+        <div className="flex-none space-y-3 mb-8 px-6">
+          <div className="flex items-center justify-between mb-5">
             <motion.h1
               variants={itemVariants}
               className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80"
@@ -76,24 +76,24 @@ export default function SelectAccount({ users }: { users: User[] }) {
           className="relative flex-1 px-4 min-h-0"
           variants={itemVariants}
         >
-          <div className="absolute inset-0 pb-10">
+          <div className="absolute inset-0 pb-12">
             <div className="h-full rounded-[10px] bg-background/50 backdrop-blur-sm border border-border/50 shadow-sm">
-              <ScrollArea className="h-full px-3 py-2">
+              <ScrollArea className="h-full px-4 py-4">
                 <div className="flex flex-col h-full">
-                  <div className="grid auto-rows-min grid-cols-1 gap-2 py-2 px-2 grow">
+                  <div className="grid auto-rows-min grid-cols-1 gap-3 py-1 px-1 grow">
                     {users.map((user) => (
                       <motion.div
                         key={user.name}
                         variants={itemVariants}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        className="py-1"
+                        className="py-0.5"
                       >
                         <Card
                           className="group transition-all duration-300 cursor-pointer border border-border/50 bg-card/95 hover:shadow-lg hover:border-primary/20"
                           onClick={() => handleSelectAccount(user)}
                         >
-                          <CardContent className="flex items-center p-4">
+                          <CardContent className="flex items-center p-5">
                             <MotionAvatar
                               className="h-10 w-10 ring-2 ring-primary/10 group-hover:ring-primary/30 transition-all duration-300"
                               initial="hidden"

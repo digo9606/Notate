@@ -46,3 +46,15 @@ async def optional_auth(request: Request):
         except jwt.exceptions.InvalidTokenError:
             return None
     return None
+
+
+async def verify_token_or_api_key(token: Optional[str] = Depends(get_optional_token)):
+    """Verify token using normal auth, falling back to API key auth if that fails"""
+    # Try normal token verification first
+    user_id = await verify_token(token)
+    if user_id:
+        return user_id
+        
+    # Fall back to API key verification
+    from src.authentication.api_key_authorization import api_key_auth
+    return await api_key_auth(token)

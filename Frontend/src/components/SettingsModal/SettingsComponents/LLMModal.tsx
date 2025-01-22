@@ -1,24 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { useSysSettings } from "@/context/useSysSettings";
 import { useUser } from "@/context/useUser";
-import { providerIcons } from "./providerIcons";
-import { defaultProviderModel } from "./defaultsProviderModels";
+import { providerIcons } from "./providers/providerIcons";
+import { defaultProviderModel } from "./providers/defaultsProviderModels";
 import LocalLLM from "./LLMModels/LocalLLM";
 import Ollama from "./LLMModels/Ollama";
 import External from "./LLMModels/External";
 import Openrouter from "./LLMModels/Openrouter";
 import CustomLLM from "./LLMModels/CustomLLM";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import AzureOpenAI from "./LLMModels/AzureOpenAI";
 
 export default function LLMPanel() {
@@ -30,6 +23,7 @@ export default function LLMPanel() {
     handleResetChat,
     apiKeyInput,
     setApiKeyInput,
+    customModels,
   } = useUser();
   const {
     setSettings,
@@ -90,22 +84,23 @@ export default function LLMPanel() {
     }));
     try {
       if (activeUser) {
-        await window.electron.updateUserSettings(
-          activeUser.id,
-          "provider",
-          provider.toLowerCase()
-        );
-        if (provider === "Openrouter") {
+        await window.electron.updateUserSettings({
+          ...activeUser,
+          provider: provider.toLowerCase(),
+        });
+        if (provider === "openrouter") {
           await window.electron.addOpenRouterModel(
             activeUser.id,
             "openai/gpt-3.5-turbo"
           );
         } else {
-          await window.electron.updateUserSettings(
-            activeUser.id,
-            "model",
-            defaultProviderModel[provider as keyof typeof defaultProviderModel]
-          );
+          await window.electron.updateUserSettings({
+            ...activeUser,
+            model:
+              defaultProviderModel[
+                provider as keyof typeof defaultProviderModel
+              ],
+          });
         }
       }
     } catch (error) {
@@ -114,26 +109,26 @@ export default function LLMPanel() {
   };
 
   const renderInputs = () => {
-    switch (selectedProvider) {
-      case "Anthropic":
-      case "XAI":
-      case "Gemini":
-      case "OpenAI":
+    switch (selectedProvider.toLowerCase()) {
+      case "anthropic":
+      case "xai":
+      case "gemini":
+      case "openai":
         return (
           <External
             showUpdateInput={showUpdateInput}
             setShowUpdateInput={setShowUpdateInput}
           />
         );
-      case "Local":
+      case "local":
         return <LocalLLM />;
-      case "Ollama":
+      case "ollama":
         return <Ollama />;
-      case "OpenRouter":
+      case "openrouter":
         return <Openrouter />;
-      case "Azure Open AI":
+      case "azure open ai":
         return <AzureOpenAI />;
-      case "Custom":
+      case "custom":
         return <CustomLLM />;
       default:
         return null;
@@ -161,32 +156,9 @@ export default function LLMPanel() {
               <div className="mr-2">
                 {providerIcons[provider as keyof typeof providerIcons]}
               </div>
-              {provider}
+              {provider.charAt(0).toUpperCase() + provider.slice(1)}
             </Button>
           ))}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                disabled
-                onClick={() => {
-                  setSelectedProvider("custom" as LLMProvider);
-                  setApiKeyInput("");
-                }}
-                variant={selectedProvider === "custom" ? "default" : "outline"}
-                className={`btn-provider ${
-                  selectedProvider === "custom" ? "selected" : ""
-                }`}
-              >
-                <PlusCircle className="w-4 h-4 mr-2" />
-                Custom
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Custom provider coming soon.</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
       </div>
       {selectedProvider && (
         <>
@@ -239,6 +211,12 @@ export default function LLMPanel() {
                 </span>
               </div>
             ))}
+            {customModels.length > 0 && (
+              <div className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-background/80 backdrop-blur-sm border shadow-sm hover:shadow-md transition-shadow">
+                {providerIcons["custom" as keyof typeof providerIcons]}
+                <span className="ml-1.5">Custom</span>
+              </div>
+            )}
             {ollamaModels.length > 0 && (
               <div className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-background/80 backdrop-blur-sm border shadow-sm hover:shadow-md transition-shadow">
                 {providerIcons["ollama" as keyof typeof providerIcons]}

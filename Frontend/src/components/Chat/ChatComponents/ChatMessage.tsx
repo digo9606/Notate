@@ -16,7 +16,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { getYouTubeLink, formatTimestamp, getFileName } from "@/lib/utils";
-import { providerIcons } from "@/components/SettingsModal/SettingsComponents/providerIcons";
+import { providerIcons } from "@/components/SettingsModal/SettingsComponents/providers/providerIcons";
 import { useSysSettings } from "@/context/useSysSettings";
 
 // Lazy load the syntax highlighter
@@ -209,35 +209,22 @@ export const ChatMessage = memo(function ChatMessage({
 
   const getProviderIcon = () => {
     if (isUser) {
-      return { type: 'image', src: "/src/assets/avatars/user-avatar.svg" };
+      return { type: "image", src: "/src/assets/avatars/user-avatar.svg" };
     }
     if (isRetrieval) {
-      return { type: 'image', src: "/src/assets/avatars/database-avatar.svg" };
+      return { type: "image", src: "/src/assets/avatars/database-avatar.svg" };
     }
     if (settings.provider) {
-      // Map provider names to match the keys in providerIcons
-      const providerMap: Record<string, string> = {
-        "local": "Local",
-        "openai": "OpenAI",
-        "anthropic": "Anthropic",
-        "gemini": "Gemini",
-        "xai": "XAI",
-        "openrouter": "OpenRouter",
-        "ollama": "Ollama",
-        "Azure Open AI": "Azure Open AI"
-      };
-      
-      const normalizedProvider = providerMap[settings.provider.toLowerCase()] || settings.provider;
-      const icon = providerIcons[normalizedProvider];
-      
+      const icon = providerIcons[settings.provider.toLowerCase()];
+
       if (icon) {
-        return { 
-          type: 'component', 
-          component: icon
+        return {
+          type: "component",
+          component: icon,
         };
       }
     }
-    return { type: 'image', src: "/src/assets/avatars/ai-avatar.png" };
+    return { type: "image", src: "/src/assets/avatars/ai-avatar.png" };
   };
 
   const icon = getProviderIcon();
@@ -268,7 +255,7 @@ export const ChatMessage = memo(function ChatMessage({
               : "ring-2 ring-secondary ring-offset-2"
           } overflow-hidden`}
         >
-          {icon.type === 'image' ? (
+          {icon.type === "image" ? (
             <AvatarImage
               className="object-cover w-full h-full scale-125"
               src={icon.src}
