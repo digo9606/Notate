@@ -5,20 +5,41 @@ import { toast } from "@/hooks/use-toast";
 import { useState } from "react";
 
 export default function Openrouter() {
-  const { openRouterModels } = useUser();
+  const { openRouterModels, activeUser, fetchOpenRouterModels } = useUser();
   const [openRouterModel, setOpenRouterModel] = useState<string>("");
   const [hasOpenRouter, setHasOpenRouter] = useState<boolean>(
     openRouterModels.length > 0
   );
 
   const handleAddOpenRouterModel = async () => {
-    if (!openRouterModel.trim()) {
+    try {
+      if (!openRouterModel.trim()) {
+        toast({
+          title: "Model Required",
+          description: "Please enter an OpenRouter model ID.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!activeUser) return;
+      await window.electron.addOpenRouterModel(activeUser.id, openRouterModel);
+      await window.electron.updateUserSettings({
+        userId: activeUser.id,
+        provider: "openrouter",
+        model: openRouterModel,
+      });
+      await fetchOpenRouterModels();
       toast({
-        title: "Model Required",
-        description: "Please enter an OpenRouter model ID.",
+        title: "Model Added",
+        description: "Your OpenRouter model has been added",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          "An error occurred while adding the model. Please try again." + error,
         variant: "destructive",
       });
-      return;
     }
   };
 

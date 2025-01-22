@@ -224,7 +224,6 @@ async function generateTitleAzureOpenAI(input: string, userId: number) {
     userId,
     Number(userSettings.selectedAzureId)
   );
-  console.log("Azure model:", azureModel);
   if (!azureModel) {
     throw new Error("Azure OpenAI model not found for the active user");
   }

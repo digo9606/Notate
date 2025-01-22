@@ -12,7 +12,8 @@ import {
 import { HelpCircle } from "lucide-react";
 
 export default function AzureOpenAI() {
-  const { apiKeyInput, setApiKeyInput, activeUser } = useUser();
+  const { apiKeyInput, setApiKeyInput, activeUser, fetchAzureModels } =
+    useUser();
   const [customProvider, setCustomProvider] = useState("");
   const [customBaseUrl, setCustomBaseUrl] = useState("");
   const [customModel, setCustomModel] = useState("");
@@ -49,6 +50,7 @@ export default function AzureOpenAI() {
       setCustomBaseUrl("");
       setApiKeyInput("");
       setCustomModel("");
+      fetchAzureModels();
     } catch (error) {
       toast({
         title: "Error",
