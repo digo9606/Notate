@@ -34,6 +34,7 @@
         --primary: 187 56% 56%;
         --secondary: 187 28% 16.8%;
         --border: 187 28% 16.8%;
+        --window-radius: 12px;
       }
 
       @keyframes writing {
@@ -67,8 +68,14 @@
       }
       body {
         -webkit-app-region: drag;
-        background-color: hsl(var(--background));
+        background-color: transparent;
         color: hsl(var(--foreground));
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+        border-radius: var(--window-radius);
       }
       .no-drag {
         -webkit-app-region: no-drag;
@@ -107,6 +114,7 @@
         border: 1px solid hsl(var(--border) / 0.5);
         box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
         border-radius: var(--window-radius);
+        overflow: hidden;
       }
       .progress-bar {
         background-color: hsl(var(--muted));
