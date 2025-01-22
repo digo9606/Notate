@@ -1,7 +1,7 @@
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { SyntaxHighlightedCode } from "@/components/Chat/ChatComponents/SyntaxHightlightedCode";
 import { useState, useEffect } from "react";
-import { providerIcons } from "@/components/SettingsModal/SettingsComponents/providerIcons";
+import { providerIcons } from "@/components/SettingsModal/SettingsComponents/providers/providerIcons";
 import { useSysSettings } from "@/context/useSysSettings";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";

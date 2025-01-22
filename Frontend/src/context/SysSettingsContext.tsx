@@ -68,6 +68,7 @@ interface SysSettingsContextType {
   embeddingModels: { name: string }[];
   setEmbeddingModels: React.Dispatch<React.SetStateAction<{ name: string }[]>>;
   fetchEmbeddingModels: () => Promise<void>;
+  handleOllamaIntegration: (activeUser: User) => Promise<void>;
 }
 
 const SysSettingsContext = createContext<SysSettingsContextType | undefined>(
@@ -145,13 +146,21 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       });
     }
   };
-  const fetchSettings = async (activeUser: User) => {
-    if (activeUser) {
-      const userSettings = await window.electron.getUserSettings(activeUser.id);
-      setSettings(userSettings);
+
+  const handleOllamaIntegration = async (activeUser: User) => {
+    const startUpOllama = await window.electron.checkOllama();
+    if (activeUser && startUpOllama) {
+      const models = await window.electron.fetchOllamaModels();
+      const filteredModels = (models.models as unknown as string[])
+        .filter((model) => !model.includes("granite"))
+        .map((model) => ({ name: model, type: "ollama" }));
+      await window.electron.updateUserSettings({
+        ...activeUser,
+        ollamaIntegration: 1,
+      });
+      setOllamaModels(filteredModels);
     }
   };
-
   const handleRunModel = async (
     model_name: string,
     model_location: string,
@@ -278,6 +287,34 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       setLocalModalLoading(false);
     }
   };
+  const fetchSettings = async (activeUser: User) => {
+    if (activeUser) {
+      const settings = await window.electron.getUserSettings(activeUser.id);
+      if (parseInt(settings?.ollamaIntegration?.toString() ?? "0") === 1) {
+        handleOllamaIntegration(activeUser);
+      }
+      setSettings(settings);
+      if (settings.modelDirectory) {
+        setLocalModelDir(settings.modelDirectory);
+        const models = (await window.electron.getDirModels(
+          settings.modelDirectory
+        )) as unknown as { dirPath: string; models: Model[] };
+        setLocalModels(models.models);
+        if (
+          settings.provider === "local" &&
+          settings.model &&
+          settings.modelType
+        ) {
+          await window.electron.loadModel({
+            model_location: settings.modelLocation as string,
+            model_name: settings.model,
+            model_type: settings.modelType as string,
+            user_id: activeUser.id,
+          });
+        }
+      }
+    }
+  };
 
   const loadModelsFromDirectory = async (dirPath: string) => {
     try {
@@ -379,6 +416,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         setEmbeddingModels,
         fetchEmbeddingModels,
         fetchSettings,
+        handleOllamaIntegration,
       }}
     >
       {children}

@@ -16,7 +16,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { getYouTubeLink, formatTimestamp, getFileName } from "@/lib/utils";
-import { providerIcons } from "@/components/SettingsModal/SettingsComponents/providerIcons";
+import { providerIcons } from "@/components/SettingsModal/SettingsComponents/providers/providerIcons";
 import { useSysSettings } from "@/context/useSysSettings";
 
 // Lazy load the syntax highlighter

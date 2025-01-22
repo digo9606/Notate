@@ -40,15 +40,12 @@ export function useAppInitialization() {
     checkFFMPEG,
     fetchSystemSpecs,
     setPlatform,
-    setLocalModelDir,
-    setLocalModels,
-    setOllamaModels,
+    fetchSettings,
   } = useSysSettings();
 
   // Initial setup that doesn't depend on activeUser
   useEffect(() => {
     initializeShiki();
-    fetchEmbeddingModels();
     const fetchUsers = async () => {
       if (window.electron && window.electron.getUsers) {
         try {
@@ -81,55 +78,13 @@ export function useAppInitialization() {
 
   // User-dependent initialization
   useEffect(() => {
-    const handleOllamaIntegration = async () => {
-      const startUpOllama = await window.electron.checkOllama();
-      if (activeUser && startUpOllama) {
-        const models = await window.electron.fetchOllamaModels();
-        const filteredModels = (models.models as unknown as string[])
-          .filter((model) => !model.includes("granite"))
-          .map((model) => ({ name: model, type: "ollama" }));
-        await window.electron.updateUserSettings({
-          ...activeUser,
-          ollamaIntegration: 1,
-        });
-        setOllamaModels(filteredModels);
-      }
-    };
-    const fetchSettings = async () => {
-      if (activeUser) {
-        const settings = await window.electron.getUserSettings(activeUser.id);
-        if (parseInt(settings?.ollamaIntegration?.toString() ?? "0") === 1) {
-          handleOllamaIntegration();
-        }
-        setSettings(settings);
-        if (settings.modelDirectory) {
-          setLocalModelDir(settings.modelDirectory);
-          const models = (await window.electron.getDirModels(
-            settings.modelDirectory
-          )) as unknown as { dirPath: string; models: Model[] };
-          setLocalModels(models.models);
-          if (
-            settings.provider === "local" &&
-            settings.model &&
-            settings.modelType
-          ) {
-            await window.electron.loadModel({
-              model_location: settings.modelLocation as string,
-              model_name: settings.model,
-              model_type: settings.modelType as string,
-              user_id: activeUser.id,
-            });
-          }
-        }
-      }
-    };
-
     if (activeUser) {
       fetchOpenRouterModels();
-      fetchSettings();
+      fetchSettings(activeUser);
       getUserConversations();
       fetchApiKey();
       fetchPrompts();
+      fetchEmbeddingModels();
       fetchDevAPIKeys();
       fetchCollections();
       fetchAzureModels();

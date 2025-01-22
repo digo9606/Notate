@@ -58,10 +58,6 @@ export default function AddLibrary() {
   const { embeddingModels, fetchEmbeddingModels } = useSysSettings();
 
   useEffect(() => {
-    fetchEmbeddingModels();
-  }, []);
-
-  useEffect(() => {
     const handleProgress = (
       _: Electron.IpcRendererEvent,
       message: string | OllamaProgressEvent | DownloadModelProgress
