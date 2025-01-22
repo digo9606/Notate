@@ -15,18 +15,19 @@ export function createMainWindow(icon?: Electron.NativeImage) {
     frame: false,
     show: false,
     center: true,
+    roundedCorners: true,
     webPreferences: {
       spellcheck: true,
       preload: getPreloadPath(),
     },
     // These properties are important for Linux integration
-    title: 'Notate',
-    icon: icon || path.join(__dirname, '../../src/assets/icon.png'),
+    title: "Notate",
+    icon: icon || path.join(__dirname, "../../src/assets/icon.png"),
   };
 
-  if (process.platform === 'linux') {
+  if (process.platform === "linux") {
     // This helps with proper taskbar grouping and icon handling
-    app.name = 'Notate';
+    app.name = "Notate";
     // Ensure proper desktop integration
     options.autoHideMenuBar = true;
   }

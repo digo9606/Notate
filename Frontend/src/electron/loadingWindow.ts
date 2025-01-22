@@ -24,6 +24,7 @@ export function createLoadingWindow(icon?: Electron.NativeImage) {
       nodeIntegration: true,
       contextIsolation: false,
     },
+    roundedCorners: true,
     show: false,
     center: true,
     title: app.getName(),
