@@ -27,6 +27,15 @@
       };
     </script>
     <style>
+      :root {
+        --background: 187 36.4% 4.48%;
+        --foreground: 187 5.6% 97.8%;
+        --muted: 187 28% 16.8%;
+        --primary: 187 56% 56%;
+        --secondary: 187 28% 16.8%;
+        --border: 187 28% 16.8%;
+      }
+
       @keyframes writing {
         0% {
           transform: translateX(-20px) rotate(-5deg);
@@ -58,7 +67,8 @@
       }
       body {
         -webkit-app-region: drag;
-        background: transparent;
+        background-color: hsl(var(--background));
+        color: hsl(var(--foreground));
       }
       .no-drag {
         -webkit-app-region: no-drag;
@@ -91,12 +101,28 @@
         margin-left: calc(var(--icon-size) / -2);
         margin-top: calc(var(--icon-size) / -2);
       }
+      .glass-panel {
+        background-color: hsl(var(--secondary) / 0.1);
+        backdrop-filter: blur(12px);
+        border: 1px solid hsl(var(--border) / 0.5);
+        box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+        border-radius: 8px;
+      }
+      .progress-bar {
+        background-color: hsl(var(--muted));
+        border-radius: 9999px;
+        height: 0.625rem;
+      }
+      .progress-bar-fill {
+        background-color: hsl(var(--primary));
+        height: 100%;
+        border-radius: 9999px;
+        transition: width 300ms;
+      }
     </style>
   </head>
-  <body class="h-screen flex items-center justify-center p-6 bg-gray-900">
-    <div
-      class="bg-gray-800/95 backdrop-blur-sm rounded-[10px] shadow-lg p-8 w-[480px] text-center"
-    >
+  <body class="h-screen flex items-center justify-center p-6">
+    <div class="glass-panel p-8 w-[480px] text-center">
       <div class="flex justify-center">
         <div class="orbit-container mb-8 relative">
           <h2
@@ -248,14 +274,14 @@
         </div>
       </div>
 
-      <div class="status-container text-gray-300 mt-8" id="status">
+      <div class="status-container text-foreground/80 mt-8" id="status">
         Initializing...
       </div>
 
-      <div class="w-full bg-gray-700 rounded-full h-2.5 dark:bg-gray-700 mb-4">
+      <div class="progress-bar mb-4">
         <div
           id="progress-bar"
-          class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300"
+          class="progress-bar-fill transition-all duration-300"
           style="width: 0%"
         ></div>
       </div>
@@ -265,13 +291,13 @@
         <div class="flex justify-center space-x-4">
           <button
             onclick="openLogs()"
-            class="no-drag px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[8px] transition-colors"
+            class="no-drag px-4 py-2 bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/.9)] text-white rounded-[8px] transition-colors"
           >
             View Logs
           </button>
           <button
             onclick="openGithubIssue()"
-            class="no-drag px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-[8px] transition-colors"
+            class="no-drag px-4 py-2 bg-[hsl(var(--secondary))] hover:bg-[hsl(var(--secondary)/.9)] text-white rounded-[8px] transition-colors"
           >
             Report Issue
           </button>

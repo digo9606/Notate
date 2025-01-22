@@ -48,15 +48,37 @@ const cudaLoadingMessages = [
 ];
 
 let messageInterval: NodeJS.Timeout | null = null;
+const usedMessageIndices: Set<number> = new Set();
+
+function getNextMessage(): string {
+  // If we've used all messages, reset the tracking
+  if (usedMessageIndices.size === cudaLoadingMessages.length) {
+    usedMessageIndices.clear();
+  }
+
+  // Get available indices that haven't been used
+  const availableIndices = Array.from(
+    { length: cudaLoadingMessages.length },
+    (_, i) => i
+  ).filter((i) => !usedMessageIndices.has(i));
+
+  // Select random index from available ones
+  const randomIndex = Math.floor(Math.random() * availableIndices.length);
+  const selectedIndex = availableIndices[randomIndex];
+
+  // Mark this index as used
+  usedMessageIndices.add(selectedIndex);
+
+  return cudaLoadingMessages[selectedIndex];
+}
 
 function startRotatingMessages(baseProgress: number) {
   if (messageInterval) clearInterval(messageInterval);
 
   messageInterval = setInterval(() => {
-    const randomIndex = Math.floor(Math.random() * cudaLoadingMessages.length);
     updateLoadingStatus(
       "Installing CUDA llama-cpp-python (this may take a while) " +
-        cudaLoadingMessages[randomIndex],
+        getNextMessage(),
       baseProgress
     );
   }, 15000); // Rotate message every 15 seconds
@@ -66,6 +88,7 @@ function stopRotatingMessages() {
   if (messageInterval) {
     clearInterval(messageInterval);
     messageInterval = null;
+    usedMessageIndices.clear(); // Reset tracking when stopped
   }
 }
 
