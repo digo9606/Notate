@@ -68,7 +68,7 @@
       }
       body {
         -webkit-app-region: drag;
-        background-color: transparent;
+        background-color: hsl(var(--background));
         color: hsl(var(--foreground));
         margin: 0;
         padding: 0;
@@ -109,7 +109,6 @@
         margin-top: calc(var(--icon-size) / -2);
       }
       .glass-panel {
-        background-color: hsl(var(--secondary) / 0.1);
         backdrop-filter: blur(12px);
         border: 1px solid hsl(var(--border) / 0.5);
         box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
@@ -129,7 +128,7 @@
       }
     </style>
   </head>
-  <body class="h-screen flex items-center justify-center p-6">
+  <body class="h-screen flex items-center justify-center p-6 bg-background">
     <div class="glass-panel p-8 w-[480px] text-center">
       <div class="flex justify-center">
         <div class="orbit-container mb-8 relative">
