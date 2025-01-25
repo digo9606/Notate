@@ -38,6 +38,30 @@ async function generateTitleOpenRouter(input: string, userId: number) {
   return generatedTitle;
 }
 
+async function generateTitleDeepSeek(input: string, userId: number) {
+  let apiKey = "";
+  try {
+    apiKey = db.getApiKey(userId, "deepseek");
+  } catch (error) {
+    console.error("Error getting API key:", error);
+  }
+  if (!apiKey) {
+    throw new Error("DeepSeek API key not found for the active user");
+  }
+  const openai = new OpenAI({
+    apiKey,
+    baseURL: "https://api.deepseek.com",
+  });
+  const llmTitleRequest = await openai.chat.completions.create({
+    model: "deepseek-chat",
+    messages: titleMessages(input),
+    max_tokens: 20,
+  });
+
+  const generatedTitle = llmTitleRequest.choices[0]?.message?.content?.trim();
+  return generatedTitle;
+}
+
 async function generateTitleCustom(
   input: string,
   userId: number,
@@ -310,6 +334,8 @@ export async function generateTitle(
         Number(userSettings.selectedCustomId),
         userSettings
       );
+    case "deepseek":
+      return generateTitleDeepSeek(input, userId);
     default:
       return "New Conversation";
   }

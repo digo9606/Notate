@@ -114,6 +114,7 @@ export default function LLMPanel() {
       case "xai":
       case "gemini":
       case "openai":
+      case "deepseek":
         return (
           <External
             showUpdateInput={showUpdateInput}

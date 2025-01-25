@@ -13,6 +13,7 @@ import log from "electron-log";
 import os from "os";
 import { AzureOpenAIProvider } from "./providers/azureOpenAI.js";
 import { CustomProvider } from "./providers/customEndpoint.js";
+import { DeepSeekProvider } from "./providers/deepseek.js";
 
 interface ProviderResponse {
   id: bigint | number;
@@ -173,6 +174,9 @@ export async function chatRequest(
         break;
       case "custom":
         provider = CustomProvider;
+        break;
+      case "deepseek":
+        provider = DeepSeekProvider;
         break;
       default:
         throw new Error(

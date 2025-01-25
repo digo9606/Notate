@@ -4,6 +4,7 @@ import { GeminiProviderAPIKeyCheck } from "./apiCheckProviders/gemini.js";
 import { XAIProviderAPIKeyCheck } from "./apiCheckProviders/xai.js";
 import { OpenRouterProviderAPIKeyCheck } from "./apiCheckProviders/openrouter.js";
 import log from "electron-log";
+import { DeepSeekProviderAPIKeyCheck } from "./apiCheckProviders/deepseek.js";
 export async function keyValidation({
   apiKey,
   inputProvider,
@@ -18,6 +19,9 @@ export async function keyValidation({
     let provider;
     log.info(`Input provider: ${inputProvider}`);
     switch (inputProvider.toLowerCase()) {
+      case "deepseek":
+        provider = DeepSeekProviderAPIKeyCheck;
+        break;
       case "openai":
         provider = OpenAIProviderAPIKeyCheck;
         break;

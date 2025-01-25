@@ -6,6 +6,7 @@ import openrouter from "@/assets/providers/openrouter.svg";
 import ollama from "@/assets/providers/ollama.svg";
 import azure from "@/assets/providers/azure.svg";
 import custom from "@/assets/providers/network.svg";
+import deepseek from "@/assets/providers/deepseek.svg";
 import { HouseIcon } from "lucide-react";
 import { ReactNode } from "react";
 import { SvgIcon } from "./SvgIcon";
@@ -19,5 +20,6 @@ export const providerIcons: Record<string, ReactNode> = {
   openrouter: <SvgIcon src={openrouter} alt="OpenRouter" />,
   ollama: <SvgIcon src={ollama} alt="Ollama" />,
   "azure open ai": <SvgIcon src={azure} alt="Azure" />,
+  deepseek: <SvgIcon src={deepseek} alt="DeepSeek" />,
   custom: <SvgIcon src={custom} alt="Custom" />,
 };
