@@ -18,7 +18,7 @@ export function createLoadingWindow(icon?: Electron.NativeImage) {
   const windowOptions: Electron.BrowserWindowConstructorOptions = {
     width: 800,
     height: 600,
-    frame: false,
+    frame: true,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
