@@ -100,7 +100,14 @@ async function downloadModel(payload: {
     currentDownloadController = new AbortController();
     const signal = currentDownloadController.signal;
 
-    const apiUrl = `https://huggingface.co/api/models/${payload.modelId}/tree/main`;
+    // Extract the model name and path
+    const modelPath = payload.modelId.split('/');
+    const repoOwner = modelPath[0];
+    const repoName = modelPath[1];
+    const subPath = modelPath.slice(2).join('/');
+
+    // Construct the API URL with the correct path
+    const apiUrl = `https://huggingface.co/api/models/${repoOwner}/${repoName}/tree/main/${subPath}`;
     const response = await fetch(apiUrl, { headers, signal });
 
     if (!response.ok) {
@@ -139,8 +146,8 @@ async function downloadModel(payload: {
     // Download each file
     for (const [index, file] of downloadableFiles.entries()) {
       const fileName = file.path;
-      const downloadUrl = `https://huggingface.co/${payload.modelId}/resolve/main/${fileName}`;
-      const filePath = path.join(payload.dirPath, fileName);
+      const downloadUrl = `https://huggingface.co/${repoOwner}/${repoName}/resolve/main/${fileName}`;
+      const filePath = path.join(payload.dirPath, path.basename(fileName));
 
       // Create subdirectories if needed
       fs.mkdirSync(path.dirname(filePath), { recursive: true });
