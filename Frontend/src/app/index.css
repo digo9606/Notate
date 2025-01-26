@@ -240,6 +240,10 @@ code {
   @apply text-foreground space-y-0;
 }
 
+.contentMarkdown hr {
+  @apply my-4 border-t border-primary/20;
+}
+
 .contentMarkdown h1 {
   @apply text-3xl font-bold mb-0;
 }
@@ -257,33 +261,107 @@ code {
 }
 
 .contentMarkdown ul {
-  @apply mb-0 space-y-0 list-none;
+  @apply mb-0 space-y-2 list-none;
 }
 
 .contentMarkdown ol {
-  @apply mb-0 space-y-0 list-none;
+  @apply mb-0 space-y-2 list-none;
+  counter-reset: item;
 }
 
 .contentMarkdown li {
-  @apply relative pl-6 leading-snug;
+  @apply relative leading-relaxed;
 }
 
+/* Base list item styles */
+.contentMarkdown ul > li {
+  @apply pl-6;
+}
+
+.contentMarkdown ol > li {
+  @apply pl-6 flex flex-wrap;
+  counter-increment: item;
+}
+
+.contentMarkdown ol > li::before {
+  @apply text-primary/80 font-medium mr-1 flex-shrink-0;
+  content: counter(item) ".";
+}
+
+/* Ensure content inside list items flows properly */
+.contentMarkdown ol > li > * {
+  @apply flex-1 basis-full;
+}
+
+/* First direct text/strong element should be inline */
+.contentMarkdown ol > li > strong,
+.contentMarkdown ol > li > p {
+  @apply basis-auto flex-none;
+}
+
+/* Nested content container */
+.contentMarkdown li > div {
+  @apply flex flex-col gap-1 w-full mt-2;
+}
+
+/* Nested lists should take full width */
+.contentMarkdown li > ul,
+.contentMarkdown li > ol {
+  @apply w-full;
+}
+
+/* Bullet points */
 .contentMarkdown ul > li::before {
   @apply absolute left-1 top-[0.6em] w-1.5 h-1.5 rounded-full bg-primary/60 -translate-y-1/2;
   content: "";
 }
 
-.contentMarkdown ol {
-  counter-reset: item;
-}
-
-.contentMarkdown ol > li {
-  counter-increment: item;
-}
-
+/* Numbered list */
 .contentMarkdown ol > li::before {
   @apply absolute left-0 text-primary/80 font-medium;
   content: counter(item) ".";
+}
+
+/* Preserve whitespace */
+.contentMarkdown li > * {
+  @apply whitespace-pre-wrap;
+}
+
+/* Italics in lists */
+.contentMarkdown li em {
+  @apply inline;
+}
+
+/* Nested lists */
+.contentMarkdown li > ul,
+.contentMarkdown li > ol {
+  @apply mt-2 mb-1 ml-4;
+}
+
+/* Nested numbered lists */
+.contentMarkdown ol ol {
+  counter-reset: subitem;
+}
+
+.contentMarkdown ol ol > li {
+  counter-increment: subitem;
+}
+
+.contentMarkdown ol ol > li::before {
+  content: counter(item) "." counter(subitem) ".";
+}
+
+/* Third level lists */
+.contentMarkdown ol ol ol {
+  counter-reset: subsubitem;
+}
+
+.contentMarkdown ol ol ol > li {
+  counter-increment: subsubitem;
+}
+
+.contentMarkdown ol ol ol > li::before {
+  content: counter(item) "." counter(subitem) "." counter(subsubitem) ".";
 }
 
 .contentMarkdown code {
@@ -297,12 +375,13 @@ code {
 .contentMarkdown a {
   @apply text-primary hover:underline;
 }
-s .contentMarkdown blockquote {
+
+.contentMarkdown blockquote {
   @apply border-l-4 border-primary/30 pl-4 italic my-0;
 }
 
 .contentMarkdown pre {
-  @apply  rounded-lg bg-secondary/20 overflow-x-auto m-0;
+  @apply rounded-lg bg-secondary/20 overflow-x-auto m-0;
 }
 
 .contentMarkdown pre code {
@@ -314,13 +393,4 @@ s .contentMarkdown blockquote {
 .contentMarkdown ul ol,
 .contentMarkdown ol ul {
   @apply mt-2 m-0;
-}
-
-.contentMarkdown li > p {
-  @apply inline;
-}
-
-.contentMarkdown li > ul,
-.contentMarkdown li > ol {
-  @apply ml-4;
 }

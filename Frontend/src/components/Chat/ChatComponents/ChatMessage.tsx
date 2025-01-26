@@ -230,8 +230,7 @@ export const ChatMessage = memo(function ChatMessage({
           .use(remarkRehype)
           .use(rehypeStringify)
           .process(textContent);
-        console.log(textContent);
-        console.log(String(result));
+
         parts.push(
           <div
             key={`text-${lastIndex}`}
