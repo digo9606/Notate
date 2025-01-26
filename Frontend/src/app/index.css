@@ -235,3 +235,92 @@ code {
 ::-webkit-scrollbar-corner {
   @apply bg-transparent;
 }
+
+.contentMarkdown {
+  @apply text-foreground space-y-0;
+}
+
+.contentMarkdown h1 {
+  @apply text-3xl font-bold mb-0;
+}
+
+.contentMarkdown h2 {
+  @apply text-2xl font-bold mb-0;
+}
+
+.contentMarkdown h3 {
+  @apply text-xl font-semibold m-0;
+}
+
+.contentMarkdown p {
+  @apply m-0 leading-snug;
+}
+
+.contentMarkdown ul {
+  @apply mb-0 space-y-0 list-none;
+}
+
+.contentMarkdown ol {
+  @apply mb-0 space-y-0 list-none;
+}
+
+.contentMarkdown li {
+  @apply relative pl-6 leading-snug;
+}
+
+.contentMarkdown ul > li::before {
+  @apply absolute left-1 top-[0.6em] w-1.5 h-1.5 rounded-full bg-primary/60 -translate-y-1/2;
+  content: "";
+}
+
+.contentMarkdown ol {
+  counter-reset: item;
+}
+
+.contentMarkdown ol > li {
+  counter-increment: item;
+}
+
+.contentMarkdown ol > li::before {
+  @apply absolute left-0 text-primary/80 font-medium;
+  content: counter(item) ".";
+}
+
+.contentMarkdown code {
+  @apply rounded bg-secondary/30 text-primary font-mono text-sm;
+}
+
+.contentMarkdown strong {
+  @apply font-semibold text-primary;
+}
+
+.contentMarkdown a {
+  @apply text-primary hover:underline;
+}
+s .contentMarkdown blockquote {
+  @apply border-l-4 border-primary/30 pl-4 italic my-0;
+}
+
+.contentMarkdown pre {
+  @apply  rounded-lg bg-secondary/20 overflow-x-auto m-0;
+}
+
+.contentMarkdown pre code {
+  @apply bg-transparent p-0 text-foreground m-0;
+}
+
+.contentMarkdown ul ul,
+.contentMarkdown ol ol,
+.contentMarkdown ul ol,
+.contentMarkdown ol ul {
+  @apply mt-2 m-0;
+}
+
+.contentMarkdown li > p {
+  @apply inline;
+}
+
+.contentMarkdown li > ul,
+.contentMarkdown li > ol {
+  @apply ml-4;
+}

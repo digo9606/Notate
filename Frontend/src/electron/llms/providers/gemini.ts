@@ -56,6 +56,7 @@ export async function GeminiProvider(
   const sysPrompt: ChatCompletionMessageParam = {
     role: "system",
     content:
+      "When asked about previous messages, only consider messages marked as '(most recent message)' as the last message. Respond in a beautiful markdown format for anything non-code. " +
       prompt +
       (data
         ? "The following is the data that the user has provided via their custom data collection: " +
@@ -66,19 +67,23 @@ export async function GeminiProvider(
         : ""),
   };
 
-  const maxOutputTokens = userSettings.maxTokens as number || 4096;
+  const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
   const newMessages = messages.map((msg) => ({
     role: msg.role as "user" | "assistant" | "system",
     content: msg.content,
   })) as ChatCompletionMessageParam[];
 
   // Truncate messages to fit within token limits
-  const truncatedMessages = truncateMessages(newMessages, sysPrompt, maxOutputTokens);
+  const truncatedMessages = truncateMessages(
+    newMessages,
+    sysPrompt,
+    maxOutputTokens
+  );
 
   const temperature = Number(userSettings.temperature);
   const chat: ChatSession = model.startChat({
     history: truncatedMessages
-      .filter(msg => msg.role !== "system") // Gemini doesn't support system messages in history
+      .filter((msg) => msg.role !== "system") // Gemini doesn't support system messages in history
       .map((msg) => ({
         role: msg.role === "assistant" ? "model" : "user",
         parts: [{ text: msg.content as string }],
@@ -146,7 +151,7 @@ export async function GeminiProvider(
       messages: [...messages, newMessage],
       title: currentTitle,
       content: newMessage.content,
-      aborted: false
+      aborted: false,
     };
   } catch (error) {
     if (
@@ -161,7 +166,7 @@ export async function GeminiProvider(
         messages: [...messages, { ...newMessage }],
         title: currentTitle,
         content: newMessage.content,
-        aborted: true
+        aborted: true,
       };
     }
     throw error;
