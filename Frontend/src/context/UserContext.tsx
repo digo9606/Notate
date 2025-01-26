@@ -62,9 +62,7 @@ interface UserContextType {
   fetchAzureModels: () => Promise<void>;
   fetchCustomModels: () => Promise<void>;
   streamingMessageReasoning: string | null;
-  setStreamingMessageReasoning: React.Dispatch<
-    React.SetStateAction<string | null>
-  >;
+  setStreamingMessageReasoning: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -90,7 +88,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [customModels, setCustomModels] = useState<CustomModel[]>([]);
   const [streamingMessage, setStreamingMessage] = useState<string>("");
   const [streamingMessageReasoning, setStreamingMessageReasoning] =
-    useState<string | null>(null);
+    useState<string>("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [prompts, setPrompts] = useState<UserPrompts[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
@@ -255,6 +253,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
           title: string;
           error?: string;
         };
+        console.log(streamingMessageReasoning);
         setTitle(result.title);
         if (result.error) {
           setError(result.error);
@@ -320,6 +319,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       } finally {
         setIsLoading(false);
+        setStreamingMessageReasoning("");
         setCurrentRequestId(null);
       }
     },

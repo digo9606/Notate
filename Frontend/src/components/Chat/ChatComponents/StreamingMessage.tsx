@@ -11,15 +11,15 @@ import remarkRehype from "remark-rehype";
 import { unified } from "unified";
 import remarkGfm from "remark-gfm";
 import remarkFrontmatter from "remark-frontmatter";
-import { useUser } from "@/context/useUser";
+
 const MotionAvatar = motion.create(Avatar);
 
-export function StreamingMessage() {
+export function StreamingMessage({ content }: { content: string }) {
   const [parsedContent, setParsedContent] = useState<(string | JSX.Element)[]>(
     []
   );
   const { settings } = useSysSettings();
-  const { streamingMessage } = useUser();
+
   useEffect(() => {
     const renderContent = async () => {
       const parts: (string | JSX.Element)[] = [];
@@ -27,19 +27,7 @@ export function StreamingMessage() {
       let isInCodeBlock = false;
       let language = "";
 
-      // Remove [REASONING]: lines and clean up the message
-      const cleanedMessage = streamingMessage
-        .split('\n')
-        .filter(line => !line.trim().startsWith('[REASONING]:'))
-        .join('\n')
-        // Fix character-by-character streaming by joining split characters
-        .replace(/(\w) (\w)/g, '$1$2')  // Join split words
-        .replace(/([^\w\s]) /g, '$1')   // Join punctuation
-        .replace(/ ([^\w\s])/g, '$1')   // Join punctuation
-        .replace(/\s+/g, ' ')           // Normalize spaces
-        .trim();
-
-      const lines = cleanedMessage.split("\n");
+      const lines = content.split("\n");
       let textContent = "";
 
       for (const line of lines) {
@@ -47,12 +35,11 @@ export function StreamingMessage() {
           if (isInCodeBlock) {
             // End of code block - render the code
             parts.push(
-              <div key={parts.length} className="my-3">
-                <SyntaxHighlightedCode
-                  code={codeBlock.trim()}
-                  language={language}
-                />
-              </div>
+              <SyntaxHighlightedCode
+                key={parts.length}
+                code={codeBlock.trim()}
+                language={language}
+              />
             );
             codeBlock = "";
             isInCodeBlock = false;
@@ -90,12 +77,11 @@ export function StreamingMessage() {
       // Handle any remaining content
       if (isInCodeBlock) {
         parts.push(
-          <div key={parts.length} className="my-3">
-            <SyntaxHighlightedCode
-              code={codeBlock.trim()}
-              language={language}
-            />
-          </div>
+          <SyntaxHighlightedCode
+            key={parts.length}
+            code={codeBlock.trim()}
+            language={language}
+          />
         );
       } else if (textContent.trim()) {
         const result = await unified()
@@ -119,7 +105,7 @@ export function StreamingMessage() {
     };
 
     renderContent();
-  }, [streamingMessage]);
+  }, [content]);
 
   return (
     <div className="flex justify-start animate-in fade-in duration-300 mx-2 my-2">

@@ -14,7 +14,6 @@ import {
   ExternalLink,
   ChevronUp,
   ChevronDown,
-  BrainCircuit,
 } from "lucide-react";
 import { getYouTubeLink, formatTimestamp, getFileName } from "@/lib/utils";
 import { providerIcons } from "@/components/SettingsModal/SettingsComponents/providers/providerIcons";
@@ -25,6 +24,9 @@ import remarkRehype from "remark-rehype";
 import { unified } from "unified";
 import remarkGfm from "remark-gfm";
 import remarkFrontmatter from "remark-frontmatter";
+import type { Root, Element } from "hast";
+import { visit } from "unist-util-visit";
+import { ReasoningMessage } from "./ReasoningMessage";
 
 // Lazy load the syntax highlighter
 const SyntaxHighlightedCode = lazy(() =>
@@ -43,7 +45,6 @@ export const ChatMessage = memo(function ChatMessage({
   const isUser = message?.role === "user";
   const isRetrieval = message?.isRetrieval;
   const [isDataContentExpanded, setIsDataContentExpanded] = useState(false);
-  const [isReasoningExpanded, setIsReasoningExpanded] = useState(true);
   const { settings } = useSysSettings();
   const [renderedContent, setRenderedContent] = useState<
     (string | JSX.Element)[]
@@ -193,22 +194,14 @@ export const ChatMessage = memo(function ChatMessage({
             .use(remarkFrontmatter)
             .use(remarkGfm)
             .use(remarkRehype)
-            .use(() => (tree) => {
+            .use(() => (tree: Root) => {
               // Transform links to open in new window
-              const visit = (node: any) => {
-                if (
-                  node.tagName === "a" &&
-                  node.properties &&
-                  node.properties.href
-                ) {
+              visit(tree, "element", (node: Element) => {
+                if (node.tagName === "a" && node.properties?.href) {
                   node.properties.onclick = `(function(e){e.preventDefault();window.electron.openExternal("${node.properties.href}")})`;
                   node.properties.href = "#";
                 }
-                if (node.children) {
-                  node.children.forEach(visit);
-                }
-              };
-              visit(tree);
+              });
               return tree;
             })
             .use(rehypeStringify)
@@ -247,22 +240,14 @@ export const ChatMessage = memo(function ChatMessage({
           .use(remarkFrontmatter)
           .use(remarkGfm)
           .use(remarkRehype)
-          .use(() => (tree) => {
+          .use(() => (tree: Root) => {
             // Transform links to open in new window
-            const visit = (node: any) => {
-              if (
-                node.tagName === "a" &&
-                node.properties &&
-                node.properties.href
-              ) {
+            visit(tree, "element", (node: Element) => {
+              if (node.tagName === "a" && node.properties?.href) {
                 node.properties.onclick = `(function(e){e.preventDefault();window.electron.openExternal("${node.properties.href}")})`;
                 node.properties.href = "#";
               }
-              if (node.children) {
-                node.children.forEach(visit);
-              }
-            };
-            visit(tree);
+            });
             return tree;
           })
           .use(rehypeStringify)
@@ -316,153 +301,118 @@ export const ChatMessage = memo(function ChatMessage({
   const icon = getProviderIcon();
 
   return (
-    <div
-      className={`flex ${
-        isUser ? "justify-end" : "justify-start"
-      } animate-in fade-in duration-300 mx-4 my-3`}
-    >
+    <>
+      {!isUser && message.reasoning_content && (
+        <ReasoningMessage content={message.reasoning_content} />
+      )}
       <div
         className={`flex ${
-          isUser ? "flex-row-reverse" : "flex-row"
-        } items-end max-w-[85%] group gap-3`}
+          isUser ? "justify-end" : "justify-start"
+        } animate-in fade-in duration-300 mx-4 my-3`}
       >
-        <Avatar
-          className={`w-9 h-9 border-2 shadow-sm transition-all duration-300 ${
-            isUser
-              ? "border-primary/50"
-              : isRetrieval
-              ? "border-emerald-500/50"
-              : "border-secondary/50"
-          } ${
-            isUser
-              ? "ring-2 ring-primary ring-offset-2"
-              : isRetrieval
-              ? "ring-2 ring-emerald-500 ring-offset-2"
-              : "ring-2 ring-secondary ring-offset-2"
-          } overflow-hidden`}
-        >
-          {icon.type === "image" ? (
-            <AvatarImage
-              className="object-cover w-full h-full scale-125"
-              src={icon.src}
-            />
-          ) : (
-            <div className="h-full w-full flex items-center justify-center scale-150">
-              {icon.component}
-            </div>
-          )}
-        </Avatar>
         <div
-          className={`relative px-4 py-3 rounded-[16px] whitespace-pre-wrap break-words ${
-            isUser
-              ? "bg-primary text-primary-foreground rounded-br-[4px]"
-              : isRetrieval
-              ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-50 rounded-bl-[4px] border border-emerald-200 dark:border-emerald-800"
-              : "bg-secondary text-secondary-foreground rounded-bl-[4px]"
-          } shadow-md hover:shadow-lg transition-all duration-300 ease-in-out w-full backdrop-blur-sm`}
+          className={`flex ${
+            isUser ? "flex-row-reverse" : "flex-row"
+          } items-end max-w-[85%] group gap-3`}
         >
-          {message.data_content && (
-            <div
-              className="flex flex-col gap-1.5 mb-4 select-none"
-              onClick={() => setIsDataContentExpanded(!isDataContentExpanded)}
-            >
-              <div className="flex items-center justify-between px-2 py-1.5 rounded-[8px] bg-muted/40 hover:bg-muted/60 cursor-pointer transition-colors duration-200">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center justify-center w-5 h-5 rounded-[6px] bg-primary/10">
-                    <NotebookPenIcon className="w-3.5 h-3.5 text-primary/70" />
-                  </div>
-                  <span className="text-xs font-medium text-foreground/80">
-                    Reference Notes
-                  </span>
-                  <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary/70 rounded-[6px]">
-                    {parsedDataContent?.results.length} sources
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-medium text-muted-foreground">
-                    {isDataContentExpanded ? "Hide" : "Show"} details
-                  </span>
-                  {isDataContentExpanded ? (
-                    <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-          {message.data_content && isDataContentExpanded && (
-            <div className="mb-4 overflow-hidden border rounded-[10px]">
-              <div className="px-3 py-2 border-b bg-muted/30">
-                <div className="text-xs font-medium text-foreground/70">
-                  Source References
-                </div>
-              </div>
-              <div className="bg-background/50 backdrop-blur-sm">
-                {renderDataContent}
-              </div>
-            </div>
-          )}
-          {message.reasoning_content && (
-            <div
-              className="flex flex-col gap-1.5 mb-4 select-none"
-              onClick={() => setIsReasoningExpanded(!isReasoningExpanded)}
-            >
-              <div className="flex items-center justify-between px-2 py-1.5 rounded-[8px] bg-violet-100 dark:bg-violet-950/30 hover:bg-violet-200 dark:hover:bg-violet-950/50 cursor-pointer transition-colors duration-200">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center justify-center w-5 h-5 rounded-[6px] bg-violet-500/10">
-                    <BrainCircuit className="w-3.5 h-3.5 text-violet-500/70" />
-                  </div>
-                  <span className="text-xs font-medium text-violet-700 dark:text-violet-300">
-                    Chain of Thought
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-medium text-violet-600 dark:text-violet-400">
-                    {isReasoningExpanded ? "Hide" : "Show"} reasoning
-                  </span>
-                  {isReasoningExpanded ? (
-                    <ChevronUp className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
-                  ) : (
-                    <ChevronDown className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-          {message.reasoning_content && isReasoningExpanded && (
-            <div className="mb-4 overflow-hidden border rounded-[10px] border-violet-200 dark:border-violet-800">
-              <div className="px-3 py-2 border-b bg-violet-50 dark:bg-violet-950/30">
-                <div className="text-xs font-medium text-violet-700 dark:text-violet-300">
-                  Reasoning Process
-                </div>
-              </div>
-              <div className="bg-violet-50/50 dark:bg-violet-950/10 backdrop-blur-sm p-3">
-                <div className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere] text-left overflow-hidden text-violet-800 dark:text-violet-200">
-                  {message.reasoning_content}
-                </div>
-              </div>
-            </div>
-          )}
-          {!isRetrieval && (
-            <div className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere] text-left overflow-hidden">
-              {renderedContent}
-              <div className="sr-only">{message?.content}</div>
-            </div>
-          )}
-          <span
-            className={`text-[11px] mt-2 block opacity-0 group-hover:opacity-100 transition-opacity text-right absolute bottom-1 right-3 ${
+          <Avatar
+            className={`w-9 h-9 border-2 shadow-sm transition-all duration-300 ${
               isUser
-                ? "text-primary-foreground/70"
+                ? "border-primary/50"
                 : isRetrieval
-                ? "text-emerald-700 dark:text-emerald-300"
-                : "text-secondary-foreground/70"
-            }`}
+                ? "border-emerald-500/50"
+                : "border-secondary/50"
+            } ${
+              isUser
+                ? "ring-2 ring-primary ring-offset-2"
+                : isRetrieval
+                ? "ring-2 ring-emerald-500 ring-offset-2"
+                : "ring-2 ring-secondary ring-offset-2"
+            } overflow-hidden`}
           >
-            {message?.timestamp ? formatDate(message?.timestamp) : ""}
-          </span>
+            {icon.type === "image" ? (
+              <AvatarImage
+                className="object-cover w-full h-full scale-125"
+                src={icon.src}
+              />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center scale-150">
+                {icon.component}
+              </div>
+            )}
+          </Avatar>
+
+          <div
+            className={`relative px-4 py-3 rounded-[16px] whitespace-pre-wrap break-words ${
+              isUser
+                ? "bg-primary text-primary-foreground rounded-br-[4px]"
+                : isRetrieval
+                ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-50 rounded-bl-[4px] border border-emerald-200 dark:border-emerald-800"
+                : "bg-secondary text-secondary-foreground rounded-bl-[4px]"
+            } shadow-md hover:shadow-lg transition-all duration-300 ease-in-out w-full backdrop-blur-sm`}
+          >
+            {message.data_content && (
+              <div
+                className="flex flex-col gap-1.5 mb-4 select-none"
+                onClick={() => setIsDataContentExpanded(!isDataContentExpanded)}
+              >
+                <div className="flex items-center justify-between px-2 py-1.5 rounded-[8px] bg-muted/40 hover:bg-muted/60 cursor-pointer transition-colors duration-200">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-center w-5 h-5 rounded-[6px] bg-primary/10">
+                      <NotebookPenIcon className="w-3.5 h-3.5 text-primary/70" />
+                    </div>
+                    <span className="text-xs font-medium text-foreground/80">
+                      Reference Notes
+                    </span>
+                    <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary/70 rounded-[6px]">
+                      {parsedDataContent?.results.length} sources
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-medium text-muted-foreground">
+                      {isDataContentExpanded ? "Hide" : "Show"} details
+                    </span>
+                    {isDataContentExpanded ? (
+                      <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            {message.data_content && isDataContentExpanded && (
+              <div className="mb-4 overflow-hidden border rounded-[10px]">
+                <div className="px-3 py-2 border-b bg-muted/30">
+                  <div className="text-xs font-medium text-foreground/70">
+                    Source References
+                  </div>
+                </div>
+                <div className="bg-background/50 backdrop-blur-sm">
+                  {renderDataContent}
+                </div>
+              </div>
+            )}
+            {!isRetrieval && (
+              <div className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere] text-left overflow-hidden">
+                {renderedContent}
+                <div className="sr-only">{message?.content}</div>
+              </div>
+            )}
+            <span
+              className={`text-[11px] mt-2 block opacity-0 group-hover:opacity-100 transition-opacity text-right absolute bottom-1 right-3 ${
+                isUser
+                  ? "text-primary-foreground/70"
+                  : isRetrieval
+                  ? "text-emerald-700 dark:text-emerald-300"
+                  : "text-secondary-foreground/70"
+              }`}
+            >
+              {message?.timestamp ? formatDate(message?.timestamp) : ""}
+            </span>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 });

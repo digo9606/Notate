@@ -3,7 +3,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDate } from "@/lib/utils";
 import { Loader2, PlusCircle } from "lucide-react";
 import { StreamingMessage } from "./ChatComponents/StreamingMessage";
-import { StreamingReasoningMessage } from "./ChatComponents/StreamingReasoningMessage";
 import { ChatMessage } from "./ChatComponents/ChatMessage";
 import { ChatInput } from "./ChatComponents/ChatInput";
 import { LoadingIndicator } from "./ChatComponents/LoadingIndicator";
@@ -15,6 +14,7 @@ import { useSysSettings } from "@/context/useSysSettings";
 import { useView } from "@/context/useView";
 import { NewConvoWelcome } from "./ChatComponents/NewConvoWelcome";
 import { useChatInput } from "@/context/useChatInput";
+import { StreamingReasoningMessage } from "./ChatComponents/StreamingReasoningMessage";
 export default function Chat() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [resetCounter, setResetCounter] = useState(0);
@@ -106,48 +106,45 @@ export default function Chat() {
   // This signals to the backend that the user is streaming a message and updates the UI
   useEffect(() => {
     let newMessage: string = "";
-    let newReasoning: string = ""; // Add a variable to accumulate reasoning
+    let newReasoning: string = "";
     let isSubscribed = true; // Add a flag to prevent updates after unmount
 
     const handleMessageChunk = (chunk: string) => {
       if (!isSubscribed) return; // Skip if component is unmounted
-      console.log("chunk", chunk);
-
-      // Check if chunk contains [REASONING]
-      if (chunk.includes("[REASONING]:")) {
-        const reasoningContent = chunk.replace("[REASONING]:", "").trim();
-        if (reasoningContent) {
-          const shouldAddSpace =
-            newReasoning.length > 0 &&
-            !reasoningContent.match(/^[.,!?;:)\]}]/) &&
-            !newReasoning.match(/[({[\s]$/);
-          // Only add space if it's not punctuation
-          newReasoning += (shouldAddSpace ? " " : "") + reasoningContent;
-          setStreamingMessageReasoning(newReasoning);
-        }
+      if (chunk.startsWith("[REASONING]:")) {
+        newReasoning += chunk.replace("[REASONING]:", "");
+        setStreamingMessageReasoning(newReasoning);
       } else {
-        // Handle normal message chunks
-        const cleanedChunk = chunk.trim();
-        if (cleanedChunk) {
-          // Only add space if it's not punctuation and not the start of the message
-          const shouldAddSpace =
-            newMessage.length > 0 &&
-            !cleanedChunk.match(/^[.,!?;:)\]}]/) &&
-            !newMessage.match(/[({[\s]$/);
-
-          newMessage += (shouldAddSpace ? " " : "") + cleanedChunk;
-          setStreamingMessage(newMessage);
-        }
+        newMessage += chunk;
+        setStreamingMessage(newMessage);
       }
     };
 
     const handleStreamEnd = () => {
       if (!isSubscribed) return; // Skip if component is unmounted
-      setStreamingMessage("");
-      setStreamingMessageReasoning("");
-      newMessage = "";
-      newReasoning = "";
-      setIsLoading(false);
+
+      // Update the messages array with both content and reasoning
+      setMessages((prevMessages) => {
+        const updatedMessages = [...prevMessages];
+        const lastMessage = updatedMessages[updatedMessages.length - 1];
+        if (lastMessage) {
+          updatedMessages[updatedMessages.length - 1] = {
+            ...lastMessage,
+            content: newMessage,
+            reasoning_content: newReasoning,
+          };
+        }
+        return updatedMessages;
+      });
+
+      // Small delay to ensure state updates are processed
+      setTimeout(() => {
+        setStreamingMessage("");
+        setStreamingMessageReasoning("");
+        newMessage = "";
+        newReasoning = "";
+        setIsLoading(false);
+      }, 100);
     };
 
     // Remove any existing listeners before adding new ones
@@ -164,12 +161,7 @@ export default function Chat() {
       window.electron.offMessageChunk(handleMessageChunk);
       window.electron.offStreamEnd(handleStreamEnd);
     };
-  }, [
-    setIsLoading,
-    setMessages,
-    setStreamingMessage,
-    setStreamingMessageReasoning,
-  ]);
+  }, [setIsLoading, setMessages, setStreamingMessage, setStreamingMessageReasoning]);
 
   useEffect(() => {
     if (!activeUser) {
@@ -226,12 +218,12 @@ export default function Chat() {
             </div>
           ))}
           {streamingMessageReasoning && <StreamingReasoningMessage />}
-          {streamingMessage && <StreamingMessage />}
           {error && (
             <div className="text-red-500 mt-4 p-2 bg-red-100 rounded">
               Error: {error}
             </div>
-          )}
+          )}{" "}
+          {streamingMessage && <StreamingMessage content={streamingMessage} />}
           <div ref={bottomRef} />
         </ScrollArea>
         {isLoading && (

@@ -238,6 +238,10 @@ code {
 
 .contentMarkdown {
   @apply text-foreground space-y-0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .contentMarkdown hr {
@@ -284,19 +288,16 @@ code {
 }
 
 .contentMarkdown ol > li::before {
-  @apply text-primary/80 font-medium mr-1 flex-shrink-0;
+  @apply absolute left-0 text-primary/80 font-medium;
   content: counter(item) ".";
 }
 
-/* Ensure content inside list items flows properly */
-.contentMarkdown ol > li > * {
-  @apply flex-1 basis-full;
-}
-
 /* First direct text/strong element should be inline */
-.contentMarkdown ol > li > strong,
-.contentMarkdown ol > li > p {
-  @apply basis-auto flex-none;
+.contentMarkdown ol > li > p:first-child {
+  @apply inline-block;
+  text-wrap: wrap;
+  min-width: 0;
+  width: calc(100% - 1.5rem);  /* Account for the number width */
 }
 
 /* Nested content container */
@@ -393,4 +394,44 @@ code {
 .contentMarkdown ul ol,
 .contentMarkdown ol ul {
   @apply mt-2 m-0;
+}
+
+/* Shimmer Animation */
+@keyframes border-slide {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.animate-border {
+  animation: border-slide var(--speed, 2s) linear infinite;
+  border: 1px solid transparent;
+}
+
+@keyframes spin-around {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-around {
+  animation: spin-around calc(var(--speed, 2s) * 2) linear infinite;
+}
+
+@keyframes dot {
+  0%, 20% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
