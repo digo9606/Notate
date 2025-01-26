@@ -5,64 +5,104 @@ import { providerIcons } from "@/components/SettingsModal/SettingsComponents/pro
 import { useSysSettings } from "@/context/useSysSettings";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import rehypeStringify from "rehype-stringify";
+import remarkParse from "remark-parse";
+import remarkRehype from "remark-rehype";
+import { unified } from "unified";
+import remarkGfm from "remark-gfm";
+import remarkFrontmatter from "remark-frontmatter";
 
 const MotionAvatar = motion.create(Avatar);
 
 export function StreamingMessage({ content }: { content: string }) {
-  const [parsedContent, setParsedContent] = useState<(string | JSX.Element)[]>(
-    []
-  );
+  const [parsedContent, setParsedContent] = useState<(string | JSX.Element)[]>([]);
   const { settings } = useSysSettings();
+
   useEffect(() => {
-    const parts: (string | JSX.Element)[] = [];
-    let codeBlock = "";
-    let isInCodeBlock = false;
-    let language = "";
+    const renderContent = async () => {
+      const parts: (string | JSX.Element)[] = [];
+      let codeBlock = "";
+      let isInCodeBlock = false;
+      let language = "";
 
-    const lines = content.split("\n");
+      const lines = content.split("\n");
+      let textContent = "";
 
-    for (const line of lines) {
-      if (line.startsWith("```")) {
-        if (isInCodeBlock) {
-          parts.push(
-            <SyntaxHighlightedCode
-              key={parts.length}
-              code={codeBlock.trim()}
-              language={language}
-            />
-          );
-          codeBlock = "";
-          isInCodeBlock = false;
-          language = "";
+      for (const line of lines) {
+        if (line.startsWith("```")) {
+          if (isInCodeBlock) {
+            // End of code block - render the code
+            parts.push(
+              <SyntaxHighlightedCode
+                key={parts.length}
+                code={codeBlock.trim()}
+                language={language}
+              />
+            );
+            codeBlock = "";
+            isInCodeBlock = false;
+            language = "";
+          } else {
+            // Start of code block - render accumulated text content
+            if (textContent.trim()) {
+              const result = await unified()
+                .use(remarkParse)
+                .use(remarkFrontmatter)
+                .use(remarkGfm)
+                .use(remarkRehype)
+                .use(rehypeStringify)
+                .process(textContent.trim());
+              
+              parts.push(
+                <div
+                  key={parts.length}
+                  className="contentMarkdown"
+                  dangerouslySetInnerHTML={{ __html: String(result) }}
+                />
+              );
+              textContent = "";
+            }
+            isInCodeBlock = true;
+            language = line.slice(3).trim() || "text";
+          }
+        } else if (isInCodeBlock) {
+          codeBlock += line + "\n";
         } else {
-          isInCodeBlock = true;
-          language = line.slice(3).trim() || "text";
+          textContent += line + "\n";
         }
-      } else if (isInCodeBlock) {
-        codeBlock += line + "\n";
-      } else {
-        parts.push(
-          ...line.split("").map((char, index) => (
-            <span key={`${parts.length}-${index}`} className="animate-fade-in">
-              {char}
-            </span>
-          ))
-        );
-        parts.push(<br key={`${parts.length}-br`} />);
       }
-    }
 
-    if (isInCodeBlock) {
-      parts.push(
-        <SyntaxHighlightedCode
-          key={parts.length}
-          code={codeBlock.trim()}
-          language={language}
-        />
-      );
-    }
+      // Handle any remaining content
+      if (isInCodeBlock) {
+        parts.push(
+          <SyntaxHighlightedCode
+            key={parts.length}
+            code={codeBlock.trim()}
+            language={language}
+          />
+        );
+      } else if (textContent.trim()) {
+        const result = await unified()
+          .use(remarkParse)
+          .use(remarkFrontmatter)
+          .use(remarkGfm)
+          .use(remarkRehype)
+          .use(rehypeStringify)
+          .process(textContent.trim());
+        
+        parts.push(
+          <div
+            key={parts.length}
+            className="contentMarkdown"
+            dangerouslySetInnerHTML={{ __html: String(result) }}
+          />
+        );
+      }
 
-    setParsedContent(parts);
+      setParsedContent(parts);
+    };
+
+    renderContent();
   }, [content]);
 
   return (

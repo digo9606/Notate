@@ -27,7 +27,20 @@ export async function initializeShiki() {
       "xml",
       "markdown",
       "shell",
-      "dockerfile"
+      "dockerfile",
+      "json",
+      "yaml",
+      "xml",
+      "markdown",
+      "shell",
+      "dockerfile",
+      "powershell",
+      "sql",
+      "yaml",
+      "json",
+      "markdown",
+      "shell",
+      "dockerfile",
     ],
   });
 }

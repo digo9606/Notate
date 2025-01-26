@@ -18,6 +18,12 @@ import {
 import { getYouTubeLink, formatTimestamp, getFileName } from "@/lib/utils";
 import { providerIcons } from "@/components/SettingsModal/SettingsComponents/providers/providerIcons";
 import { useSysSettings } from "@/context/useSysSettings";
+import rehypeStringify from "rehype-stringify";
+import remarkParse from "remark-parse";
+import remarkRehype from "remark-rehype";
+import { unified } from "unified";
+import remarkGfm from "remark-gfm";
+import remarkFrontmatter from "remark-frontmatter";
 
 // Lazy load the syntax highlighter
 const SyntaxHighlightedCode = lazy(() =>
@@ -37,6 +43,9 @@ export const ChatMessage = memo(function ChatMessage({
   const isRetrieval = message?.isRetrieval;
   const [isDataContentExpanded, setIsDataContentExpanded] = useState(false);
   const { settings } = useSysSettings();
+  const [renderedContent, setRenderedContent] = useState<
+    (string | JSX.Element)[]
+  >([]);
 
   const parsedDataContent = useMemo(() => {
     if (!message.data_content) return null;
@@ -168,7 +177,7 @@ export const ChatMessage = memo(function ChatMessage({
     );
   }, [parsedDataContent]);
 
-  const renderContent = (content: string) => {
+  const renderContent = async (content: string) => {
     const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
     const parts = [];
     let lastIndex = 0;
@@ -176,13 +185,32 @@ export const ChatMessage = memo(function ChatMessage({
 
     while ((match = codeBlockRegex.exec(content)) !== null) {
       if (match.index > lastIndex) {
-        parts.push(content.slice(lastIndex, match.index));
+        const textContent = content.slice(lastIndex, match.index).trim();
+        if (textContent) {
+          const result = await unified()
+            .use(remarkParse)
+            .use(remarkFrontmatter)
+            .use(remarkGfm)
+            .use(remarkRehype)
+            .use(rehypeStringify)
+            .process(textContent);
+          parts.push(
+            <div
+              key={`text-${lastIndex}`}
+              className="contentMarkdown"
+              dangerouslySetInnerHTML={{ __html: result }}
+            />
+          );
+        }
       }
 
       const language = match[1] || "text";
       const code = match[2].trim();
       parts.push(
-        <div key={match.index} className="w-full overflow-x-auto">
+        <div
+          key={`code-${match.index}`}
+          className="w-full overflow-x-auto my-2"
+        >
           <Suspense fallback={<div>Loading...</div>}>
             <SyntaxHighlightedCode code={code} language={language} />
           </Suspense>
@@ -193,7 +221,24 @@ export const ChatMessage = memo(function ChatMessage({
     }
 
     if (lastIndex < content.length) {
-      parts.push(content.slice(lastIndex));
+      const textContent = content.slice(lastIndex).trim();
+      if (textContent) {
+        const result = await unified()
+          .use(remarkParse)
+          .use(remarkFrontmatter)
+          .use(remarkGfm)
+          .use(remarkRehype)
+          .use(rehypeStringify)
+          .process(textContent);
+
+        parts.push(
+          <div
+            key={`text-${lastIndex}`}
+            className="contentMarkdown"
+            dangerouslySetInnerHTML={{ __html: String(result) }}
+          />
+        );
+      }
     }
 
     return parts;
@@ -205,6 +250,10 @@ export const ChatMessage = memo(function ChatMessage({
     if (textareaRef.current) {
       textareaRef.current.value = message?.content || "";
     }
+  }, [message?.content]);
+
+  useEffect(() => {
+    renderContent(message?.content || "").then(setRenderedContent);
   }, [message?.content]);
 
   const getProviderIcon = () => {
@@ -319,7 +368,7 @@ export const ChatMessage = memo(function ChatMessage({
           )}
           {!isRetrieval && (
             <div className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere] text-left overflow-hidden">
-              {renderContent(message?.content || "")}
+              {renderedContent}
               <div className="sr-only">{message?.content}</div>
             </div>
           )}

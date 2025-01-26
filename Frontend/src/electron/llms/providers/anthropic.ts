@@ -55,6 +55,7 @@ export async function AnthropicProvider(
   const sysPrompt: ChatCompletionMessageParam = {
     role: "system",
     content:
+      "When asked about previous messages, only consider messages marked as '(most recent message)' as the last message. Respond in a beautiful markdown format for anything non-code. " +
       prompt +
       (data
         ? "The following is the data that the user has provided via their custom data collection: " +
