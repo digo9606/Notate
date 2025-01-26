@@ -3,6 +3,12 @@ import db from "../../db.js";
 import { BrowserWindow } from "electron";
 import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
 import { truncateMessages } from "../llmHelpers/truncateMessages.js";
+
+interface DeepSeekDelta
+  extends OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta {
+  reasoning_content?: string;
+}
+
 let openai: OpenAI;
 
 async function initializeDeepSeek(apiKey: string) {
@@ -60,7 +66,7 @@ export async function DeepSeekProvider(
   } = {
     role: "system",
     content:
-      "When asked about previous messages, only consider messages marked as '(most recent message)' as the last message. Respond in a beautiful markdown format for anything non-code. " +
+      "When asked about previous messages, only consider messages marked as '(most recent message)' as the last message. Respond in a beautiful markdown format for anything non-code  but dont wrap in code blocks as it is already handled " +
       prompt +
       (data
         ? "The following is the data that the user has provided via their custom data collection: " +
@@ -96,14 +102,31 @@ export async function DeepSeekProvider(
     data_content: data ? JSON.stringify(data) : undefined,
   };
 
+  let reasoningContent = "";
+
   try {
     for await (const chunk of stream) {
       if (signal?.aborted) {
         throw new Error("AbortError");
       }
-      const content = chunk.choices[0]?.delta?.content || "";
-      newMessage.content += content;
-      sendMessageChunk(content, mainWindow);
+
+      const delta = chunk.choices[0]?.delta as DeepSeekDelta;
+
+      if (delta?.reasoning_content) {
+        reasoningContent += delta.reasoning_content;
+        sendMessageChunk("[REASONING]:" + delta.reasoning_content, mainWindow);
+        console.log("[REASONING]:" + delta.reasoning_content);
+      } else if (delta?.content) {
+        const content = delta.content;
+        newMessage.content += content;
+        sendMessageChunk(content, mainWindow);
+        console.log(content);
+      }
+    }
+
+    if (reasoningContent) {
+      // Don't append reasoning to content anymore
+      // newMessage.content = "[REASONING]:" + reasoningContent + "\n\n" + newMessage.content;
     }
 
     if (mainWindow) {
@@ -112,7 +135,8 @@ export async function DeepSeekProvider(
 
     return {
       id: conversationId,
-      messages: [...messages, newMessage],
+      messages: [...messages, { ...newMessage, content: newMessage.content }],
+      reasoning: reasoningContent,
       title: currentTitle,
       content: newMessage.content,
       aborted: false,
@@ -125,6 +149,7 @@ export async function DeepSeekProvider(
       return {
         id: conversationId,
         messages: messages,
+        reasoning: reasoningContent,
         title: currentTitle,
         content: "",
         aborted: true,

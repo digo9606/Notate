@@ -128,6 +128,7 @@ class DatabaseService {
           user_id INTEGER,
           role TEXT NOT NULL,
           content TEXT NOT NULL,
+          reasoning_content TEXT DEFAULT NULL,
           is_retrieval BOOLEAN DEFAULT FALSE,
           collection_id INTEGER,
           data_id INTEGER,
@@ -350,6 +351,7 @@ class DatabaseService {
           "user_id",
           "role",
           "content",
+          "reasoning_content",
           "is_retrieval",
           "collection_id",
           "data_id",
@@ -678,7 +680,7 @@ class DatabaseService {
   getUserConversationTitle(userId: number, conversationId: number) {
     return this.db
       .prepare("SELECT title FROM conversations WHERE id = ? AND user_id =?")
-      .get(conversationId, userId) as { title: string };
+      .get(conversationId, userId) as string;
   }
 
   addUserConversation(userId: number, title: string) {
@@ -711,24 +713,33 @@ class DatabaseService {
     conversationId: number,
     role: string,
     content: string,
+    reasoningContent?: string,
     collectionId?: number,
     dataId?: number
   ) {
     const timestamp = new Date().toISOString();
     return this.db
       .prepare(
-        "INSERT INTO messages (user_id, conversation_id, role, content, collection_id, data_id, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)"
+        "INSERT INTO messages (user_id, conversation_id, role, content, reasoning_content, collection_id, data_id, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
       )
       .run(
         userId,
         conversationId,
         role,
         content,
+        reasoningContent || null,
         collectionId || null,
         dataId || null,
         timestamp
       );
   }
+
+  addReasoningContent(messageId: number, reasoningContent: string) {
+    return this.db
+      .prepare("UPDATE messages SET reasoning_content = ? WHERE id = ?")
+      .run(reasoningContent, messageId);
+  }
+
   deleteUserMessage(userId: number, id: number) {
     return this.db
       .prepare("DELETE FROM messages WHERE id = ? AND user_id = ?")

@@ -3,6 +3,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDate } from "@/lib/utils";
 import { Loader2, PlusCircle } from "lucide-react";
 import { StreamingMessage } from "./ChatComponents/StreamingMessage";
+import { StreamingReasoningMessage } from "./ChatComponents/StreamingReasoningMessage";
 import { ChatMessage } from "./ChatComponents/ChatMessage";
 import { ChatInput } from "./ChatComponents/ChatInput";
 import { LoadingIndicator } from "./ChatComponents/LoadingIndicator";
@@ -23,6 +24,8 @@ export default function Chat() {
     handleResetChat: originalHandleResetChat,
     streamingMessage,
     setStreamingMessage,
+    streamingMessageReasoning,
+    setStreamingMessageReasoning,
     activeUser,
     messages,
     setMessages,
@@ -67,10 +70,10 @@ export default function Chat() {
           const smoothScroll = () => {
             scrollElement.scrollTo({
               top: scrollElement.scrollHeight,
-              behavior: 'smooth'
+              behavior: "smooth",
             });
           };
-          
+
           // For immediate scroll without animation (for user-initiated actions)
           const instantScroll = () => {
             scrollElement.scrollTop = scrollElement.scrollHeight;
@@ -78,7 +81,7 @@ export default function Chat() {
 
           // Use smooth scrolling for AI responses, instant for user messages
           const lastMessage = messages[messages.length - 1];
-          if (lastMessage?.role === 'user') {
+          if (lastMessage?.role === "user") {
             instantScroll();
           } else {
             smoothScroll();
@@ -103,18 +106,47 @@ export default function Chat() {
   // This signals to the backend that the user is streaming a message and updates the UI
   useEffect(() => {
     let newMessage: string = "";
+    let newReasoning: string = ""; // Add a variable to accumulate reasoning
     let isSubscribed = true; // Add a flag to prevent updates after unmount
 
     const handleMessageChunk = (chunk: string) => {
       if (!isSubscribed) return; // Skip if component is unmounted
-      newMessage += chunk;
-      setStreamingMessage(newMessage);
+      console.log("chunk", chunk);
+
+      // Check if chunk contains [REASONING]
+      if (chunk.includes("[REASONING]:")) {
+        const reasoningContent = chunk.replace("[REASONING]:", "").trim();
+        if (reasoningContent) {
+          const shouldAddSpace =
+            newReasoning.length > 0 &&
+            !reasoningContent.match(/^[.,!?;:)\]}]/) &&
+            !newReasoning.match(/[({[\s]$/);
+          // Only add space if it's not punctuation
+          newReasoning += (shouldAddSpace ? " " : "") + reasoningContent;
+          setStreamingMessageReasoning(newReasoning);
+        }
+      } else {
+        // Handle normal message chunks
+        const cleanedChunk = chunk.trim();
+        if (cleanedChunk) {
+          // Only add space if it's not punctuation and not the start of the message
+          const shouldAddSpace =
+            newMessage.length > 0 &&
+            !cleanedChunk.match(/^[.,!?;:)\]}]/) &&
+            !newMessage.match(/[({[\s]$/);
+
+          newMessage += (shouldAddSpace ? " " : "") + cleanedChunk;
+          setStreamingMessage(newMessage);
+        }
+      }
     };
 
     const handleStreamEnd = () => {
       if (!isSubscribed) return; // Skip if component is unmounted
       setStreamingMessage("");
+      setStreamingMessageReasoning("");
       newMessage = "";
+      newReasoning = "";
       setIsLoading(false);
     };
 
@@ -132,7 +164,12 @@ export default function Chat() {
       window.electron.offMessageChunk(handleMessageChunk);
       window.electron.offStreamEnd(handleStreamEnd);
     };
-  }, [setIsLoading, setMessages, setStreamingMessage]);
+  }, [
+    setIsLoading,
+    setMessages,
+    setStreamingMessage,
+    setStreamingMessageReasoning,
+  ]);
 
   useEffect(() => {
     if (!activeUser) {
@@ -188,7 +225,8 @@ export default function Chat() {
               <ChatMessage message={message} formatDate={formatDate} />
             </div>
           ))}
-          {streamingMessage && <StreamingMessage content={streamingMessage} />}
+          {streamingMessageReasoning && <StreamingReasoningMessage />}
+          {streamingMessage && <StreamingMessage />}
           {error && (
             <div className="text-red-500 mt-4 p-2 bg-red-100 rounded">
               Error: {error}

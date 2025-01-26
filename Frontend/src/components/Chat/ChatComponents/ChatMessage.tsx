@@ -14,6 +14,7 @@ import {
   ExternalLink,
   ChevronUp,
   ChevronDown,
+  BrainCircuit,
 } from "lucide-react";
 import { getYouTubeLink, formatTimestamp, getFileName } from "@/lib/utils";
 import { providerIcons } from "@/components/SettingsModal/SettingsComponents/providers/providerIcons";
@@ -42,11 +43,11 @@ export const ChatMessage = memo(function ChatMessage({
   const isUser = message?.role === "user";
   const isRetrieval = message?.isRetrieval;
   const [isDataContentExpanded, setIsDataContentExpanded] = useState(false);
+  const [isReasoningExpanded, setIsReasoningExpanded] = useState(true);
   const { settings } = useSysSettings();
   const [renderedContent, setRenderedContent] = useState<
     (string | JSX.Element)[]
   >([]);
-
   const parsedDataContent = useMemo(() => {
     if (!message.data_content) return null;
     try {
@@ -192,6 +193,24 @@ export const ChatMessage = memo(function ChatMessage({
             .use(remarkFrontmatter)
             .use(remarkGfm)
             .use(remarkRehype)
+            .use(() => (tree) => {
+              // Transform links to open in new window
+              const visit = (node: any) => {
+                if (
+                  node.tagName === "a" &&
+                  node.properties &&
+                  node.properties.href
+                ) {
+                  node.properties.onclick = `(function(e){e.preventDefault();window.electron.openExternal("${node.properties.href}")})`;
+                  node.properties.href = "#";
+                }
+                if (node.children) {
+                  node.children.forEach(visit);
+                }
+              };
+              visit(tree);
+              return tree;
+            })
             .use(rehypeStringify)
             .process(textContent);
           parts.push(
@@ -228,6 +247,24 @@ export const ChatMessage = memo(function ChatMessage({
           .use(remarkFrontmatter)
           .use(remarkGfm)
           .use(remarkRehype)
+          .use(() => (tree) => {
+            // Transform links to open in new window
+            const visit = (node: any) => {
+              if (
+                node.tagName === "a" &&
+                node.properties &&
+                node.properties.href
+              ) {
+                node.properties.onclick = `(function(e){e.preventDefault();window.electron.openExternal("${node.properties.href}")})`;
+                node.properties.href = "#";
+              }
+              if (node.children) {
+                node.children.forEach(visit);
+              }
+            };
+            visit(tree);
+            return tree;
+          })
           .use(rehypeStringify)
           .process(textContent);
 
@@ -363,6 +400,47 @@ export const ChatMessage = memo(function ChatMessage({
               </div>
               <div className="bg-background/50 backdrop-blur-sm">
                 {renderDataContent}
+              </div>
+            </div>
+          )}
+          {message.reasoning_content && (
+            <div
+              className="flex flex-col gap-1.5 mb-4 select-none"
+              onClick={() => setIsReasoningExpanded(!isReasoningExpanded)}
+            >
+              <div className="flex items-center justify-between px-2 py-1.5 rounded-[8px] bg-violet-100 dark:bg-violet-950/30 hover:bg-violet-200 dark:hover:bg-violet-950/50 cursor-pointer transition-colors duration-200">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center w-5 h-5 rounded-[6px] bg-violet-500/10">
+                    <BrainCircuit className="w-3.5 h-3.5 text-violet-500/70" />
+                  </div>
+                  <span className="text-xs font-medium text-violet-700 dark:text-violet-300">
+                    Chain of Thought
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-medium text-violet-600 dark:text-violet-400">
+                    {isReasoningExpanded ? "Hide" : "Show"} reasoning
+                  </span>
+                  {isReasoningExpanded ? (
+                    <ChevronUp className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          {message.reasoning_content && isReasoningExpanded && (
+            <div className="mb-4 overflow-hidden border rounded-[10px] border-violet-200 dark:border-violet-800">
+              <div className="px-3 py-2 border-b bg-violet-50 dark:bg-violet-950/30">
+                <div className="text-xs font-medium text-violet-700 dark:text-violet-300">
+                  Reasoning Process
+                </div>
+              </div>
+              <div className="bg-violet-50/50 dark:bg-violet-950/10 backdrop-blur-sm p-3">
+                <div className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere] text-left overflow-hidden text-violet-800 dark:text-violet-200">
+                  {message.reasoning_content}
+                </div>
               </div>
             </div>
           )}

@@ -175,7 +175,7 @@ export default function ChatSettings() {
     ollama: ollamaModels?.map((model) => model.name) || [],
     "azure open ai": azureModels?.map((model) => model.name) || [],
     custom: customModels?.map((model) => model.name) || [],
-    deepseek: ["deepseek-chat"],
+    deepseek: ["deepseek-chat", "deepseek-reasoner"],
   };
 
   const handleAddPrompt = async () => {

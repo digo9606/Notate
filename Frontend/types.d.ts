@@ -37,6 +37,7 @@ type AzureModel = {
 type Message = {
   role: "user" | "assistant" | "system";
   content: string;
+  reasoning_content?: string;
   timestamp?: Date;
   isRetrieval?: boolean;
   collectionId?: number;
