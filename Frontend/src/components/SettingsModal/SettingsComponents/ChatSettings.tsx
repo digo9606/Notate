@@ -34,6 +34,8 @@ import { useSysSettings } from "@/context/useSysSettings";
 import { toast } from "@/hooks/use-toast";
 import { useLibrary } from "@/context/useLibrary";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 
 export default function ChatSettings() {
   const {
@@ -367,9 +369,11 @@ export default function ChatSettings() {
                 const newMaxTokens =
                   modelTokenDefaults[
                     value.toLowerCase() as keyof typeof modelTokenDefaults
-                  ] || modelTokenDefaults[
+                  ] ||
+                  modelTokenDefaults[
                     provider.toLowerCase() as keyof typeof modelTokenDefaults
-                  ] || modelTokenDefaults.local;
+                  ] ||
+                  modelTokenDefaults.local;
 
                 setMaxTokens(newMaxTokens);
                 setLocalMaxTokens(newMaxTokens.toString());
@@ -512,6 +516,33 @@ export default function ChatSettings() {
               onChange={(e) => handleMaxTokensChange(e.target.value)}
               className="col-span-3 bg-background"
             />
+          </div>
+        </div>
+        <Separator className="my-4" />
+        <div className="flex flex-col space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="streaming">Chain of Thought / Reasoning</Label>
+              <div className="text-[0.8rem] text-muted-foreground">
+                Enable to add a chain of thought / reasoning to the model's
+                response
+              </div>
+            </div>
+            <Switch
+              id="streaming"
+              disabled={settings.model === "deepseek-reasoner"}
+              checked={settings.cot ?? false}
+              onCheckedChange={(checked) =>
+                setSettings((prev) => ({ ...prev, cot: checked }))
+              }
+            />
+          </div>
+          <div className="rounded-md bg-muted/50 p-3">
+            <div className="text-xs text-muted-foreground flex items-center gap-2">
+              <span className="font-medium text-yellow-500">Beta</span>
+              This feature is currently in development and may not work as
+              expected with all models.
+            </div>
           </div>
         </div>
       </div>

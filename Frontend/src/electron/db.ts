@@ -53,6 +53,7 @@ class DatabaseService {
           baseUrl TEXT,
           selectedAzureId INTEGER,
           selectedCustomId INTEGER,
+          cot INTEGER DEFAULT 0,
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
 
@@ -182,6 +183,7 @@ class DatabaseService {
         { name: "baseUrl", type: "TEXT" },
         { name: "selectedAzureId", type: "INTEGER" },
         { name: "selectedCustomId", type: "INTEGER" },
+        { name: "cot", type: "INTEGER" },
       ];
 
       // Get current table info
@@ -222,6 +224,7 @@ class DatabaseService {
             baseUrl TEXT,
             selectedAzureId INTEGER,
             selectedCustomId INTEGER,
+            cot INTEGER DEFAULT 0,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
           );
         `);
@@ -243,6 +246,7 @@ class DatabaseService {
           baseUrl: string;
           selectedAzureId: number;
           selectedCustomId: number;
+          cot: number;
         }[]) {
           try {
             // Check if user exists before restoring their settings
@@ -330,6 +334,7 @@ class DatabaseService {
           "baseUrl",
           "selectedAzureId",
           "selectedCustomId",
+          "cot",
         ],
         api_keys: ["id", "user_id", "key", "provider", "created_at"],
         prompts: ["id", "user_id", "name", "prompt", "created_at"],
@@ -451,6 +456,7 @@ class DatabaseService {
 
     // Merge current settings with new settings, preserving non-null values
     const updatedSettings = {
+      cot: settings.cot ?? currentSettings?.cot,
       model: settings.model ?? currentSettings?.model,
       promptId: settings.promptId ?? currentSettings?.promptId,
       temperature: settings.temperature ?? currentSettings?.temperature,
@@ -490,6 +496,7 @@ class DatabaseService {
         updatedSettings.baseUrl,
         updatedSettings.selectedAzureId,
         updatedSettings.selectedCustomId,
+        updatedSettings.cot,
         settings.userId
       );
   }

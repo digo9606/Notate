@@ -49,6 +49,7 @@ type Message = {
 interface UserSettings {
   userId?: number;
   id?: number;
+  cot?: boolean;
   vectorstore?: string;
   prompt?: string;
   temperature?: number;

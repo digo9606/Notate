@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDate } from "@/lib/utils";
-import { Loader2, PlusCircle } from "lucide-react";
+import { Loader2, PlusCircle, ArrowDown } from "lucide-react";
 import { StreamingMessage } from "./ChatComponents/StreamingMessage";
 import { ChatMessage } from "./ChatComponents/ChatMessage";
 import { ChatInput } from "./ChatComponents/ChatInput";
@@ -21,6 +21,7 @@ export default function Chat() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const [hasUserScrolled, setHasUserScrolled] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const {
     handleResetChat: originalHandleResetChat,
     streamingMessage,
@@ -47,67 +48,68 @@ export default function Chat() {
     }
   }, [messages.length]);
 
-  // This handles the auto scroll behavior using IntersectionObserver
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setShouldAutoScroll(entry.isIntersecting);
-      },
-      { threshold: 0.5 }
-    );
-
-    const bottom = bottomRef.current;
-    if (bottom) {
-      observer.observe(bottom);
-    }
-
-    return () => {
-      if (bottom) {
-        observer.unobserve(bottom);
-      }
-    };
-  }, []);
-
-  // Add scroll event listener to detect manual scrolling
+  // Improved scroll position tracking
   useEffect(() => {
     const scrollElement = scrollAreaRef.current?.querySelector(
       "[data-radix-scroll-area-viewport]"
     );
 
     const handleScroll = () => {
-      if (!hasUserScrolled) {
+      if (!scrollElement) return;
+
+      const { scrollTop, scrollHeight, clientHeight } = scrollElement;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      const needsScroll = scrollHeight > clientHeight;
+
+      setShowScrollButton(!isNearBottom && needsScroll);
+      setShouldAutoScroll(isNearBottom);
+
+      if (!hasUserScrolled && !isNearBottom) {
         setHasUserScrolled(true);
       }
     };
 
     if (scrollElement) {
-      scrollElement.addEventListener("wheel", handleScroll, { passive: true });
+      scrollElement.addEventListener("scroll", handleScroll, { passive: true });
+      // Initial check when component mounts
+      handleScroll();
       return () => {
-        scrollElement.removeEventListener("wheel", handleScroll);
+        scrollElement.removeEventListener("scroll", handleScroll);
       };
     }
   }, [hasUserScrolled]);
 
-  // Modified scroll effect to be more reliable
+  // Smooth scroll to bottom function
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    const scrollElement = scrollAreaRef.current?.querySelector(
+      "[data-radix-scroll-area-viewport]"
+    );
+
+    if (scrollElement) {
+      scrollElement.scrollTo({
+        top: scrollElement.scrollHeight,
+        behavior,
+      });
+      setShouldAutoScroll(true);
+      setHasUserScrolled(false);
+    }
+  };
+
+  // Modified scroll effect with improved timing
   useEffect(() => {
-    if ((shouldAutoScroll || !hasUserScrolled) && scrollAreaRef.current) {
-      const scrollElement = scrollAreaRef.current.querySelector(
-        "[data-radix-scroll-area-viewport]"
-      );
-
-      const scrollToBottom = () => {
-        if (scrollElement) {
-          scrollElement.scrollTo({
-            top: scrollElement.scrollHeight,
-            behavior: "smooth",
-          });
-        }
-      };
-
-      const timeoutId = setTimeout(scrollToBottom, 50);
+    if ((shouldAutoScroll || !hasUserScrolled) && messages.length > 0) {
+      const timeoutId = setTimeout(() => {
+        scrollToBottom("instant");
+      }, 50);
       return () => clearTimeout(timeoutId);
     }
-  }, [messages, streamingMessage, isLoading, shouldAutoScroll, hasUserScrolled]);
+  }, [
+    messages,
+    streamingMessage,
+    isLoading,
+    shouldAutoScroll,
+    hasUserScrolled,
+  ]);
 
   const handleResetChat = async () => {
     await originalHandleResetChat();
@@ -222,7 +224,7 @@ export default function Chat() {
 
   return (
     <div className="pt-5 h-[calc(100vh-1rem)] flex flex-col">
-      <div className={`flex flex-col h-full overflow-hidden`}>
+      <div className={`flex flex-col h-full overflow-hidden relative`}>
         <div className="p-2 bg-card border-b border-secondary flex items-center">
           <div className="flex items-center flex-1">
             <img src={logo} alt="logo" className="h-6 w-6 mr-2" />
@@ -252,7 +254,7 @@ export default function Chat() {
 
         <ScrollArea
           ref={scrollAreaRef}
-          className={`flex-grow px-4`}
+          className={`flex-grow px-4 relative`}
           style={{ height: "calc(100% - 8rem)" }}
         >
           {" "}
@@ -277,11 +279,24 @@ export default function Chat() {
           {streamingMessage && <StreamingMessage content={streamingMessage} />}
           <div ref={bottomRef} />
         </ScrollArea>
+
+        {showScrollButton && (
+          <Button
+            size="icon"
+            variant="secondary"
+            className="absolute bottom-32 right-8 rounded-full shadow-lg hover:shadow-xl transition-all"
+            onClick={() => scrollToBottom()}
+          >
+            <ArrowDown className="h-4 w-4" />
+          </Button>
+        )}
+
         {isLoading && (
           <div className="flex justify-center">
             <LoadingIndicator />
           </div>
         )}
+
         <div className="">
           <ChatInput />
         </div>
