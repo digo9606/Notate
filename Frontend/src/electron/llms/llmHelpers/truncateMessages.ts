@@ -4,14 +4,12 @@ import { countMessageTokens } from "./countMessageTokens.js";
 // Helper function to truncate messages to fit within token limit
 export function truncateMessages(
   messages: ChatCompletionMessageParam[],
-  systemPrompt: ChatCompletionMessageParam,
   maxOutputTokens: number,
   maxTotalTokens: number = 4096,
   model?: string
 ): ChatCompletionMessageParam[] {
   const reservedTokens = 3; // Few tokens reserved for formatting
 
-  const systemTokens = countMessageTokens(systemPrompt);
   let totalTokens = messages.reduce(
     (sum, msg) => sum + countMessageTokens(msg),
     0
@@ -19,17 +17,8 @@ export function truncateMessages(
 
   // Calculate available tokens for conversation
   const availableTokens = maxTotalTokens - maxOutputTokens / 2 - reservedTokens;
-  const currentTokens = totalTokens + systemTokens;
-  console.log(
-    "Current tokens:",
-    currentTokens,
-    "Available tokens:",
-    availableTokens,
-    "Model:",
-    model,
-    "Messages:",
-    messages
-  );
+  const currentTokens = totalTokens;
+
   // If we're under the limit and it's not deepseek-reasoner, return all messages unchanged
   if (
     currentTokens <= availableTokens &&
@@ -66,7 +55,7 @@ export function truncateMessages(
   }
 
   // Special case: if this is the first message, just return it
-  if (messages.length === 1 && messages[0].role === 'user') {
+  if (messages.length === 1 && messages[0].role === "user") {
     return messages;
   }
 
@@ -74,27 +63,45 @@ export function truncateMessages(
   if (truncatedMessages.length >= 3) {
     // Find last user message
     const lastUserIndex = truncatedMessages.length - 1;
-    const secondLastUserIndex = truncatedMessages.slice(0, -1).findLastIndex(msg => msg.role === 'user');
-    const assistantAfterSecondLastUser = truncatedMessages.slice(secondLastUserIndex + 1).find(msg => msg.role === 'assistant');
+    const secondLastUserIndex = truncatedMessages
+      .slice(0, -1)
+      .findLastIndex((msg) => msg.role === "user");
+    const assistantAfterSecondLastUser = truncatedMessages
+      .slice(secondLastUserIndex + 1)
+      .find((msg) => msg.role === "assistant");
 
-    if (truncatedMessages[lastUserIndex].role !== 'user' || !assistantAfterSecondLastUser) {
+    if (
+      truncatedMessages[lastUserIndex].role !== "user" ||
+      !assistantAfterSecondLastUser
+    ) {
       // If pattern is invalid, keep only the last 3 messages that match the pattern
       const lastMessages = truncatedMessages.slice(-3);
-      if (lastMessages[0].role === 'user' && lastMessages[1].role === 'assistant' && lastMessages[2].role === 'user') {
+      if (
+        lastMessages[0].role === "user" &&
+        lastMessages[1].role === "assistant" &&
+        lastMessages[2].role === "user"
+      ) {
         truncatedMessages = lastMessages;
       } else {
-        throw new Error("Cannot create a valid message pattern with user -> assistant -> user");
+        throw new Error(
+          "Cannot create a valid message pattern with user -> assistant -> user"
+        );
       }
     }
 
     // Trim from start to ensure first message is user
-    while (truncatedMessages.length > 0 && truncatedMessages[0].role !== 'user') {
+    while (
+      truncatedMessages.length > 0 &&
+      truncatedMessages[0].role !== "user"
+    ) {
       truncatedMessages.shift();
     }
   } else if (truncatedMessages.length !== 1) {
-    throw new Error("Need at least 3 messages to maintain user -> assistant -> user pattern");
+    throw new Error(
+      "Need at least 3 messages to maintain user -> assistant -> user pattern"
+    );
   }
-  
+
   console.log("Truncated messages:", truncatedMessages);
   return truncatedMessages;
 }

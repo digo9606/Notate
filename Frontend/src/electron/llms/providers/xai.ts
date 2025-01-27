@@ -65,7 +65,6 @@ export async function XAIProvider(
   const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
   const truncatedMessages = truncateMessages(
     newMessages,
-    sysPrompt,
     maxOutputTokens
   ) as ChatCompletionMessageParam[];
   truncatedMessages.unshift(sysPrompt);

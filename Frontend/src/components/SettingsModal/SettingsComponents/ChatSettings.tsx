@@ -531,10 +531,16 @@ export default function ChatSettings() {
             <Switch
               id="streaming"
               disabled={settings.model === "deepseek-reasoner"}
-              checked={settings.cot ?? false}
-              onCheckedChange={(checked) =>
-                setSettings((prev) => ({ ...prev, cot: checked }))
-              }
+              checked={settings.cot === 1}
+              onCheckedChange={(checked) => {
+                if (activeUser) {
+                  window.electron.updateUserSettings({
+                    userId: activeUser.id,
+                    cot: checked ? 1 : 0,
+                  });
+                }
+                setSettings((prev) => ({ ...prev, cot: checked ? 1 : 0 }));
+              }}
             />
           </div>
           <div className="rounded-md bg-muted/50 p-3">

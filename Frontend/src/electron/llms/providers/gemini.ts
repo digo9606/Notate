@@ -16,6 +16,97 @@ async function initializeGemini(apiKey: string) {
   genAI = new GoogleGenerativeAI(apiKey);
 }
 
+async function chainOfThought(
+  messages: ChatCompletionMessageParam[],
+  maxOutputTokens: number,
+  userSettings: UserSettings,
+  prompt: string,
+  data: {
+    top_k: number;
+    results: {
+      content: string;
+      metadata: string;
+    }[];
+  } | null,
+  dataCollectionInfo: Collection | null,
+  signal?: AbortSignal,
+  mainWindow: BrowserWindow | null = null
+) {
+  // Use reasoning-specific system prompt
+  const sysPromptContent =
+    "You are a reasoning engine. Your task is to analyze the question and outline your step-by-step reasoning process for how to answer it. Keep your reasoning concise and focused on the key logical steps. Only return the reasoning process, do not provide the final answer." +
+    (data
+      ? "\n\nThe following is the data that the user has provided via their custom data collection: " +
+        `\n\n${JSON.stringify(data)}` +
+        `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
+        `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
+        `\n\nCollection/Store Description: ${dataCollectionInfo?.description}` +
+        `\n\n*** THIS IS THE END OF THE DATA COLLECTION ***`
+      : "");
+
+  // Add console.log for reasoning prompt
+  console.log("[REASONING PROMPT]:", JSON.stringify(sysPromptContent));
+
+  const truncatedMessages = truncateMessages(messages, maxOutputTokens);
+
+  // Create a separate array for reasoning messages
+  const reasoningMessages = [...truncatedMessages];
+  if (reasoningMessages.length > 0) {
+    const firstMsg = reasoningMessages[0];
+    firstMsg.content = `${sysPromptContent}\n\n${firstMsg.content}`;
+  }
+
+  const chat = genAI
+    .getGenerativeModel({
+      model: userSettings.model as string,
+    })
+    .startChat({
+      history: reasoningMessages
+        .filter((msg) => msg.role !== "system")
+        .map((msg) => ({
+          role: msg.role === "assistant" ? "model" : "user",
+          parts: [{ text: msg.content as string }],
+        })),
+      generationConfig: {
+        temperature: Number(userSettings.temperature),
+        maxOutputTokens: maxOutputTokens,
+      },
+    });
+
+  let reasoningContent = "";
+  const result = await chat.sendMessageStream(
+    messages[messages.length - 1].content as string,
+    { signal }
+  );
+
+  for await (const chunk of result.stream) {
+    if (signal?.aborted) {
+      throw new Error("AbortError");
+    }
+    let content = "";
+
+    if (typeof chunk.text === "function") {
+      content = chunk.text();
+    } else if (chunk.candidates && chunk.candidates.length > 0) {
+      const candidate = chunk.candidates[0];
+      if (candidate.content && candidate.content.parts) {
+        content = candidate.content.parts
+          .filter((part) => part.text)
+          .map((part) => part.text)
+          .join("");
+      }
+    }
+
+    if (content) {
+      reasoningContent += content;
+      sendMessageChunk("[REASONING]: " + content, mainWindow);
+      console.log("[REASONING]: " + content);
+    }
+  }
+
+  return reasoningContent;
+}
+
 export async function GeminiProvider(
   messages: Message[],
   activeUser: User,
@@ -53,20 +144,6 @@ export async function GeminiProvider(
     model: userSettings.model as string,
   });
 
-  const sysPrompt: ChatCompletionMessageParam = {
-    role: "system",
-    content:
-      "When asked about previous messages, only consider messages marked as '(most recent message)' as the last message." +
-      prompt +
-      (data
-        ? "The following is the data that the user has provided via their custom data collection: " +
-          `\n\n${JSON.stringify(data)}` +
-          `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
-          `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
-          `\n\nCollection/Store Description: ${dataCollectionInfo?.description}`
-        : ""),
-  };
-
   const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
   const newMessages = messages.map((msg) => ({
     role: msg.role as "user" | "assistant" | "system",
@@ -74,16 +151,60 @@ export async function GeminiProvider(
   })) as ChatCompletionMessageParam[];
 
   // Truncate messages to fit within token limits
-  const truncatedMessages = truncateMessages(
-    newMessages,
-    sysPrompt,
-    maxOutputTokens
-  );
+  const truncatedMessages = truncateMessages(newMessages, maxOutputTokens);
 
   const temperature = Number(userSettings.temperature);
+
+  let reasoning;
+  if (userSettings.cot) {
+    // Do reasoning first
+    reasoning = await chainOfThought(
+      truncatedMessages,
+      maxOutputTokens,
+      userSettings,
+      prompt,
+      data ? data : null,
+      dataCollectionInfo ? dataCollectionInfo : null,
+      signal,
+      mainWindow
+    );
+
+    // Send end of reasoning marker
+    if (mainWindow) {
+      mainWindow.webContents.send("reasoningEnd");
+    }
+  }
+
+  // Create new system prompt that includes both the original prompt and reasoning
+  const newSysPromptContent =
+    prompt +
+    (reasoning
+      ? "\n\nUse this reasoning process to guide your response but DONT COPY THE REASONING: " +
+        reasoning +
+        "\n\n"
+      : "") +
+    (data
+      ? "The following is the data that the user has provided via their custom data collection: " +
+        `\n\n${JSON.stringify(data)}` +
+        `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
+        `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
+        `\n\nCollection/Store Description: ${dataCollectionInfo?.description}` +
+        `\n\n*** THIS IS THE END OF THE DATA COLLECTION ***`
+      : "");
+
+  // Add console.log for main prompt
+  console.log("[MAIN PROMPT]:", JSON.stringify(newSysPromptContent));
+
+  // Create a fresh copy of messages for the main response
+  const mainMessages = [...truncatedMessages];
+  if (mainMessages.length > 0) {
+    const firstMsg = mainMessages[0];
+    firstMsg.content = `${newSysPromptContent}\n\n${firstMsg.content}`;
+  }
+
   const chat: ChatSession = model.startChat({
-    history: truncatedMessages
-      .filter((msg) => msg.role !== "system") // Gemini doesn't support system messages in history
+    history: mainMessages
+      .filter((msg) => msg.role !== "system")
       .map((msg) => ({
         role: msg.role === "assistant" ? "model" : "user",
         parts: [{ text: msg.content as string }],
@@ -91,6 +212,7 @@ export async function GeminiProvider(
     generationConfig: {
       temperature: temperature,
       maxOutputTokens: maxOutputTokens,
+      topP: reasoning ? 0.1 : Number(userSettings.topP || 1),
     },
   });
 

@@ -479,7 +479,7 @@ class DatabaseService {
 
     return this.db
       .prepare(
-        "UPDATE settings SET model = ?, promptId = ?, temperature = ?, provider = ?, maxTokens = ?, vectorstore = ?, modelDirectory = ?, modelType = ?, modelLocation = ?, ollamaIntegration = ?, ollamaModel = ?, baseUrl = ?, selectedAzureId = ?, selectedCustomId = ? WHERE user_id = ?"
+        "UPDATE settings SET model = ?, promptId = ?, temperature = ?, provider = ?, maxTokens = ?, vectorstore = ?, modelDirectory = ?, modelType = ?, modelLocation = ?, ollamaIntegration = ?, ollamaModel = ?, baseUrl = ?, selectedAzureId = ?, selectedCustomId = ?, cot = ? WHERE user_id = ?"
       )
       .run(
         updatedSettings.model,

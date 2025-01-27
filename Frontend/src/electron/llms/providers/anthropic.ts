@@ -51,12 +51,103 @@ export async function AnthropicProvider(
   if (collectionId) {
     dataCollectionInfo = db.getCollection(collectionId) as Collection;
   }
+  const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
+
+  async function chainOfThought(
+    messages: ChatCompletionMessageParam[],
+    maxOutputTokens: number,
+    userSettings: UserSettings,
+    data: {
+      top_k: number;
+      results: {
+        content: string;
+        metadata: string;
+      }[];
+    } | null,
+    dataCollectionInfo: Collection | null,
+    signal?: AbortSignal,
+    mainWindow: BrowserWindow | null = null
+  ) {
+    const sysPrompt =
+      "You are a reasoning engine. Your task is to analyze the question and outline your step-by-step reasoning process for how to answer it. Keep your reasoning concise and focused on the key logical steps. Only return the reasoning process, do not provide the final answer." +
+      (data
+        ? "The following is the data that the user has provided via their custom data collection: " +
+          `\n\n${JSON.stringify(data)}` +
+          `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
+          `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
+          `\n\nCollection/Store Description: ${dataCollectionInfo?.description}` +
+          `\n\n*** THIS IS THE END OF THE DATA COLLECTION ***`
+        : "");
+
+    const truncatedMessages = truncateMessages(messages, maxOutputTokens);
+
+    const stream = await anthropic.messages.stream(
+      {
+        messages: truncatedMessages.map((msg) => ({
+          role: msg.role === "assistant" ? "assistant" : "user",
+          content: msg.content as string,
+        })),
+        system: sysPrompt,
+        model: userSettings.model as string,
+        max_tokens: Number(maxOutputTokens),
+        temperature: Number(userSettings.temperature),
+      },
+      { signal }
+    );
+
+    let reasoningContent = "";
+    try {
+      for await (const chunk of stream) {
+        if (signal?.aborted) {
+          throw new Error("AbortError");
+        }
+        if (chunk.type === "content_block_delta") {
+          const content = "text" in chunk.delta ? chunk.delta.text : "";
+          reasoningContent += content;
+          sendMessageChunk("[REASONING]: " + content, mainWindow);
+        }
+      }
+    } catch (error) {
+      if (
+        signal?.aborted ||
+        (error instanceof Error && error.message === "AbortError")
+      ) {
+        throw error;
+      }
+    }
+
+    return reasoningContent;
+  }
+
+  let reasoning;
+  if (userSettings.cot) {
+    // Do reasoning first
+    reasoning = await chainOfThought(
+      newMessages,
+      maxOutputTokens,
+      userSettings,
+      data ? data : null,
+      dataCollectionInfo ? dataCollectionInfo : null,
+      signal,
+      mainWindow
+    );
+
+    // Send end of reasoning marker
+    if (mainWindow) {
+      mainWindow.webContents.send("reasoningEnd");
+    }
+  }
 
   const sysPrompt: ChatCompletionMessageParam = {
     role: "system",
     content:
       "When asked about previous messages, only consider messages marked as '(most recent message)' as the last message. " +
       prompt +
+      (reasoning
+        ? "\n\nUse this reasoning process to guide your response: " +
+          reasoning +
+          "\n\n"
+        : "") +
       (data
         ? "The following is the data that the user has provided via their custom data collection: " +
           `\n\n${JSON.stringify(data)}` +
@@ -67,12 +158,7 @@ export async function AnthropicProvider(
   };
 
   // Truncate messages to fit within token limits
-  const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
-  const truncatedMessages = truncateMessages(
-    newMessages,
-    sysPrompt,
-    maxOutputTokens
-  );
+  const truncatedMessages = truncateMessages(newMessages, maxOutputTokens);
 
   const stream = (await anthropic.messages.stream(
     {
@@ -97,7 +183,7 @@ export async function AnthropicProvider(
         throw new Error("AbortError");
       }
       if (chunk.type === "content_block_delta") {
-        const content = chunk.delta.text;
+        const content = "text" in chunk.delta ? chunk.delta.text : "";
         newMessage.content += content;
         sendMessageChunk(content, mainWindow);
       }
