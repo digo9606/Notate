@@ -546,14 +546,14 @@ export default function ChatSettings() {
         <div className="flex flex-col space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="streaming">Chain of Thought / Reasoning</Label>
+              <Label htmlFor="cot">Chain of Thought / Reasoning</Label>
               <div className="text-[0.8rem] text-muted-foreground">
                 Enable to add a chain of thought / reasoning to the model's
                 response
               </div>
             </div>
             <Switch
-              id="streaming"
+              id="cot"
               disabled={settings.model === "deepseek-reasoner"}
               checked={settings.cot === 1}
               onCheckedChange={(checked) => {
