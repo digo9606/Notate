@@ -237,201 +237,104 @@ code {
 }
 
 .contentMarkdown {
-  @apply text-foreground space-y-0;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-.contentMarkdown hr {
-  @apply my-4 border-t border-primary/20;
+  @apply text-foreground space-y-3;
 }
 
 .contentMarkdown h1 {
-  @apply text-3xl font-bold mb-0;
+  @apply text-3xl font-bold mb-4 text-foreground/90;
 }
 
 .contentMarkdown h2 {
-  @apply text-2xl font-bold mb-0;
+  @apply text-2xl font-bold mb-3 text-foreground/90;
 }
 
 .contentMarkdown h3 {
-  @apply text-xl font-semibold m-0;
+  @apply text-xl font-semibold mb-2.5 mt-4 text-foreground/90;
 }
 
 .contentMarkdown p {
-  @apply m-0 leading-snug;
+  @apply mb-3 leading-relaxed text-foreground/80;
 }
 
 .contentMarkdown ul {
-  @apply mb-0 space-y-2 list-none;
+  @apply mb-3 space-y-1.5 list-none ml-4;
 }
 
 .contentMarkdown ol {
-  @apply mb-0 space-y-2 list-none;
-  counter-reset: item;
+  @apply mb-3 space-y-4 list-none;
 }
 
 .contentMarkdown li {
-  @apply relative leading-relaxed;
+  @apply relative pl-8 leading-relaxed text-foreground/80;
 }
 
-/* Base list item styles */
-.contentMarkdown ul > li {
-  @apply pl-6;
-}
-
-.contentMarkdown ol > li {
-  @apply pl-6 flex flex-wrap;
-  counter-increment: item;
-}
-
-.contentMarkdown ol > li::before {
-  @apply absolute left-0 text-primary/80 font-medium;
-  content: counter(item) ".";
-}
-
-/* First direct text/strong element should be inline */
-.contentMarkdown ol > li > p:first-child {
-  @apply inline-block;
-  text-wrap: wrap;
-  min-width: 0;
-  width: calc(100% - 1.5rem);  /* Account for the number width */
-}
-
-/* Nested content container */
-.contentMarkdown li > div {
-  @apply flex flex-col gap-1 w-full mt-2;
-}
-
-/* Nested lists should take full width */
-.contentMarkdown li > ul,
-.contentMarkdown li > ol {
-  @apply w-full;
-}
-
-/* Bullet points */
 .contentMarkdown ul > li::before {
-  @apply absolute left-1 top-[0.6em] w-1.5 h-1.5 rounded-full bg-primary/60 -translate-y-1/2;
+  @apply absolute left-0 top-[0.7em] w-2 h-2 rounded-full bg-primary/70 -translate-y-1/2;
   content: "";
 }
 
-/* Numbered list */
+.contentMarkdown ol {
+  counter-reset: item;
+}
+
+.contentMarkdown ol > li {
+  counter-increment: item;
+  @apply pl-0;
+}
+
 .contentMarkdown ol > li::before {
-  @apply absolute left-0 text-primary/80 font-medium;
-  content: counter(item) ".";
-}
-
-/* Preserve whitespace */
-.contentMarkdown li > * {
-  @apply whitespace-pre-wrap;
-}
-
-/* Italics in lists */
-.contentMarkdown li em {
-  @apply inline;
+  @apply hidden;
 }
 
 /* Nested lists */
-.contentMarkdown li > ul,
+.contentMarkdown li > ul {
+  @apply mt-2 mb-0 ml-4;
+}
+
 .contentMarkdown li > ol {
-  @apply mt-2 mb-1 ml-4;
+  @apply mt-2 mb-0;
 }
 
-/* Nested numbered lists */
-.contentMarkdown ol ol {
-  counter-reset: subitem;
+/* Nested list items should have smaller bullets */
+.contentMarkdown li > ul > li::before {
+  @apply w-1.5 h-1.5 bg-primary/50;
 }
 
-.contentMarkdown ol ol > li {
-  counter-increment: subitem;
-}
-
-.contentMarkdown ol ol > li::before {
-  content: counter(item) "." counter(subitem) ".";
-}
-
-/* Third level lists */
-.contentMarkdown ol ol ol {
-  counter-reset: subsubitem;
-}
-
-.contentMarkdown ol ol ol > li {
-  counter-increment: subsubitem;
-}
-
-.contentMarkdown ol ol ol > li::before {
-  content: counter(item) "." counter(subitem) "." counter(subsubitem) ".";
+.contentMarkdown li > ul > li {
+  @apply pl-6;
 }
 
 .contentMarkdown code {
-  @apply rounded bg-secondary/30 text-primary font-mono text-sm;
+  @apply px-2 py-0.5 rounded-md bg-secondary/40 text-primary/90 font-mono text-[13px] border border-secondary/50;
 }
 
 .contentMarkdown strong {
-  @apply font-semibold text-primary;
+  @apply font-semibold text-primary/90;
 }
 
 .contentMarkdown a {
-  @apply text-primary hover:underline;
+  @apply text-primary/90 hover:text-primary hover:underline decoration-primary/30 transition-colors duration-200;
 }
 
 .contentMarkdown blockquote {
-  @apply border-l-4 border-primary/30 pl-4 italic my-0;
+  @apply border-l-4 border-primary/40 pl-4 italic my-4 text-foreground/70 bg-secondary/20 py-2 pr-3 rounded-r-lg;
 }
 
 .contentMarkdown pre {
-  @apply rounded-lg bg-secondary/20 overflow-x-auto m-0;
+  @apply p-4 rounded-lg bg-secondary/30 overflow-x-auto my-4 border border-secondary/50;
 }
 
 .contentMarkdown pre code {
-  @apply bg-transparent p-0 text-foreground m-0;
+  @apply bg-transparent p-0 text-foreground/90 border-0;
 }
 
 .contentMarkdown ul ul,
 .contentMarkdown ol ol,
 .contentMarkdown ul ol,
 .contentMarkdown ol ul {
-  @apply mt-2 m-0;
+  @apply mt-2 mb-0;
 }
 
-/* Shimmer Animation */
-@keyframes border-slide {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-.animate-border {
-  animation: border-slide var(--speed, 2s) linear infinite;
-  border: 1px solid transparent;
-}
-
-@keyframes spin-around {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-spin-around {
-  animation: spin-around calc(var(--speed, 2s) * 2) linear infinite;
-}
-
-@keyframes dot {
-  0%, 20% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
+.contentMarkdown li > p {
+  @apply inline;
 }

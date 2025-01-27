@@ -172,6 +172,7 @@ export async function AzureOpenAIProvider(
     return {
       id: conversationId,
       messages: [...messages, newMessage],
+      reasoning: reasoning || "",
       title: currentTitle,
       content: newMessage.content,
       aborted: false,
@@ -184,6 +185,7 @@ export async function AzureOpenAIProvider(
       return {
         id: conversationId,
         messages: messages,
+        reasoning: reasoning || "",
         title: currentTitle,
         content: "",
         aborted: true,

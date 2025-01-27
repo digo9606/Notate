@@ -169,6 +169,7 @@ export async function LocalModelProvider(
       messages: messages,
       title: currentTitle,
       content: "",
+      reasoning: reasoning || "",
       aborted: false,
     };
   } catch (error) {
@@ -185,6 +186,7 @@ export async function LocalModelProvider(
         messages: [...messages, { ...newMessage }],
         title: currentTitle,
         content: newMessage.content,
+        reasoning: reasoning || "",
         aborted: true,
       };
     }

@@ -211,6 +211,7 @@ export async function OllamaProvider(
       messages: messages,
       title: currentTitle,
       content: "",
+      reasoning: reasoning || "",
       aborted: false,
     };
   } catch (error) {
@@ -230,6 +231,7 @@ export async function OllamaProvider(
         messages: [...messages, { ...newMessage }],
         title: currentTitle,
         content: newMessage.content,
+        reasoning: reasoning || "",
         aborted: true,
       };
     }

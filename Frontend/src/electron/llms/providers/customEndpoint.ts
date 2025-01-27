@@ -165,6 +165,7 @@ export async function CustomProvider(
       messages: [...messages, newMessage],
       title: currentTitle,
       content: newMessage.content,
+      reasoning: reasoning || "",
       aborted: false,
     };
   } catch (error) {
@@ -175,6 +176,7 @@ export async function CustomProvider(
       return {
         id: conversationId,
         messages: messages,
+        reasoning: reasoning || "",
         title: currentTitle,
         content: "",
         aborted: true,

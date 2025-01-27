@@ -85,7 +85,7 @@ export const StreamingReasoningMessage = () => {
             </div>
           </div>
           <div className="bg-secondary/10 backdrop-blur-sm">
-            <div className="px-4 py-3 text-sm whitespace-pre-wrap [overflow-wrap:anywhere] text-left overflow-hidden contentMarkdown">
+            <div className="px-4 py-3 text-sm break-words [overflow-wrap:anywhere] text-left overflow-hidden contentMarkdown">
               {streamingMessageReasoning}
             </div>
           </div>

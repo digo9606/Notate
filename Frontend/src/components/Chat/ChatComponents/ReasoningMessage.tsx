@@ -78,7 +78,7 @@ export const ReasoningMessage = ({ content }: ReasoningMessageProps) => {
             </div>
           </div>
           <div className="bg-secondary/10 backdrop-blur-sm">
-            <div className="px-5 py-4 text-sm whitespace-pre-wrap [overflow-wrap:anywhere] text-left overflow-hidden contentMarkdown leading-relaxed">
+            <div className="px-5 py-4 text-sm  [overflow-wrap:anywhere] text-left overflow-hidden contentMarkdown leading-relaxed">
               {content}
             </div>
           </div>

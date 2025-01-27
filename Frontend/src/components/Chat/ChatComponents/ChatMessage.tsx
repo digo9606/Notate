@@ -351,13 +351,13 @@ export const ChatMessage = memo(function ChatMessage({
           </Avatar>
 
           <div
-            className={`relative px-4 py-3 rounded-[16px] whitespace-pre-wrap break-words ${
+            className={`relative px-4 py-3 rounded-[16px] break-words ${
               isUser
-                ? "bg-primary text-primary-foreground rounded-br-[4px]"
+                ? "bg-primary/90 text-primary-foreground rounded-br-[4px] shadow-lg shadow-primary/20"
                 : isRetrieval
-                ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-50 rounded-bl-[4px] border border-emerald-200 dark:border-emerald-800"
-                : "bg-secondary text-secondary-foreground rounded-bl-[4px]"
-            } shadow-md hover:shadow-lg transition-all duration-300 ease-in-out w-full backdrop-blur-sm`}
+                ? "bg-emerald-50/95 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-50 rounded-bl-[4px] border border-emerald-200/70 dark:border-emerald-800/70 shadow-lg shadow-emerald-900/5"
+                : "bg-secondary/95 text-secondary-foreground rounded-bl-[4px] shadow-lg shadow-secondary/10"
+            } hover:shadow-xl transition-all duration-300 ease-in-out w-full backdrop-blur-sm`}
           >
             {message.data_content && (
               <div
@@ -402,7 +402,7 @@ export const ChatMessage = memo(function ChatMessage({
               </div>
             )}
             {!isRetrieval && (
-              <div className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere] text-left overflow-hidden">
+              <div className="text-sm  [overflow-wrap:anywhere] text-left overflow-hidden">
                 {renderedContent}
                 <div className="sr-only">{message?.content}</div>
               </div>

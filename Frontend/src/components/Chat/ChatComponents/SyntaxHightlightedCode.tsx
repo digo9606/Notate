@@ -39,7 +39,7 @@ export function SyntaxHighlightedCode({
         </button>
       </div>
       <div className="overflow-x-auto p-4">
-        <pre className="whitespace-pre-wrap break-words w-full">
+        <pre className="break-words w-full">
           <div
             dangerouslySetInnerHTML={{ __html: highlightedCode }}
             style={{
@@ -49,7 +49,7 @@ export function SyntaxHighlightedCode({
               maxWidth: "100%",
               display: "block",
               fontSize: "0.9em",
-              lineHeight: "1.5"
+              lineHeight: "1.5",
             }}
           />
         </pre>

@@ -27,6 +27,7 @@ export async function AnthropicProvider(
   messages: Message[];
   title: string;
   content: string;
+  reasoning: string;
   aborted: boolean;
 }> {
   const apiKey = db.getApiKey(activeUser.id, "anthropic");
@@ -198,6 +199,7 @@ export async function AnthropicProvider(
       messages: [...messages, newMessage],
       title: currentTitle,
       content: newMessage.content,
+      reasoning: reasoning || "",
       aborted: false,
     };
   } catch (error) {
@@ -213,6 +215,7 @@ export async function AnthropicProvider(
         messages: [...messages, { ...newMessage }],
         title: currentTitle,
         content: newMessage.content,
+        reasoning: reasoning || "",
         aborted: true,
       };
     }

@@ -158,6 +158,7 @@ export async function OpenAIProvider(
       messages: [...messages, newMessage],
       title: currentTitle,
       content: newMessage.content,
+      reasoning: reasoning || "",
       aborted: false,
     };
   } catch (error) {
@@ -167,9 +168,10 @@ export async function OpenAIProvider(
     ) {
       return {
         id: conversationId,
-        messages: messages,
+        messages: [...messages, newMessage],
         title: currentTitle,
         content: "",
+        reasoning: reasoning || "",
         aborted: true,
       };
     }
