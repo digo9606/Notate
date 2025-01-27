@@ -30,6 +30,7 @@ export default function Chat() {
     messages,
     setMessages,
     error,
+    setCurrentRequestId,
   } = useUser();
 
   const { isLoading, setIsLoading } = useChatInput();
@@ -121,30 +122,44 @@ export default function Chat() {
     };
 
     const handleStreamEnd = () => {
-      if (!isSubscribed) return; // Skip if component is unmounted
+      if (!isSubscribed) return;
 
-      // Update the messages array with both content and reasoning
+      const finalMessage = newMessage;
+      const finalReasoning = newReasoning;
+
       setMessages((prevMessages) => {
-        const updatedMessages = [...prevMessages];
-        const lastMessage = updatedMessages[updatedMessages.length - 1];
-        if (lastMessage) {
-          updatedMessages[updatedMessages.length - 1] = {
+        const lastMessage = prevMessages[prevMessages.length - 1];
+        if (!lastMessage || lastMessage.role === "user") {
+          return [
+            ...prevMessages,
+            {
+              role: "assistant",
+              content: finalMessage,
+              reasoning_content: finalReasoning,
+              timestamp: new Date(),
+            },
+          ];
+        } else if (lastMessage.role === "assistant") {
+          const updatedMessage = {
             ...lastMessage,
-            content: newMessage,
-            reasoning_content: newReasoning,
+            content: finalMessage,
+            reasoning_content: finalReasoning,
           };
+          return [...prevMessages.slice(0, -1), updatedMessage];
         }
-        return updatedMessages;
+        return prevMessages;
       });
 
-      // Small delay to ensure state updates are processed
-      setTimeout(() => {
+      requestAnimationFrame(() => {
+        if (!isSubscribed) return;
         setStreamingMessage("");
         setStreamingMessageReasoning("");
-        newMessage = "";
-        newReasoning = "";
         setIsLoading(false);
-      }, 100);
+        setCurrentRequestId(null);
+      });
+
+      newMessage = "";
+      newReasoning = "";
     };
 
     // Remove any existing listeners before adding new ones
@@ -161,7 +176,12 @@ export default function Chat() {
       window.electron.offMessageChunk(handleMessageChunk);
       window.electron.offStreamEnd(handleStreamEnd);
     };
-  }, [setIsLoading, setMessages, setStreamingMessage, setStreamingMessageReasoning]);
+  }, [
+    setIsLoading,
+    setMessages,
+    setStreamingMessage,
+    setStreamingMessageReasoning,
+  ]);
 
   useEffect(() => {
     if (!activeUser) {

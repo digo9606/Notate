@@ -87,7 +87,6 @@ export default function ChatSettings() {
     provider: string,
     model_name: string
   ) => {
-    console.log(provider, model_name);
     if (!activeUser) {
       return;
     }
@@ -103,7 +102,6 @@ export default function ChatSettings() {
       });
     }
     if (provider === "azure open ai") {
-      console.log("modelName", model_name);
       await window.electron.updateUserSettings({
         userId: activeUser.id,
         baseUrl:
@@ -114,7 +112,6 @@ export default function ChatSettings() {
       });
     }
     if (provider === "custom") {
-      console.log("modelName", model_name);
       await window.electron.updateUserSettings({
         userId: activeUser.id,
         model:

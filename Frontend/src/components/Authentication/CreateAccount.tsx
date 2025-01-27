@@ -50,7 +50,6 @@ export default function CreateAccount() {
 
     try {
       const user = await window.electron.addUser(accountName);
-      console.log(user);
       if (user.error) {
         setError(user.error);
         return;

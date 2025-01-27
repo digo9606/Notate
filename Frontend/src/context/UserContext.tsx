@@ -240,75 +240,62 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         if (!activeUser) {
           throw new Error("Active user not found");
         }
+        
+        // Use the current activeConversation state
+        const currentConvoId = activeConversation;
+        
         const result = (await window.electron.chatRequest(
           [...messages, newUserMessage],
           activeUser,
-          Number(activeConversation),
+          currentConvoId ? Number(currentConvoId) : undefined,
           collectionId || undefined,
           undefined,
           requestId
         )) as {
-          id: bigint | number;
           messages: Message[];
+          conversationId: number | bigint;
           title: string;
           error?: string;
         };
-        console.log(streamingMessageReasoning);
+        
         setTitle(result.title);
+
         if (result.error) {
           setError(result.error);
           setIsLoading(false);
           console.error("Error in chat:", result.error);
         } else {
-          const getMessageLength = result.messages.length;
-          setMessages((prev) => [
-            ...prev,
-            result.messages[getMessageLength - 1],
-          ]);
-          setActiveConversation(Number(result.id));
-          if (result.id !== Number(activeConversation)) {
-            const latestMessage = result.messages[getMessageLength - 1];
+          const resultId = Number(result.conversationId);
+          
+          // Always update activeConversation with the returned ID
+          setActiveConversation(resultId);
+          
+          // If this is a new conversation (IDs don't match)
+          if (resultId !== currentConvoId) {
             const newConversation = {
-              id: Number(result.id),
+              id: resultId,
               title: result.title,
               userId: activeUser.id,
               created_at: new Date(),
-              latestMessageTime: latestMessage?.timestamp
-                ? new Date(latestMessage.timestamp).getTime()
-                : Date.now(),
+              latestMessageTime: Date.now(),
             };
-            await fetchMessages();
+
             setConversations((prev) => [newConversation, ...prev]);
             setFilteredConversations((prev) => [newConversation, ...prev]);
           } else {
-            setConversations((prev) =>
-              prev.map((conv) => {
-                if (conv.id === Number(result.id)) {
-                  const latestMessage = result.messages[getMessageLength - 1];
-                  return {
-                    ...conv,
-                    latestMessageTime: latestMessage?.timestamp
-                      ? new Date(latestMessage.timestamp).getTime()
-                      : Date.now(),
-                  };
-                }
-                return conv;
-              })
-            );
-            setFilteredConversations((prev) =>
-              prev.map((conv) => {
-                if (conv.id === Number(result.id)) {
-                  const latestMessage = result.messages[getMessageLength - 1];
-                  return {
-                    ...conv,
-                    latestMessageTime: latestMessage?.timestamp
-                      ? new Date(latestMessage.timestamp).getTime()
-                      : Date.now(),
-                  };
-                }
-                return conv;
-              })
-            );
+            // Update existing conversation's timestamp
+            const updateConvo = (conv: Conversation) => {
+              if (conv.id === resultId) {
+                return {
+                  ...conv,
+                  latestMessageTime: Date.now(),
+                };
+              }
+              return conv;
+            };
+            
+            setConversations((prev) => prev.map(updateConvo));
+            setFilteredConversations((prev) => prev.map(updateConvo));
           }
         }
       } catch (error) {
@@ -317,13 +304,9 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         } else {
           console.error("Error in chat:", error);
         }
-      } finally {
-        setIsLoading(false);
-        setStreamingMessageReasoning("");
-        setCurrentRequestId(null);
       }
     },
-    [activeUser, activeConversation, input, messages, fetchMessages]
+    [activeUser, activeConversation, input, messages]
   );
 
   // Memoize chat input related values

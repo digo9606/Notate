@@ -66,7 +66,7 @@ export async function DeepSeekProvider(
   } = {
     role: "system",
     content:
-      "When asked about previous messages, only consider messages marked as '(most recent message)' as the last message. Respond in a beautiful markdown format for anything non-code  but dont wrap in code blocks as it is already handled " +
+      "When asked about previous messages, only consider messages marked as '(most recent message)' as the last message. " +
       prompt +
       (data
         ? "The following is the data that the user has provided via their custom data collection: " +
@@ -115,12 +115,10 @@ export async function DeepSeekProvider(
       if (delta?.reasoning_content) {
         reasoningContent += delta.reasoning_content;
         sendMessageChunk("[REASONING]:" + delta.reasoning_content, mainWindow);
-        console.log("[REASONING]:" + delta.reasoning_content);
       } else if (delta?.content) {
         const content = delta.content;
         newMessage.content += content;
         sendMessageChunk(content, mainWindow);
-        console.log(content);
       }
     }
 

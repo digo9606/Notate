@@ -32,7 +32,6 @@ async function downloadModel(payload: {
 }) {
   const windows = BrowserWindow.getAllWindows();
   const mainWindow = windows[0];
-  console.log("Downloading model:", payload);
   const sendProgress = (data: DownloadProgress) => {
     mainWindow?.webContents.send("download-model-progress", data);
   };

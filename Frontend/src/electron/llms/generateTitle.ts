@@ -68,7 +68,6 @@ async function generateTitleCustom(
   customAPI: number,
   userSettings: UserSettings
 ) {
-  console.log("Generating title for custom API:", customAPI);
   const customApis = db.getCustomAPI(userId);
   if (customApis.length == 0) {
     throw new Error("No custom API selected");

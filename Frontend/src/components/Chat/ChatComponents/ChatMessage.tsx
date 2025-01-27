@@ -180,6 +180,14 @@ export const ChatMessage = memo(function ChatMessage({
   }, [parsedDataContent]);
 
   const renderContent = async (content: string) => {
+    if (isUser) {
+      return [
+        <div key="user-message" className="text-sm">
+          {content}
+        </div>,
+      ];
+    }
+
     const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
     const parts = [];
     let lastIndex = 0;
@@ -256,7 +264,7 @@ export const ChatMessage = memo(function ChatMessage({
         parts.push(
           <div
             key={`text-${lastIndex}`}
-            className="contentMarkdown"
+            className={`contentMarkdown`}
             dangerouslySetInnerHTML={{ __html: String(result) }}
           />
         );

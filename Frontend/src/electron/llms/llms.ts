@@ -44,12 +44,7 @@ export async function chatRequest(
   error?: string;
 }> {
   const platform = os.platform();
-  console.log("chatRequest called");
-  console.log("messages", messages);
-  console.log("activeUser", activeUser);
-  console.log("conversationId", conversationId);
-  console.log("title", title);
-  console.log("collectionId", collectionId);
+
   try {
     let currentTitle: string | null = title || null;
     const userSettings = await db.getUserSettings(activeUser.id);
