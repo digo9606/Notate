@@ -210,6 +210,16 @@ export default function ChatSettings() {
     }
   }, [settings.promptId, prompts]);
 
+  // Add new useEffect for handling initial model selection
+  useEffect(() => {
+    if (settings.provider === "custom" && settings.selectedCustomId && customModels) {
+      const selectedCustomModel = customModels.find(model => model.id === settings.selectedCustomId);
+      if (selectedCustomModel) {
+        setSettings(prev => ({ ...prev, model: selectedCustomModel.name }));
+      }
+    }
+  }, [settings.provider, settings.selectedCustomId, customModels]);
+
   return (
     <div className="space-y-6">
       <div className="rounded-[6px] p-4 bg-gradient-to-br from-secondary/50 via-secondary/30 to-background border">

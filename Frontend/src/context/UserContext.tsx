@@ -257,7 +257,6 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
           title: string;
           error?: string;
         };
-        console.log("Result conversation ID:", result.id);
         setTitle(result.title);
         // Add a small delay before fetching messages to ensure they are saved
         setTimeout(() => {
@@ -270,7 +269,6 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
           console.error("Error in chat:", result.error);
         } else {
           const resultId = Number(result.id);
-          console.log("Result conversation ID:", resultId);
           // Always update activeConversation with the returned ID
           setActiveConversation(resultId);
 
