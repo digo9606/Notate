@@ -243,7 +243,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Use the current activeConversation state
         const currentConvoId = activeConversation;
-
+        console.log("Current conversation ID:", currentConvoId);
         const result = (await window.electron.chatRequest(
           [...messages, newUserMessage],
           activeUser,
@@ -253,11 +253,11 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
           requestId
         )) as {
           messages: Message[];
-          conversationId: number | bigint;
+          id: number | bigint;
           title: string;
           error?: string;
         };
-
+        console.log("Result conversation ID:", result.id);
         setTitle(result.title);
         // Add a small delay before fetching messages to ensure they are saved
         setTimeout(() => {
@@ -269,8 +269,8 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
           setIsLoading(false);
           console.error("Error in chat:", result.error);
         } else {
-          const resultId = Number(result.conversationId);
-
+          const resultId = Number(result.id);
+          console.log("Result conversation ID:", resultId);
           // Always update activeConversation with the returned ID
           setActiveConversation(resultId);
 

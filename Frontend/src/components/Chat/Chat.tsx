@@ -20,6 +20,7 @@ export default function Chat() {
   const [resetCounter, setResetCounter] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [hasUserScrolled, setHasUserScrolled] = useState(false);
   const {
     handleResetChat: originalHandleResetChat,
     streamingMessage,
@@ -37,6 +38,14 @@ export default function Chat() {
   const { setActiveView } = useView();
 
   const { localModalLoading } = useSysSettings();
+
+  // Reset hasUserScrolled when starting a new conversation
+  useEffect(() => {
+    if (messages.length === 0) {
+      setHasUserScrolled(false);
+      setShouldAutoScroll(true);
+    }
+  }, [messages.length]);
 
   // This handles the auto scroll behavior using IntersectionObserver
   useEffect(() => {
@@ -59,48 +68,51 @@ export default function Chat() {
     };
   }, []);
 
+  // Add scroll event listener to detect manual scrolling
+  useEffect(() => {
+    const scrollElement = scrollAreaRef.current?.querySelector(
+      "[data-radix-scroll-area-viewport]"
+    );
+
+    const handleScroll = () => {
+      if (!hasUserScrolled) {
+        setHasUserScrolled(true);
+      }
+    };
+
+    if (scrollElement) {
+      scrollElement.addEventListener("wheel", handleScroll, { passive: true });
+      return () => {
+        scrollElement.removeEventListener("wheel", handleScroll);
+      };
+    }
+  }, [hasUserScrolled]);
+
   // Modified scroll effect to be more reliable
   useEffect(() => {
-    if (shouldAutoScroll && scrollAreaRef.current) {
+    if ((shouldAutoScroll || !hasUserScrolled) && scrollAreaRef.current) {
       const scrollElement = scrollAreaRef.current.querySelector(
         "[data-radix-scroll-area-viewport]"
       );
 
       const scrollToBottom = () => {
         if (scrollElement) {
-          const smoothScroll = () => {
-            scrollElement.scrollTo({
-              top: scrollElement.scrollHeight,
-              behavior: "smooth",
-            });
-          };
-
-          // For immediate scroll without animation (for user-initiated actions)
-          const instantScroll = () => {
-            scrollElement.scrollTop = scrollElement.scrollHeight;
-          };
-
-          // Use smooth scrolling for AI responses, instant for user messages
-          const lastMessage = messages[messages.length - 1];
-          if (lastMessage?.role === "user") {
-            instantScroll();
-          } else {
-            smoothScroll();
-          }
+          scrollElement.scrollTo({
+            top: scrollElement.scrollHeight,
+            behavior: "smooth",
+          });
         }
       };
 
-      // Reduced number of scroll attempts and added more reasonable delays
-      const delays = [10, 100];
-      delays.forEach((delay) => {
-        setTimeout(scrollToBottom, delay);
-      });
+      const timeoutId = setTimeout(scrollToBottom, 50);
+      return () => clearTimeout(timeoutId);
     }
-  }, [messages, streamingMessage, isLoading, shouldAutoScroll]);
+  }, [messages, streamingMessage, isLoading, shouldAutoScroll, hasUserScrolled]);
 
   const handleResetChat = async () => {
     await originalHandleResetChat();
     setResetCounter((c) => c + 1);
+    setHasUserScrolled(false);
     setShouldAutoScroll(true);
   };
 
@@ -150,13 +162,31 @@ export default function Chat() {
         return prevMessages;
       });
 
-      requestAnimationFrame(() => {
-        if (!isSubscribed) return;
+      // Ensure we stay at bottom when message completes
+      if (!hasUserScrolled) {
+        requestAnimationFrame(() => {
+          if (!isSubscribed) return;
+          const scrollElement = scrollAreaRef.current?.querySelector(
+            "[data-radix-scroll-area-viewport]"
+          );
+          if (scrollElement) {
+            scrollElement.scrollTo({
+              top: scrollElement.scrollHeight,
+              behavior: "instant",
+            });
+          }
+          setStreamingMessage("");
+          setStreamingMessageReasoning("");
+          setIsLoading(false);
+          setCurrentRequestId(null);
+        });
+      } else {
+        // If user has scrolled, just update the state without forcing scroll
         setStreamingMessage("");
         setStreamingMessageReasoning("");
         setIsLoading(false);
         setCurrentRequestId(null);
-      });
+      }
 
       newMessage = "";
       newReasoning = "";
@@ -181,6 +211,7 @@ export default function Chat() {
     setMessages,
     setStreamingMessage,
     setStreamingMessageReasoning,
+    setCurrentRequestId,
   ]);
 
   useEffect(() => {
