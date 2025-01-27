@@ -85,11 +85,35 @@ export async function CustomProvider(
     dataCollectionInfo = db.getCollection(collectionId) as Collection;
   }
 
-  const sysPrompt: ChatCompletionMessageParam = {
+  let reasoning;
+  if (userSettings.cot) {
+    // Do reasoning first
+    reasoning = await chainOfThought(
+      newMessages,
+      maxOutputTokens,
+      userSettings,
+      "", // Empty prompt for pure reasoning
+      data ? data : null,
+      dataCollectionInfo ? dataCollectionInfo : null,
+      signal,
+      mainWindow
+    );
+
+    // Send end of reasoning marker
+    if (mainWindow) {
+      mainWindow.webContents.send("reasoningEnd");
+    }
+  }
+
+  const newSysPrompt: ChatCompletionMessageParam = {
     role: "system",
     content:
-      "When asked about previous messages, only consider messages marked as '(most recent message)' as the last message. Respond in a beautiful markdown format for anything non-code. " +
       prompt +
+      (reasoning
+        ? "\n\nUse this reasoning process to guide your response: " +
+          reasoning +
+          "\n\n"
+        : "") +
       (data
         ? "The following is the data that the user has provided via their custom data collection: " +
           `\n\n${JSON.stringify(data)}` +
@@ -101,12 +125,8 @@ export async function CustomProvider(
   };
 
   // Truncate messages to fit within token limits while preserving max output tokens
-  const truncatedMessages = truncateMessages(
-    newMessages,
-    sysPrompt,
-    maxOutputTokens
-  );
-  truncatedMessages.unshift(sysPrompt);
+  const truncatedMessages = truncateMessages(newMessages, maxOutputTokens);
+  truncatedMessages.unshift(newSysPrompt);
 
   const stream = await openai.chat.completions.create(
     {
@@ -145,6 +165,7 @@ export async function CustomProvider(
       messages: [...messages, newMessage],
       title: currentTitle,
       content: newMessage.content,
+      reasoning: reasoning || "",
       aborted: false,
     };
   } catch (error) {
@@ -155,6 +176,7 @@ export async function CustomProvider(
       return {
         id: conversationId,
         messages: messages,
+        reasoning: reasoning || "",
         title: currentTitle,
         content: "",
         aborted: true,
@@ -162,4 +184,60 @@ export async function CustomProvider(
     }
     throw error;
   }
+}
+
+async function chainOfThought(
+  messages: ChatCompletionMessageParam[],
+  maxOutputTokens: number,
+  userSettings: UserSettings,
+  prompt: string,
+  data: {
+    top_k: number;
+    results: {
+      content: string;
+      metadata: string;
+    }[];
+  } | null,
+  dataCollectionInfo: Collection | null,
+  signal?: AbortSignal,
+  mainWindow: BrowserWindow | null = null
+) {
+  const sysPrompt: ChatCompletionMessageParam = {
+    role: "system",
+    content:
+      "You are a reasoning engine. Your task is to analyze the question and outline your step-by-step reasoning process for how to answer it. Keep your reasoning concise and focused on the key logical steps. Only return the reasoning process, do not provide the final answer." +
+      (data
+        ? "The following is the data that the user has provided via their custom data collection: " +
+          `\n\n${JSON.stringify(data)}` +
+          `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
+          `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
+          `\n\nCollection/Store Description: ${dataCollectionInfo?.description}` +
+          `\n\n*** THIS IS THE END OF THE DATA COLLECTION ***`
+        : ""),
+  };
+  const truncatedMessages = truncateMessages(messages, maxOutputTokens);
+  const newMessages = [sysPrompt, ...truncatedMessages];
+  const reasoning = await openai.chat.completions.create(
+    {
+      model: userSettings.model as string,
+      messages: newMessages,
+      stream: true,
+      temperature: Number(userSettings.temperature),
+      max_tokens: Number(maxOutputTokens),
+    },
+    { signal }
+  );
+
+  let reasoningContent = "";
+  for await (const chunk of reasoning) {
+    if (signal?.aborted) {
+      throw new Error("AbortError");
+    }
+    const content = chunk.choices[0]?.delta?.content || "";
+    reasoningContent += content;
+    sendMessageChunk("[REASONING]: " + content, mainWindow);
+    console.log("[REASONING]: " + content);
+  }
+
+  return reasoningContent;
 }

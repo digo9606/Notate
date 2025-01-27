@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDate } from "@/lib/utils";
-import { Loader2, PlusCircle } from "lucide-react";
+import { Loader2, PlusCircle, ArrowDown } from "lucide-react";
 import { StreamingMessage } from "./ChatComponents/StreamingMessage";
 import { ChatMessage } from "./ChatComponents/ChatMessage";
 import { ChatInput } from "./ChatComponents/ChatInput";
@@ -14,19 +14,25 @@ import { useSysSettings } from "@/context/useSysSettings";
 import { useView } from "@/context/useView";
 import { NewConvoWelcome } from "./ChatComponents/NewConvoWelcome";
 import { useChatInput } from "@/context/useChatInput";
+import { StreamingReasoningMessage } from "./ChatComponents/StreamingReasoningMessage";
 export default function Chat() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [resetCounter, setResetCounter] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [hasUserScrolled, setHasUserScrolled] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const {
     handleResetChat: originalHandleResetChat,
     streamingMessage,
     setStreamingMessage,
+    streamingMessageReasoning,
+    setStreamingMessageReasoning,
     activeUser,
     messages,
     setMessages,
     error,
+    setCurrentRequestId,
   } = useUser();
 
   const { isLoading, setIsLoading } = useChatInput();
@@ -34,88 +40,158 @@ export default function Chat() {
 
   const { localModalLoading } = useSysSettings();
 
-  // This handles the auto scroll behavior using IntersectionObserver
+  // Reset hasUserScrolled when starting a new conversation
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setShouldAutoScroll(entry.isIntersecting);
-      },
-      { threshold: 0.5 }
+    if (messages.length === 0) {
+      setHasUserScrolled(false);
+      setShouldAutoScroll(true);
+    }
+  }, [messages.length]);
+
+  // Improved scroll position tracking
+  useEffect(() => {
+    const scrollElement = scrollAreaRef.current?.querySelector(
+      "[data-radix-scroll-area-viewport]"
     );
 
-    const bottom = bottomRef.current;
-    if (bottom) {
-      observer.observe(bottom);
-    }
+    const handleScroll = () => {
+      if (!scrollElement) return;
 
-    return () => {
-      if (bottom) {
-        observer.unobserve(bottom);
+      const { scrollTop, scrollHeight, clientHeight } = scrollElement;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      const needsScroll = scrollHeight > clientHeight;
+
+      setShowScrollButton(!isNearBottom && needsScroll);
+      setShouldAutoScroll(isNearBottom);
+
+      if (!hasUserScrolled && !isNearBottom) {
+        setHasUserScrolled(true);
       }
     };
-  }, []);
 
-  // Modified scroll effect to be more reliable
-  useEffect(() => {
-    if (shouldAutoScroll && scrollAreaRef.current) {
-      const scrollElement = scrollAreaRef.current.querySelector(
-        "[data-radix-scroll-area-viewport]"
-      );
-
-      const scrollToBottom = () => {
-        if (scrollElement) {
-          const smoothScroll = () => {
-            scrollElement.scrollTo({
-              top: scrollElement.scrollHeight,
-              behavior: 'smooth'
-            });
-          };
-          
-          // For immediate scroll without animation (for user-initiated actions)
-          const instantScroll = () => {
-            scrollElement.scrollTop = scrollElement.scrollHeight;
-          };
-
-          // Use smooth scrolling for AI responses, instant for user messages
-          const lastMessage = messages[messages.length - 1];
-          if (lastMessage?.role === 'user') {
-            instantScroll();
-          } else {
-            smoothScroll();
-          }
-        }
+    if (scrollElement) {
+      scrollElement.addEventListener("scroll", handleScroll, { passive: true });
+      // Initial check when component mounts
+      handleScroll();
+      return () => {
+        scrollElement.removeEventListener("scroll", handleScroll);
       };
-
-      // Reduced number of scroll attempts and added more reasonable delays
-      const delays = [10, 100];
-      delays.forEach((delay) => {
-        setTimeout(scrollToBottom, delay);
-      });
     }
-  }, [messages, streamingMessage, isLoading, shouldAutoScroll]);
+  }, [hasUserScrolled]);
+
+  // Smooth scroll to bottom function
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    const scrollElement = scrollAreaRef.current?.querySelector(
+      "[data-radix-scroll-area-viewport]"
+    );
+
+    if (scrollElement) {
+      scrollElement.scrollTo({
+        top: scrollElement.scrollHeight,
+        behavior,
+      });
+      setShouldAutoScroll(true);
+      setHasUserScrolled(false);
+    }
+  };
+
+  // Modified scroll effect with improved timing
+  useEffect(() => {
+    if ((shouldAutoScroll || !hasUserScrolled) && messages.length > 0) {
+      const timeoutId = setTimeout(() => {
+        scrollToBottom("instant");
+      }, 50);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [
+    messages,
+    streamingMessage,
+    isLoading,
+    shouldAutoScroll,
+    hasUserScrolled,
+  ]);
 
   const handleResetChat = async () => {
     await originalHandleResetChat();
     setResetCounter((c) => c + 1);
+    setHasUserScrolled(false);
     setShouldAutoScroll(true);
   };
 
   // This signals to the backend that the user is streaming a message and updates the UI
   useEffect(() => {
     let newMessage: string = "";
+    let newReasoning: string = "";
     let isSubscribed = true; // Add a flag to prevent updates after unmount
 
     const handleMessageChunk = (chunk: string) => {
       if (!isSubscribed) return; // Skip if component is unmounted
-      newMessage += chunk;
-      setStreamingMessage(newMessage);
+      if (chunk.startsWith("[REASONING]:")) {
+        newReasoning += chunk.replace("[REASONING]:", "");
+        setStreamingMessageReasoning(newReasoning);
+      } else {
+        newMessage += chunk;
+        setStreamingMessage(newMessage);
+      }
     };
 
     const handleStreamEnd = () => {
-      if (!isSubscribed) return; // Skip if component is unmounted
-      setStreamingMessage("");
+      if (!isSubscribed) return;
+
+      const finalMessage = newMessage;
+      const finalReasoning = newReasoning;
+
+      setMessages((prevMessages) => {
+        const lastMessage = prevMessages[prevMessages.length - 1];
+        if (!lastMessage || lastMessage.role === "user") {
+          return [
+            ...prevMessages,
+            {
+              role: "assistant",
+              content: finalMessage,
+              reasoning_content: finalReasoning,
+              timestamp: new Date(),
+            },
+          ];
+        } else if (lastMessage.role === "assistant") {
+          const updatedMessage = {
+            ...lastMessage,
+            content: finalMessage,
+            reasoning_content: finalReasoning,
+          };
+          return [...prevMessages.slice(0, -1), updatedMessage];
+        }
+        return prevMessages;
+      });
+
+      // Ensure we stay at bottom when message completes
+      if (!hasUserScrolled) {
+        requestAnimationFrame(() => {
+          if (!isSubscribed) return;
+          const scrollElement = scrollAreaRef.current?.querySelector(
+            "[data-radix-scroll-area-viewport]"
+          );
+          if (scrollElement) {
+            scrollElement.scrollTo({
+              top: scrollElement.scrollHeight,
+              behavior: "instant",
+            });
+          }
+          setStreamingMessage("");
+          setStreamingMessageReasoning("");
+          setIsLoading(false);
+          setCurrentRequestId(null);
+        });
+      } else {
+        // If user has scrolled, just update the state without forcing scroll
+        setStreamingMessage("");
+        setStreamingMessageReasoning("");
+        setIsLoading(false);
+        setCurrentRequestId(null);
+      }
+
       newMessage = "";
-      setIsLoading(false);
+      newReasoning = "";
     };
 
     // Remove any existing listeners before adding new ones
@@ -132,7 +208,13 @@ export default function Chat() {
       window.electron.offMessageChunk(handleMessageChunk);
       window.electron.offStreamEnd(handleStreamEnd);
     };
-  }, [setIsLoading, setMessages, setStreamingMessage]);
+  }, [
+    setIsLoading,
+    setMessages,
+    setStreamingMessage,
+    setStreamingMessageReasoning,
+    setCurrentRequestId,
+  ]);
 
   useEffect(() => {
     if (!activeUser) {
@@ -142,7 +224,7 @@ export default function Chat() {
 
   return (
     <div className="pt-5 h-[calc(100vh-1rem)] flex flex-col">
-      <div className={`flex flex-col h-full overflow-hidden`}>
+      <div className={`flex flex-col h-full overflow-hidden relative`}>
         <div className="p-2 bg-card border-b border-secondary flex items-center">
           <div className="flex items-center flex-1">
             <img src={logo} alt="logo" className="h-6 w-6 mr-2" />
@@ -172,7 +254,7 @@ export default function Chat() {
 
         <ScrollArea
           ref={scrollAreaRef}
-          className={`flex-grow px-4`}
+          className={`flex-grow px-4 relative`}
           style={{ height: "calc(100% - 8rem)" }}
         >
           {" "}
@@ -188,19 +270,33 @@ export default function Chat() {
               <ChatMessage message={message} formatDate={formatDate} />
             </div>
           ))}
-          {streamingMessage && <StreamingMessage content={streamingMessage} />}
+          {streamingMessageReasoning && <StreamingReasoningMessage />}
           {error && (
             <div className="text-red-500 mt-4 p-2 bg-red-100 rounded">
               Error: {error}
             </div>
-          )}
+          )}{" "}
+          {streamingMessage && <StreamingMessage content={streamingMessage} />}
           <div ref={bottomRef} />
         </ScrollArea>
+
+        {showScrollButton && (
+          <Button
+            size="icon"
+            variant="secondary"
+            className="absolute bottom-32 right-8 rounded-full shadow-lg hover:shadow-xl transition-all"
+            onClick={() => scrollToBottom()}
+          >
+            <ArrowDown className="h-4 w-4" />
+          </Button>
+        )}
+
         {isLoading && (
           <div className="flex justify-center">
             <LoadingIndicator />
           </div>
         )}
+
         <div className="">
           <ChatInput />
         </div>

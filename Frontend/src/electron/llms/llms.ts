@@ -20,6 +20,7 @@ interface ProviderResponse {
   messages: Message[];
   title: string;
   content: string;
+  reasoning?: string;
   aborted: boolean;
 }
 
@@ -43,10 +44,11 @@ export async function chatRequest(
   error?: string;
 }> {
   const platform = os.platform();
+
   try {
-    let currentTitle = title;
+    let currentTitle: string | null = title || null;
     const userSettings = await db.getUserSettings(activeUser.id);
-    if (!conversationId) {
+    if (!conversationId && currentTitle === null) {
       currentTitle = await generateTitle(
         messages[messages.length - 1].content,
         activeUser.id,
@@ -123,8 +125,11 @@ export async function chatRequest(
       }
     }
 
-    if (!currentTitle) {
-      currentTitle = messages[messages.length - 1].content.substring(0, 20);
+    if (!currentTitle || currentTitle === undefined) {
+      currentTitle = await db.getUserConversationTitle(
+        Number(conversationId),
+        activeUser.id
+      );
     }
     log.info(`Current title: ${currentTitle}`);
     if (!conversationId) {
@@ -216,6 +221,7 @@ export async function chatRequest(
         Number(conversationId),
         "assistant",
         result.content,
+        result.reasoning,
         collectionId ? Number(collectionId) : undefined
       ).lastInsertRowid;
       log.info(`Added assistant message`);

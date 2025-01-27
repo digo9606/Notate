@@ -15,7 +15,9 @@ import remarkFrontmatter from "remark-frontmatter";
 const MotionAvatar = motion.create(Avatar);
 
 export function StreamingMessage({ content }: { content: string }) {
-  const [parsedContent, setParsedContent] = useState<(string | JSX.Element)[]>([]);
+  const [parsedContent, setParsedContent] = useState<(string | JSX.Element)[]>(
+    []
+  );
   const { settings } = useSysSettings();
 
   useEffect(() => {
@@ -52,7 +54,7 @@ export function StreamingMessage({ content }: { content: string }) {
                 .use(remarkRehype)
                 .use(rehypeStringify)
                 .process(textContent.trim());
-              
+
               parts.push(
                 <div
                   key={parts.length}
@@ -89,7 +91,7 @@ export function StreamingMessage({ content }: { content: string }) {
           .use(remarkRehype)
           .use(rehypeStringify)
           .process(textContent.trim());
-        
+
         parts.push(
           <div
             key={parts.length}
@@ -155,9 +157,7 @@ export function StreamingMessage({ content }: { content: string }) {
           />
         </div>
         <div className="mx-2 my-1 p-3 rounded-2xl bg-secondary text-secondary-foreground shadow-md rounded-bl-none">
-          <div className="text-sm whitespace-pre-wrap break-words text-left">
-            {parsedContent}
-          </div>
+          <div className="text-sm break-words text-left">{parsedContent}</div>
         </div>
       </div>
     </div>

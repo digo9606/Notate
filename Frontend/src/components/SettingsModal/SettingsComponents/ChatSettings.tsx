@@ -34,6 +34,8 @@ import { useSysSettings } from "@/context/useSysSettings";
 import { toast } from "@/hooks/use-toast";
 import { useLibrary } from "@/context/useLibrary";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 
 export default function ChatSettings() {
   const {
@@ -87,7 +89,6 @@ export default function ChatSettings() {
     provider: string,
     model_name: string
   ) => {
-    console.log(provider, model_name);
     if (!activeUser) {
       return;
     }
@@ -103,7 +104,6 @@ export default function ChatSettings() {
       });
     }
     if (provider === "azure open ai") {
-      console.log("modelName", model_name);
       await window.electron.updateUserSettings({
         userId: activeUser.id,
         baseUrl:
@@ -114,7 +114,6 @@ export default function ChatSettings() {
       });
     }
     if (provider === "custom") {
-      console.log("modelName", model_name);
       await window.electron.updateUserSettings({
         userId: activeUser.id,
         model:
@@ -175,7 +174,7 @@ export default function ChatSettings() {
     ollama: ollamaModels?.map((model) => model.name) || [],
     "azure open ai": azureModels?.map((model) => model.name) || [],
     custom: customModels?.map((model) => model.name) || [],
-    deepseek: ["deepseek-chat"],
+    deepseek: ["deepseek-chat", "deepseek-reasoner"],
   };
 
   const handleAddPrompt = async () => {
@@ -210,6 +209,26 @@ export default function ChatSettings() {
       setValue(selectedPromptName);
     }
   }, [settings.promptId, prompts]);
+
+  // Add new useEffect for handling initial model selection
+  useEffect(() => {
+    if (
+      settings.provider === "custom" &&
+      settings.selectedCustomId &&
+      customModels
+    ) {
+      const selectedCustomModel = customModels.find(
+        (model) => model.id === settings.selectedCustomId
+      );
+      if (selectedCustomModel) {
+        setSettings((prev) => ({
+          ...prev,
+          model: selectedCustomModel.model,
+          displayModel: selectedCustomModel.name,
+        }));
+      }
+    }
+  }, [settings.provider, settings.selectedCustomId, customModels]);
 
   return (
     <div className="space-y-6">
@@ -335,7 +354,11 @@ export default function ChatSettings() {
               Model
             </Label>
             <Select
-              value={settings.model}
+              value={
+                settings.provider === "custom"
+                  ? settings.displayModel || settings.model
+                  : settings.model
+              }
               onValueChange={async (value) => {
                 let provider = Object.keys(modelOptions).find((key) =>
                   modelOptions[key as keyof typeof modelOptions].includes(value)
@@ -369,8 +392,12 @@ export default function ChatSettings() {
 
                 const newMaxTokens =
                   modelTokenDefaults[
-                    value as keyof typeof modelTokenDefaults
-                  ] || modelTokenDefaults.local;
+                    value.toLowerCase() as keyof typeof modelTokenDefaults
+                  ] ||
+                  modelTokenDefaults[
+                    provider.toLowerCase() as keyof typeof modelTokenDefaults
+                  ] ||
+                  modelTokenDefaults.local;
 
                 setMaxTokens(newMaxTokens);
                 setLocalMaxTokens(newMaxTokens.toString());
@@ -513,6 +540,39 @@ export default function ChatSettings() {
               onChange={(e) => handleMaxTokensChange(e.target.value)}
               className="col-span-3 bg-background"
             />
+          </div>
+        </div>
+        <Separator className="my-4" />
+        <div className="flex flex-col space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="cot">Chain of Thought / Reasoning</Label>
+              <div className="text-[0.8rem] text-muted-foreground">
+                Enable to add a chain of thought / reasoning to the model's
+                response
+              </div>
+            </div>
+            <Switch
+              id="cot"
+              disabled={settings.model === "deepseek-reasoner"}
+              checked={settings.cot === 1}
+              onCheckedChange={(checked) => {
+                if (activeUser) {
+                  window.electron.updateUserSettings({
+                    userId: activeUser.id,
+                    cot: checked ? 1 : 0,
+                  });
+                }
+                setSettings((prev) => ({ ...prev, cot: checked ? 1 : 0 }));
+              }}
+            />
+          </div>
+          <div className="rounded-md bg-muted/50 p-3">
+            <div className="text-xs text-muted-foreground flex items-center gap-2">
+              <span className="font-medium text-yellow-500">Beta</span>
+              This feature is currently in development and may not work as
+              expected with all models.
+            </div>
           </div>
         </div>
       </div>

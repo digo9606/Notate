@@ -37,6 +37,7 @@ type AzureModel = {
 type Message = {
   role: "user" | "assistant" | "system";
   content: string;
+  reasoning_content?: string;
   timestamp?: Date;
   isRetrieval?: boolean;
   collectionId?: number;
@@ -48,6 +49,7 @@ type Message = {
 interface UserSettings {
   userId?: number;
   id?: number;
+  cot?: number;
   vectorstore?: string;
   prompt?: string;
   temperature?: number;
@@ -62,6 +64,7 @@ interface UserSettings {
   baseUrl?: string;
   selectedAzureId?: number;
   selectedCustomId?: number;
+  displayModel?: string;
   maxTokens?: number;
   topP?: number;
   promptId?: number;
