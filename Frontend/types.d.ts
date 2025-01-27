@@ -64,6 +64,7 @@ interface UserSettings {
   baseUrl?: string;
   selectedAzureId?: number;
   selectedCustomId?: number;
+  displayModel?: string;
   maxTokens?: number;
   topP?: number;
   promptId?: number;

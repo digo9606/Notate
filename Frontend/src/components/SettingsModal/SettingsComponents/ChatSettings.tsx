@@ -114,23 +114,23 @@ export default function ChatSettings() {
       });
     }
     if (provider === "custom") {
-      const selectedCustomModel = customModels.find(
-        (model) => model.name === model_name
-      );
       await window.electron.updateUserSettings({
         userId: activeUser.id,
-        model: selectedCustomModel?.model ?? "",
-        baseUrl: selectedCustomModel?.endpoint ?? "",
-        selectedCustomId: selectedCustomModel?.id ?? 0,
+        model:
+          customModels?.find((model) => model.name === model_name)?.model ?? "",
+        baseUrl:
+          customModels?.find((model) => model.name === model_name)?.endpoint ??
+          "",
+        selectedCustomId:
+          customModels?.find((model) => model.name === model_name)?.id ?? 0,
       });
-      setSettings((prev) => ({
-        ...prev,
-        model: selectedCustomModel?.model ?? "",
-        provider: "custom",
-      }));
-    } else {
-      await handleProviderModelChange(provider, model_name);
     }
+
+    setSettings((prev) => ({
+      ...prev,
+      model: model_name,
+      provider: provider.toLowerCase(),
+    }));
   };
 
   const modelTokenDefaults = {
@@ -173,10 +173,7 @@ export default function ChatSettings() {
       : [],
     ollama: ollamaModels?.map((model) => model.name) || [],
     "azure open ai": azureModels?.map((model) => model.name) || [],
-    custom:
-      customModels
-        ?.map((model) => model.name)
-        .filter((model): model is string => !!model) || [],
+    custom: customModels?.map((model) => model.name) || [],
     deepseek: ["deepseek-chat", "deepseek-reasoner"],
   };
 
@@ -226,7 +223,8 @@ export default function ChatSettings() {
       if (selectedCustomModel) {
         setSettings((prev) => ({
           ...prev,
-          model: selectedCustomModel.name || selectedCustomModel.model,
+          model: selectedCustomModel.model,
+          displayModel: selectedCustomModel.name,
         }));
       }
     }
@@ -356,7 +354,11 @@ export default function ChatSettings() {
               Model
             </Label>
             <Select
-              value={settings.model || ""}
+              value={
+                settings.provider === "custom"
+                  ? settings.displayModel || settings.model
+                  : settings.model
+              }
               onValueChange={async (value) => {
                 let provider = Object.keys(modelOptions).find((key) =>
                   modelOptions[key as keyof typeof modelOptions].includes(value)
@@ -365,7 +367,6 @@ export default function ChatSettings() {
                 if (modelOptions.ollama.includes(value)) {
                   provider = "ollama";
                 }
-
                 if (!activeUser) {
                   return;
                 }

@@ -25,8 +25,14 @@ import { useLibrary } from "@/context/useLibrary";
 
 export const ChatInput = memo(function ChatInput() {
   const { activeUser } = useUser();
-  const { handleChatRequest, cancelRequest, input, setInput, isLoading } =
-    useChatInput();
+  const {
+    handleChatRequest,
+    cancelRequest,
+    input,
+    setInput,
+    isLoading,
+    setIsLoading,
+  } = useChatInput();
   const { openLibrary, setOpenLibrary } = useLibrary();
   const [isRecording, setIsRecording] = useState(false);
   const [transcriptionLoading, setTranscriptionLoading] = useState(false);
@@ -115,6 +121,7 @@ export const ChatInput = memo(function ChatInput() {
   const handleSendClick = useCallback(() => {
     if (isLoading) {
       cancelRequest();
+      setIsLoading(false);
     } else if (input.trim()) {
       handleChatRequest(selectedCollection?.id || undefined);
     }
@@ -124,6 +131,7 @@ export const ChatInput = memo(function ChatInput() {
     cancelRequest,
     handleChatRequest,
     selectedCollection?.id,
+    setIsLoading,
   ]);
 
   return (

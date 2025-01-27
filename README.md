@@ -136,7 +136,6 @@ _MacOS_
 
 - [ ] Chrome Extension For Ingesting Webpages/Files
 - [ ] Advanced Ingestion Settings
-- [ ] CoT Enabled Reasoning for all LLM Models
 - [ ] Additional Document Types
 - [ ] Output to Speech
 - [ ] Custom API Endpoints
