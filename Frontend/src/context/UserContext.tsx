@@ -243,7 +243,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Use the current activeConversation state
         const currentConvoId = activeConversation;
-        console.log("Current conversation ID:", currentConvoId);
+
         const result = (await window.electron.chatRequest(
           [...messages, newUserMessage],
           activeUser,
