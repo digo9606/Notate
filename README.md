@@ -38,13 +38,13 @@ Donations are used to cover the costs of running the project, including server c
 [![PayPal](https://img.shields.io/badge/PayPal-donate-blue.svg)](https://www.paypal.com/donate/?hosted_button_id=W96TCRJ5Q3RJG)
 
 ![Notate Chat Screenshot](https://www.hairetsu.com/notate-0.png)
-![Notate LLM Screenshot](https://www.hairetsu.com/notate-1.png)
 ![Notate Dev Screenshot](https://www.hairetsu.com/notate-2.png)
 ![Notate RAG Screenshot](https://www.hairetsu.com/notate-3.png)
 ![Notate Settings Screenshot](https://www.hairetsu.com/notate-4.png)
-![Notate Collections Screenshot](https://www.hairetsu.com/notate-5.png)
-
-## Prerequisites
+![Notate Collections Screenshot](https://www.hairetsu.com/notate-08.png)
+![Notate Collections Screenshot](https://www.hairetsu.com/notate-09.png)
+![Notate Collections Screenshot](https://www.hairetsu.com/notate-06.png)
+![Notate Collections Screenshot](https://www.hairetsu.com/notate-07.png)
 
 ### Local Only Mode Requirements
 
@@ -135,6 +135,7 @@ _MacOS_
 ## Coming Soon
 
 - [ ] Chrome Extension For Ingesting Webpages/Files
+- [ ] Advanced Agent Actions
 - [ ] Advanced Ingestion Settings
 - [ ] Additional Document Types
 - [ ] Output to Speech
