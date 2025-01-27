@@ -172,11 +172,6 @@ export async function DeepSeekProvider(
       }
     }
 
-    if (reasoningContent) {
-      // Don't append reasoning to content anymore
-      // newMessage.content = "[REASONING]:" + reasoningContent + "\n\n" + newMessage.content;
-    }
-
     if (mainWindow) {
       mainWindow.webContents.send("streamEnd");
     }
@@ -184,7 +179,7 @@ export async function DeepSeekProvider(
     return {
       id: conversationId,
       messages: [...messages, { ...newMessage, content: newMessage.content }],
-      reasoning: reasoningContent,
+      reasoning: reasoningContent || reasoning, // Use either deepseek-reasoner content or manual CoT reasoning
       title: currentTitle,
       content: newMessage.content,
       aborted: false,

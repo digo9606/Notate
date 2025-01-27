@@ -39,6 +39,8 @@ export async function chatRequest(
   signal?: AbortSignal
 ): Promise<{
   messages: Message[];
+  data_content?: string;
+  reasoning_content?: string;
   id: bigint | number;
   title: string;
   error?: string;
@@ -247,6 +249,12 @@ export async function chatRequest(
     log.info(`Returning result`);
     return {
       ...result,
+      messages: result.messages.map(msg => ({
+        ...msg,
+        reasoning_content: msg.role === "assistant" ? result.reasoning : undefined
+      })),
+      data_content: data ? JSON.stringify(data) : undefined,
+      reasoning_content: result.reasoning ? result.reasoning : undefined,
       title:
         currentTitle || messages[messages.length - 1].content.substring(0, 20),
     };

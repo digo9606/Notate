@@ -182,7 +182,7 @@ export const ChatMessage = memo(function ChatMessage({
   const renderContent = async (content: string) => {
     if (isUser) {
       return [
-        <div key="user-message" className="text-sm">
+        <div key="user-message" className="text-sm ">
           {content}
         </div>,
       ];
@@ -402,13 +402,13 @@ export const ChatMessage = memo(function ChatMessage({
               </div>
             )}
             {!isRetrieval && (
-              <div className="text-sm  [overflow-wrap:anywhere] text-left overflow-hidden">
+              <div className="text-sm mb-2 [overflow-wrap:anywhere] text-left overflow-hidden">
                 {renderedContent}
                 <div className="sr-only">{message?.content}</div>
               </div>
             )}
             <span
-              className={`text-[11px] mt-2 block opacity-0 group-hover:opacity-100 transition-opacity text-right absolute bottom-1 right-3 ${
+              className={`text-[11px] mt-4 block opacity-0 group-hover:opacity-100 transition-opacity text-right absolute bottom-1 right-3 ${
                 isUser
                   ? "text-primary-foreground/70"
                   : isRetrieval

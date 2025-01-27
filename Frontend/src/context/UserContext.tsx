@@ -258,11 +258,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
           error?: string;
         };
         setTitle(result.title);
-        // Add a small delay before fetching messages to ensure they are saved
-        setTimeout(() => {
-          fetchMessages();
-          getUserConversations();
-        }, 100);
+        console.log(JSON.stringify(result));
         if (result.error) {
           setError(result.error);
           setIsLoading(false);
@@ -271,6 +267,19 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
           const resultId = Number(result.id);
           // Always update activeConversation with the returned ID
           setActiveConversation(resultId);
+
+          // Set messages from the result to ensure data_content is included
+          const updatedMessages = result.messages.map(msg => ({
+            ...msg,
+            data_content: msg.data_content,
+            reasoning_content: msg.reasoning_content
+          }));
+          setMessages(updatedMessages);
+
+          // Add a small delay before fetching conversations to ensure they are saved
+          setTimeout(() => {
+            getUserConversations();
+          }, 100);
 
           // If this is a new conversation (IDs don't match)
           if (resultId !== currentConvoId) {
