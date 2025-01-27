@@ -114,23 +114,23 @@ export default function ChatSettings() {
       });
     }
     if (provider === "custom") {
+      const selectedCustomModel = customModels.find(
+        (model) => model.name === model_name
+      );
       await window.electron.updateUserSettings({
         userId: activeUser.id,
-        model:
-          customModels?.find((model) => model.name === model_name)?.model ?? "",
-        baseUrl:
-          customModels?.find((model) => model.name === model_name)?.endpoint ??
-          "",
-        selectedCustomId:
-          customModels?.find((model) => model.name === model_name)?.id ?? 0,
+        model: selectedCustomModel?.model ?? "",
+        baseUrl: selectedCustomModel?.endpoint ?? "",
+        selectedCustomId: selectedCustomModel?.id ?? 0,
       });
+      setSettings((prev) => ({
+        ...prev,
+        model: selectedCustomModel?.model ?? "",
+        provider: "custom",
+      }));
+    } else {
+      await handleProviderModelChange(provider, model_name);
     }
-
-    setSettings((prev) => ({
-      ...prev,
-      model: model_name,
-      provider: provider.toLowerCase(),
-    }));
   };
 
   const modelTokenDefaults = {
@@ -173,7 +173,10 @@ export default function ChatSettings() {
       : [],
     ollama: ollamaModels?.map((model) => model.name) || [],
     "azure open ai": azureModels?.map((model) => model.name) || [],
-    custom: customModels?.map((model) => model.name) || [],
+    custom:
+      customModels
+        ?.map((model) => model.name)
+        .filter((model): model is string => !!model) || [],
     deepseek: ["deepseek-chat", "deepseek-reasoner"],
   };
 
@@ -212,10 +215,19 @@ export default function ChatSettings() {
 
   // Add new useEffect for handling initial model selection
   useEffect(() => {
-    if (settings.provider === "custom" && settings.selectedCustomId && customModels) {
-      const selectedCustomModel = customModels.find(model => model.id === settings.selectedCustomId);
+    if (
+      settings.provider === "custom" &&
+      settings.selectedCustomId &&
+      customModels
+    ) {
+      const selectedCustomModel = customModels.find(
+        (model) => model.id === settings.selectedCustomId
+      );
       if (selectedCustomModel) {
-        setSettings(prev => ({ ...prev, model: selectedCustomModel.name }));
+        setSettings((prev) => ({
+          ...prev,
+          model: selectedCustomModel.name || selectedCustomModel.model,
+        }));
       }
     }
   }, [settings.provider, settings.selectedCustomId, customModels]);
@@ -344,7 +356,7 @@ export default function ChatSettings() {
               Model
             </Label>
             <Select
-              value={settings.model}
+              value={settings.model || ""}
               onValueChange={async (value) => {
                 let provider = Object.keys(modelOptions).find((key) =>
                   modelOptions[key as keyof typeof modelOptions].includes(value)
@@ -353,6 +365,7 @@ export default function ChatSettings() {
                 if (modelOptions.ollama.includes(value)) {
                   provider = "ollama";
                 }
+
                 if (!activeUser) {
                   return;
                 }
