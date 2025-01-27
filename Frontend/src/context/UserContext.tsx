@@ -240,10 +240,10 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         if (!activeUser) {
           throw new Error("Active user not found");
         }
-        
+
         // Use the current activeConversation state
         const currentConvoId = activeConversation;
-        
+
         const result = (await window.electron.chatRequest(
           [...messages, newUserMessage],
           activeUser,
@@ -257,19 +257,23 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
           title: string;
           error?: string;
         };
-        
-        setTitle(result.title);
 
+        setTitle(result.title);
+        // Add a small delay before fetching messages to ensure they are saved
+        setTimeout(() => {
+          fetchMessages();
+          getUserConversations();
+        }, 100);
         if (result.error) {
           setError(result.error);
           setIsLoading(false);
           console.error("Error in chat:", result.error);
         } else {
           const resultId = Number(result.conversationId);
-          
+
           // Always update activeConversation with the returned ID
           setActiveConversation(resultId);
-          
+
           // If this is a new conversation (IDs don't match)
           if (resultId !== currentConvoId) {
             const newConversation = {
@@ -293,7 +297,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
               }
               return conv;
             };
-            
+
             setConversations((prev) => prev.map(updateConvo));
             setFilteredConversations((prev) => prev.map(updateConvo));
           }

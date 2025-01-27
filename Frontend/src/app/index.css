@@ -423,15 +423,3 @@ code {
 .animate-spin-around {
   animation: spin-around calc(var(--speed, 2s) * 2) linear infinite;
 }
-
-@keyframes dot {
-  0%, 20% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
