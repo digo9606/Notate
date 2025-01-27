@@ -48,13 +48,14 @@ Donations are used to cover the costs of running the project, including server c
 
 ### Local Only Mode Requirements
 
-*Windows CUDA*
+_Windows CUDA_
+
 - Microsoft Visual Studio 2022 /w Desktop Development Tools C++ Build Tools
 - CUDA 12.6 toolkit or later
 
-*MacOS*
-- Xcode 15.0 or later
+_MacOS_
 
+- Xcode 15.0 or later
 
 - Python 3.10
 - Node.js v16 or higher
@@ -135,7 +136,7 @@ Donations are used to cover the costs of running the project, including server c
 
 - [ ] Chrome Extension For Ingesting Webpages/Files
 - [ ] Advanced Ingestion Settings
-- [ ] Advanced Agent Actions
+- [ ] CoT Enabled Reasoning for all LLM Models
 - [ ] Additional Document Types
 - [ ] Output to Speech
 - [ ] Custom API Endpoints
