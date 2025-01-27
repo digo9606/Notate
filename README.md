@@ -37,14 +37,28 @@ Donations are used to cover the costs of running the project, including server c
 
 [![PayPal](https://img.shields.io/badge/PayPal-donate-blue.svg)](https://www.paypal.com/donate/?hosted_button_id=W96TCRJ5Q3RJG)
 
+## Screenshots
+
+**Chat UI**
 ![Notate Chat Screenshot](https://www.hairetsu.com/notate-0.png)
-![Notate Dev Screenshot](https://www.hairetsu.com/notate-2.png)
-![Notate RAG Screenshot](https://www.hairetsu.com/notate-3.png)
-![Notate Settings Screenshot](https://www.hairetsu.com/notate-4.png)
-![Notate Collections Screenshot](https://www.hairetsu.com/notate-08.png)
-![Notate Collections Screenshot](https://www.hairetsu.com/notate-09.png)
+
+**LLM Intergrations**
+![Notate LLM Intergrations Screenshot](https://www.hairetsu.com/notate-07.png)
+
+**Chat Settings**
 ![Notate Collections Screenshot](https://www.hairetsu.com/notate-06.png)
-![Notate Collections Screenshot](https://www.hairetsu.com/notate-07.png)
+
+**Ingestion from File or URL into ChromaDB**
+![Notate Data Intake Screenshot](https://www.hairetsu.com/notate-3.png)
+
+**Rag Chat Q/A**
+![Notate Collections Screenshot](https://www.hairetsu.com/notate-08.png)
+
+**Reasoning (Experimental)**
+![Notate Collections Screenshot](https://www.hairetsu.com/notate-09.png)
+
+**Dev API Key**
+![Notate Dev Screenshot](https://www.hairetsu.com/notate-2.png)
 
 ### Local Only Mode Requirements
 
