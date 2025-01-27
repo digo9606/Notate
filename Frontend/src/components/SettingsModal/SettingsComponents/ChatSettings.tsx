@@ -366,7 +366,9 @@ export default function ChatSettings() {
 
                 const newMaxTokens =
                   modelTokenDefaults[
-                    value as keyof typeof modelTokenDefaults
+                    value.toLowerCase() as keyof typeof modelTokenDefaults
+                  ] || modelTokenDefaults[
+                    provider.toLowerCase() as keyof typeof modelTokenDefaults
                   ] || modelTokenDefaults.local;
 
                 setMaxTokens(newMaxTokens);
