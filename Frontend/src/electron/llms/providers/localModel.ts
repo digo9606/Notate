@@ -1,20 +1,10 @@
 import db from "../../db.js";
 import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
-import OpenAI from "openai";
-import { getToken } from "../../authentication/token.js";
 import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
 import { prepMessages } from "../llmHelpers/prepMessages.js";
 import { openAiChainOfThought } from "../chainOfThought/openAiChainOfThought.js";
-
-let openai: OpenAI;
-
-function initializeLocalOpenAI(apiKey: string) {
-  openai = new OpenAI({
-    baseURL: "http://127.0.0.1:47372",
-    apiKey: apiKey,
-  });
-}
+import { providerInitialize } from "../llmHelpers/providerInit.js";
 
 export async function LocalModelProvider(
   params: ProviderInputParams
@@ -31,10 +21,7 @@ export async function LocalModelProvider(
     data,
     signal,
   } = params;
-  const apiKey = await getToken({ userId: activeUser.id.toString() });
-  if (!openai) {
-    initializeLocalOpenAI(apiKey);
-  }
+  const openai = await providerInitialize("local", activeUser);
   const newMessages = await prepMessages(messages);
 
   let dataCollectionInfo;

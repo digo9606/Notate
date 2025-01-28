@@ -5,23 +5,11 @@ import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
 import { prepMessages } from "../llmHelpers/prepMessages.js";
 import { openAiChainOfThought } from "../chainOfThought/openAiChainOfThought.js";
+import { providerInitialize } from "../llmHelpers/providerInit.js";
 
 interface DeepSeekDelta
   extends OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta {
   reasoning_content?: string;
-}
-
-let openai: OpenAI;
-
-async function initializeDeepSeek(apiKey: string) {
-  openai = new OpenAI({
-    apiKey,
-    baseURL: "https://api.deepseek.com",
-    defaultHeaders: {
-      "HTTP-Referer": "https://notate.hairetsu.com",
-      "X-Title": "Notate",
-    },
-  });
 }
 
 export async function DeepSeekProvider(
@@ -39,17 +27,8 @@ export async function DeepSeekProvider(
     data,
     signal,
   } = params;
-  const apiKey = db.getApiKey(activeUser.id, "deepseek");
 
-  if (!apiKey) {
-    throw new Error("DeepSeek API key not found for the active user");
-  }
-
-  await initializeDeepSeek(apiKey);
-
-  if (!openai) {
-    throw new Error("DeepSeek instance not initialized");
-  }
+  const openai = await providerInitialize("deepseek", activeUser);
 
   const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
   const newMessages = await prepMessages(messages);

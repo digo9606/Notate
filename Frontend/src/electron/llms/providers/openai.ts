@@ -1,16 +1,10 @@
-import OpenAI from "openai";
 import db from "../../db.js";
 import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
 import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
 import { prepMessages } from "../llmHelpers/prepMessages.js";
 import { openAiChainOfThought } from "../chainOfThought/openAiChainOfThought.js";
-
-let openai: OpenAI;
-
-async function initializeOpenAI(apiKey: string) {
-  openai = new OpenAI({ apiKey });
-}
+import { providerInitialize } from "../llmHelpers/providerInit.js";
 
 export async function OpenAIProvider(
   params: ProviderInputParams
@@ -27,17 +21,8 @@ export async function OpenAIProvider(
     data,
     signal,
   } = params;
-  const apiKey = db.getApiKey(activeUser.id, "openai");
 
-  if (!apiKey) {
-    throw new Error("OpenAI API key not found for the active user");
-  }
-
-  await initializeOpenAI(apiKey);
-
-  if (!openai) {
-    throw new Error("OpenAI instance not initialized");
-  }
+  const openai = await providerInitialize("openai", activeUser);
 
   const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
   const newMessages = await prepMessages(messages);

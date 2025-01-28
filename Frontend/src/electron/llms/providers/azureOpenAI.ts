@@ -1,25 +1,10 @@
-import { AzureOpenAI } from "openai";
 import db from "../../db.js";
 import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
 import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
 import { prepMessages } from "../llmHelpers/prepMessages.js";
 import { openAiChainOfThought } from "../chainOfThought/openAiChainOfThought.js";
-
-let openai: AzureOpenAI;
-
-async function initializeAzureOpenAI(
-  baseURL: string,
-  apiKey: string,
-  model: string
-) {
-  openai = new AzureOpenAI({
-    baseURL: baseURL,
-    apiKey: apiKey,
-    deployment: model,
-    apiVersion: "2024-05-01-preview",
-  });
-}
+import { providerInitialize } from "../llmHelpers/providerInit.js";
 
 export async function AzureOpenAIProvider(
   params: ProviderInputParams
@@ -37,26 +22,7 @@ export async function AzureOpenAIProvider(
     signal,
   } = params;
 
-  if (!userSettings.selectedAzureId) {
-    throw new Error("Azure OpenAI model not found for the active user");
-  }
-  const azureModel = db.getAzureOpenAIModel(
-    activeUser.id,
-    Number(userSettings.selectedAzureId)
-  );
-  if (!azureModel) {
-    throw new Error("Azure OpenAI model not found for the active user");
-  }
-
-  await initializeAzureOpenAI(
-    azureModel.endpoint,
-    azureModel.api_key,
-    azureModel.model
-  );
-
-  if (!openai) {
-    throw new Error("Azure OpenAI instance not initialized");
-  }
+  const openai = await providerInitialize("azure open ai", activeUser);
   const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
 
   const newMessages = await prepMessages(messages);

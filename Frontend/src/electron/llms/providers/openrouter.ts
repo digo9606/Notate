@@ -1,23 +1,10 @@
-import OpenAI from "openai";
 import db from "../../db.js";
 import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
 import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
 import { prepMessages } from "../llmHelpers/prepMessages.js";
 import { openAiChainOfThought } from "../chainOfThought/openAiChainOfThought.js";
-
-let openai: OpenAI;
-
-async function initializeOpenRouter(apiKey: string) {
-  openai = new OpenAI({
-    apiKey,
-    baseURL: "https://openrouter.ai/api/v1",
-    defaultHeaders: {
-      "HTTP-Referer": "https://notate.hairetsu.com",
-      "X-Title": "Notate",
-    },
-  });
-}
+import { providerInitialize } from "../llmHelpers/providerInit.js";
 
 export async function OpenRouterProvider(
   params: ProviderInputParams
@@ -34,17 +21,7 @@ export async function OpenRouterProvider(
     data,
     signal,
   } = params;
-  const apiKey = db.getApiKey(activeUser.id, "openrouter");
-
-  if (!apiKey) {
-    throw new Error("OpenRouter API key not found for the active user");
-  }
-
-  await initializeOpenRouter(apiKey);
-
-  if (!openai) {
-    throw new Error("OpenRouter instance not initialized");
-  }
+  const openai = await providerInitialize("openrouter", activeUser);
 
   const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
   const newMessages = await prepMessages(messages);

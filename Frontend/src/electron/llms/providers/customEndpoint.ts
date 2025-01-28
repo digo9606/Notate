@@ -6,7 +6,7 @@ import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
 import { prepMessages } from "../llmHelpers/prepMessages.js";
 import { openAiChainOfThought } from "../chainOfThought/openAiChainOfThought.js";
 
-let openai: OpenAI;
+export let openai: OpenAI;
 
 async function initializeCustom(apiKey: string, baseURL: string) {
   openai = new OpenAI({ apiKey, baseURL });

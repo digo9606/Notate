@@ -27,7 +27,9 @@ export async function XAIProvider(
     data,
     signal,
   } = params;
+
   const apiKey = db.getApiKey(activeUser.id, "xai");
+
   if (!apiKey) {
     throw new Error("XAI API key not found for the active user");
   }
