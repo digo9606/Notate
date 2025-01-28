@@ -18,6 +18,10 @@ export async function providerInitialize(
     console.log("Initializing DeepSeek");
     return initializeDeepSeek(activeUser);
   }
+  if (providerName === "xai") {
+    console.log("Initializing XAI");
+    return initializeXAI(activeUser);
+  }
   if (providerName === "custom") {
     console.log("Initializing Custom");
     return initializeCustom(activeUser);
@@ -115,5 +119,11 @@ async function initializeLocalOpenAI(activeUser: User) {
     baseURL: "http://127.0.0.1:47372",
     apiKey: apiKey,
   });
+  return openai;
+}
+
+async function initializeXAI(activeUser: User) {
+  const apiKey = db.getApiKey(activeUser.id, "xai");
+  const openai = new OpenAI({ apiKey, baseURL: "https://api.x.ai/v1" });
   return openai;
 }
