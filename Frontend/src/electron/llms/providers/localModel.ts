@@ -1,12 +1,11 @@
-import { BrowserWindow } from "electron";
 import db from "../../db.js";
 import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
-import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import OpenAI from "openai";
 import { getToken } from "../../authentication/token.js";
 import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
 import { prepMessages } from "../llmHelpers/prepMessages.js";
+import { openAiChainOfThought } from "../chainOfThought/openAiChainOfThought.js";
 
 let openai: OpenAI;
 
@@ -49,11 +48,11 @@ export async function LocalModelProvider(
   let reasoning;
   if (userSettings.cot) {
     // Do reasoning first
-    reasoning = await chainOfThought(
+    reasoning = await openAiChainOfThought(
+      openai,
       newMessages,
       maxOutputTokens,
       userSettings,
-      "", // Empty prompt for pure reasoning
       data ? data : null,
       dataCollectionInfo ? dataCollectionInfo : null,
       signal,
@@ -150,63 +149,4 @@ export async function LocalModelProvider(
     }
     throw error;
   }
-}
-
-async function chainOfThought(
-  messages: ChatCompletionMessageParam[],
-  maxOutputTokens: number,
-  userSettings: UserSettings,
-  prompt: string,
-  data: {
-    top_k: number;
-    results: {
-      content: string;
-      metadata: string;
-    }[];
-  } | null,
-  dataCollectionInfo: Collection | null,
-  signal?: AbortSignal,
-  mainWindow: BrowserWindow | null = null
-) {
-  const sysPrompt: ChatCompletionMessageParam = {
-    role: "system",
-    content:
-      "You are a reasoning engine. Your task is to analyze the question and outline your step-by-step reasoning process for how to answer it. Keep your reasoning concise and focused on the key logical steps. Only return the reasoning process, do not provide the final answer." +
-      (data
-        ? "The following is the data that the user has provided via their custom data collection: " +
-          `\n\n${JSON.stringify(data)}` +
-          `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
-          `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
-          `\n\nCollection/Store Description: ${dataCollectionInfo?.description}` +
-          `\n\n*** THIS IS THE END OF THE DATA COLLECTION ***`
-        : ""),
-  };
-  const truncatedMessages = truncateMessages(messages, maxOutputTokens);
-  const newMessages = [sysPrompt, ...truncatedMessages];
-  const reasoning = await openai.chat.completions.create(
-    {
-      model: userSettings.model || "",
-      messages: newMessages,
-      stream: true,
-      temperature: Number(userSettings.temperature) || 0.7,
-      max_tokens: Number(maxOutputTokens),
-      top_p: Number(userSettings.topP) || 0.95,
-      presence_penalty: 0.1,
-      frequency_penalty: 0.1,
-    },
-    { signal }
-  );
-
-  let reasoningContent = "";
-  for await (const chunk of reasoning) {
-    if (signal?.aborted) {
-      throw new Error("AbortError");
-    }
-    const content = chunk.choices[0]?.delta?.content || "";
-    reasoningContent += content;
-    sendMessageChunk("[REASONING]: " + content, mainWindow);
-    console.log("[REASONING]: " + content);
-  }
-
-  return reasoningContent;
 }
