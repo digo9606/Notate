@@ -66,13 +66,17 @@ async def chat_completion(request: ChatCompletionRequest, user_id: str = Depends
 
 
 @app.get("/model-info")
-async def get_model_info():
+async def get_model_info(user_id: str = Depends(verify_token_or_api_key)):
+    if user_id is None:
+        return {"status": "error", "message": "Unauthorized"}
     """Get information about the currently loaded model"""
     return JSONResponse(content=model_manager.get_model_info())
 
 
 @app.post("/load-model")
-async def load_model_endpoint(request: ModelLoadRequest):
+async def load_model_endpoint(request: ModelLoadRequest, user_id: str = Depends(verify_token_or_api_key)):
+    if user_id is None:
+        return {"status": "error", "message": "Unauthorized"}
     """Load a model with the specified configuration"""
     print("Loading model")
     print(request)
@@ -109,7 +113,9 @@ async def load_model_endpoint(request: ModelLoadRequest):
 
 
 @app.post("/unload-model")
-async def unload_model_endpoint():
+async def unload_model_endpoint(user_id: str = Depends(verify_token_or_api_key)):
+    if user_id is None:
+        return {"status": "error", "message": "Unauthorized"}
     """Unload the currently loaded model"""
 
     try:
