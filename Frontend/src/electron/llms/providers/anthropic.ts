@@ -83,10 +83,12 @@ export async function AnthropicProvider(
     data,
     signal,
   } = params;
+
   const apiKey = db.getApiKey(activeUser.id, "anthropic");
   if (!apiKey) {
     throw new Error("Anthropic API key not found for the active user");
   }
+
   const anthropic = new Anthropic({ apiKey });
 
   const newMessage: Message = {
