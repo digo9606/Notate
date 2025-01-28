@@ -1,6 +1,15 @@
 # Notate
 
-Notate is a powerful desktop research assistant that combines AI-driven analysis with advanced vector search technology. It streamlines your research workflow by intelligently processing, organizing, and retrieving information from documents, audio, and text across multiple formats. With support for various LLM providers and local models, Notate offers flexible AI capabilities while maintaining data privacy. Built for researchers, academics, and knowledge workers, it features real-time collaboration, accessible UI, and cross-platform compatibility.
+Notate is a powerful, cross-platform chat application designed for seamless AI interactions. It combines enterprise-grade features with an intuitive interface, supporting a wide range of AI models and local deployment options.
+
+## Key Features
+
+- 🤖 **Multi-Model Support**: Integrate with leading AI providers including OpenAI, Anthropic, Google, XAI, OpenRouter, and DeepSeek
+- 🏠 **Local Deployment**: Run models locally using llamacpp, transformers, or ollama inference
+- 📚 **RAG Integration**: Built-in support for document Q&A through ChromaDB integration
+- 🔧 **Flexible Configuration**: Custom API endpoints and comprehensive model settings
+- 🎯 **Advanced Features**: Experimental reasoning capabilities and developer API access
+- 🔒 **Privacy-Focused**: Local-only mode available for sensitive data handling
 
 ## Quick Start
 

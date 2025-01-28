@@ -7,9 +7,27 @@ import { useState } from "react";
 export default function Openrouter() {
   const { openRouterModels, activeUser, fetchOpenRouterModels } = useUser();
   const [openRouterModel, setOpenRouterModel] = useState<string>("");
+  const [openRouterKey, setOpenRouterKey] = useState<string>("");
   const [hasOpenRouter, setHasOpenRouter] = useState<boolean>(
     openRouterModels.length > 0
   );
+
+  const handleSaveOpenRouterKey = async () => {
+    if (!activeUser) return;
+    console.log("Saving OpenRouter key");
+    await window.electron.addAPIKey(activeUser.id, "openrouter", openRouterKey);
+    await window.electron.updateUserSettings({
+      userId: activeUser.id,
+      provider: "openrouter",
+      model: openRouterModel,
+    });
+    setHasOpenRouter(true);
+    setOpenRouterKey("");
+    toast({
+      title: "OpenRouter Key Saved",
+      description: "Your OpenRouter key has been saved",
+    });
+  };
 
   const handleAddOpenRouterModel = async () => {
     try {
@@ -52,8 +70,16 @@ export default function Openrouter() {
             type="text"
             placeholder="Enter your OpenRouter API key"
             className="input-field"
+            value={openRouterKey}
+            onChange={(e) => setOpenRouterKey(e.target.value)}
           />
-          <Button variant="secondary" className="w-full" onClick={() => {}}>
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={() => {
+              handleSaveOpenRouterKey();
+            }}
+          >
             Save API Key
           </Button>
         </>
