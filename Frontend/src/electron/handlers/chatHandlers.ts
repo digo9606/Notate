@@ -1,10 +1,10 @@
 import { ipcMain } from "electron";
 import { chatRequest } from "../llms/llms.js";
 import { keyValidation } from "../llms/keyValidation.js";
-
+import { BrowserWindow } from "electron";
 const activeRequests = new Map();
 
-export function setupChatHandlers() {
+export function setupChatHandlers(mainWindow: BrowserWindow) {
   ipcMain.handle("keyValidation", async (event, { apiKey, inputProvider }) => {
     return keyValidation({ apiKey, inputProvider });
   });
@@ -20,6 +20,7 @@ export function setupChatHandlers() {
         const result = await chatRequest(
           messages,
           activeUser,
+          mainWindow,
           conversationId,
           title,
           collectionId,

@@ -258,7 +258,6 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
           error?: string;
         };
         setTitle(result.title);
-        console.log(JSON.stringify(result));
         if (result.error) {
           setError(result.error);
           setIsLoading(false);
@@ -269,10 +268,10 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
           setActiveConversation(resultId);
 
           // Set messages from the result to ensure data_content is included
-          const updatedMessages = result.messages.map(msg => ({
+          const updatedMessages = result.messages.map((msg) => ({
             ...msg,
             data_content: msg.data_content,
-            reasoning_content: msg.reasoning_content
+            reasoning_content: msg.reasoning_content,
           }));
           setMessages(updatedMessages);
 

@@ -94,7 +94,8 @@
 }
 
 @keyframes dot {
-  0%, 20% {
+  0%,
+  20% {
     opacity: 0;
   }
   50% {
@@ -248,6 +249,7 @@ code {
   @apply bg-transparent;
 }
 
+/* Markdown Styles */
 .contentMarkdown {
   @apply text-foreground space-y-3;
 }

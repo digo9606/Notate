@@ -1,4 +1,3 @@
-import { BrowserWindow } from "electron";
 import db from "../db.js";
 import { AnthropicProvider } from "./providers/anthropic.js";
 import { OpenAIProvider } from "./providers/openai.js";
@@ -14,6 +13,7 @@ import os from "os";
 import { AzureOpenAIProvider } from "./providers/azureOpenAI.js";
 import { CustomProvider } from "./providers/customEndpoint.js";
 import { DeepSeekProvider } from "./providers/deepseek.js";
+import { BrowserWindow } from "electron";
 
 interface ProviderResponse {
   id: bigint | number;
@@ -24,15 +24,10 @@ interface ProviderResponse {
   aborted: boolean;
 }
 
-let mainWindow: BrowserWindow | null = null;
-
-export function setMainWindow(window: BrowserWindow) {
-  mainWindow = window;
-}
-
 export async function chatRequest(
   messages: Message[],
   activeUser: User,
+  mainWindow: BrowserWindow,
   conversationId?: bigint | number,
   title?: string,
   collectionId?: bigint | number,
@@ -249,9 +244,10 @@ export async function chatRequest(
     log.info(`Returning result`);
     return {
       ...result,
-      messages: result.messages.map(msg => ({
+      messages: result.messages.map((msg) => ({
         ...msg,
-        reasoning_content: msg.role === "assistant" ? result.reasoning : undefined
+        reasoning_content:
+          msg.role === "assistant" ? result.reasoning : undefined,
       })),
       data_content: data ? JSON.stringify(data) : undefined,
       reasoning_content: result.reasoning ? result.reasoning : undefined,
