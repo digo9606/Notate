@@ -1,5 +1,4 @@
 import db from "../db.js";
-import { generateTitle } from "../llms/generateTitle.js";
 import { ipcMainHandle, ipcMainDatabaseHandle } from "../util.js";
 import { getDevApiKey } from "../authentication/devApi.js";
 export function setupDbHandlers() {
@@ -27,9 +26,6 @@ export function setupDbHandlers() {
   ipcMainDatabaseHandle("addUserConversation", async (payload) => {
     try {
       let title: string | undefined;
-      if (payload.input) {
-        title = await generateTitle(payload.input, payload.userId);
-      }
       const conversation = await db.addUserConversation(
         payload.userId,
         title ?? "New Conversation"

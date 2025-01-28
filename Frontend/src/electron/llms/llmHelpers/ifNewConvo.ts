@@ -2,16 +2,11 @@ import log from "electron-log";
 import db from "../../db.js";
 import { generateTitle } from "../generateTitle.js";
 
-export async function ifNewConversation(
-  messages: Message[],
-  activeUser: User,
-  userSettings: UserSettings
-) {
+export async function ifNewConversation(messages: Message[], activeUser: User) {
   try {
     const newTitle = await generateTitle(
       messages[messages.length - 1].content,
-      activeUser.id,
-      userSettings.model
+      activeUser
     );
 
     const addConversation = await db.addUserConversation(

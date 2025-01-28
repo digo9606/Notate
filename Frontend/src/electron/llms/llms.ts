@@ -29,8 +29,7 @@ export async function chatRequest(
     if (!conversationId) {
       const { cId, title: newTitle } = await ifNewConversation(
         messages,
-        activeUser,
-        userSettings
+        activeUser
       );
       conversationId = cId;
       title = newTitle;

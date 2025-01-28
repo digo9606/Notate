@@ -1,9 +1,23 @@
 import Anthropic from "@anthropic-ai/sdk";
 import db from "../db.js";
 import OpenAI from "openai";
-import { AzureOpenAI } from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { getToken } from "../authentication/token.js";
+import { providerInitialize } from "./llmHelpers/providerInit.js";
+
+async function chatCompletionTitle(
+  input: string,
+  user: User,
+  provider: string,
+  model: string
+) {
+  const openai = await providerInitialize(provider, user);
+  const llmTitleRequest = await openai.chat.completions.create({
+    model: model,
+    messages: titleMessages(input),
+    max_tokens: 20,
+  });
+  return llmTitleRequest.choices[0]?.message?.content?.trim();
+}
 
 const titleMessages = (input: string): OpenAI.ChatCompletionMessageParam[] => [
   {
@@ -14,75 +28,23 @@ const titleMessages = (input: string): OpenAI.ChatCompletionMessageParam[] => [
   { role: "user" as const, content: input },
 ];
 
-async function generateTitleOpenRouter(input: string, userId: number) {
-  let apiKey = "";
-  try {
-    apiKey = db.getApiKey(userId, "openrouter");
-  } catch (error) {
-    console.error("Error getting API key:", error);
-  }
-  if (!apiKey) {
-    throw new Error("OpenRouter API key not found for the active user");
-  }
-  const openai = new OpenAI({
-    apiKey,
-    baseURL: "https://openrouter.ai/api/v1",
-  });
-  const llmTitleRequest = await openai.chat.completions.create({
-    model: "openai/gpt-3.5-turbo",
-    messages: titleMessages(input),
-    max_tokens: 20,
-  });
-
-  const generatedTitle = llmTitleRequest.choices[0]?.message?.content?.trim();
-  return generatedTitle;
+async function generateTitleOpenRouter(input: string, user: User) {
+  return chatCompletionTitle(input, user, "openrouter", "openai/gpt-3.5-turbo");
 }
 
-async function generateTitleDeepSeek(input: string, userId: number) {
-  let apiKey = "";
-  try {
-    apiKey = db.getApiKey(userId, "deepseek");
-  } catch (error) {
-    console.error("Error getting API key:", error);
-  }
-  if (!apiKey) {
-    throw new Error("DeepSeek API key not found for the active user");
-  }
-  const openai = new OpenAI({
-    apiKey,
-    baseURL: "https://api.deepseek.com",
-  });
-  const llmTitleRequest = await openai.chat.completions.create({
-    model: "deepseek-chat",
-    messages: titleMessages(input),
-    max_tokens: 20,
-  });
-
-  const generatedTitle = llmTitleRequest.choices[0]?.message?.content?.trim();
-  return generatedTitle;
+async function generateTitleDeepSeek(input: string, user: User) {
+  return chatCompletionTitle(input, user, "deepseek", "deepseek-chat");
 }
 
 async function generateTitleCustom(
   input: string,
-  userId: number,
-  customAPI: number,
+  user: User,
   userSettings: UserSettings
 ) {
-  const customApis = db.getCustomAPI(userId);
-  if (customApis.length == 0) {
-    throw new Error("No custom API selected");
-  }
-  const api = customApis.find((api) => api.id == customAPI);
-  if (!customAPI) {
+  if (!userSettings.selectedCustomId) {
     throw new Error("Custom API not found");
   }
-  if (!api) {
-    throw new Error("Custom API not found");
-  }
-  const openai = new OpenAI({
-    apiKey: api.api_key,
-    baseURL: api.endpoint,
-  });
+  const openai = await providerInitialize("custom", user);
   const stream = await openai.chat.completions.create({
     model: userSettings.model || "",
     messages: titleMessages(input),
@@ -101,10 +63,10 @@ async function generateTitleCustom(
   return generatedTitle;
 }
 
-async function generateTitleAnthropic(input: string, userId: number) {
+async function generateTitleAnthropic(input: string, user: User) {
   let apiKey = "";
   try {
-    apiKey = db.getApiKey(userId, "anthropic");
+    apiKey = db.getApiKey(user.id, "anthropic");
   } catch (error) {
     console.error("Error getting API key:", error);
   }
@@ -131,10 +93,10 @@ async function generateTitleAnthropic(input: string, userId: number) {
   return generatedTitle || "New Conversation";
 }
 
-async function generateTitleGemini(input: string, userId: number) {
+async function generateTitleGemini(input: string, user: User) {
   let apiKey = "";
   try {
-    apiKey = db.getApiKey(userId, "gemini");
+    apiKey = db.getApiKey(user.id, "gemini");
   } catch (error) {
     console.error("Error getting API key:", error);
   }
@@ -153,26 +115,8 @@ async function generateTitleGemini(input: string, userId: number) {
   return generatedTitle ?? "New Conversation";
 }
 
-async function generateTitleXAI(input: string, userId: number) {
-  let apiKey = "";
-  try {
-    apiKey = db.getApiKey(userId, "xai");
-  } catch (error) {
-    console.error("Error getting API key:", error);
-  }
-  if (!apiKey) {
-    throw new Error("XAI API key not found for the active user");
-  }
-  const openai = new OpenAI({ apiKey, baseURL: "https://api.x.ai/v1" });
-  const messages = titleMessages(input);
-  const llmTitleRequest = await openai.chat.completions.create({
-    model: "grok-beta",
-    messages: messages,
-    max_tokens: 20,
-  });
-
-  const generatedTitle = llmTitleRequest.choices[0]?.message?.content?.trim();
-  return generatedTitle;
+async function generateTitleXAI(input: string, user: User) {
+  return chatCompletionTitle(input, user, "xai", "grok-beta");
 }
 
 async function generateOllamaTitle(input: string, model: string) {
@@ -213,78 +157,20 @@ async function generateOllamaTitle(input: string, model: string) {
   }
 }
 
-async function generateTitleOpenAI(input: string, userId: number) {
-  let apiKey = "";
-  try {
-    apiKey = db.getApiKey(userId, "openai");
-  } catch (error) {
-    console.error("Error getting API key:", error);
-  }
-  if (!apiKey) {
-    throw new Error("OpenAI API key not found for the active user");
-  }
-  const openai = new OpenAI({ apiKey });
-  const llmTitleRequest = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: titleMessages(input),
-    max_tokens: 20,
-    temperature: 0.7,
-    top_p: 0.95,
-    presence_penalty: 0.1,
-    frequency_penalty: 0.1,
-  });
-
-  const generatedTitle = llmTitleRequest.choices[0]?.message?.content?.trim();
-  return generatedTitle;
+async function generateTitleOpenAI(input: string, user: User) {
+  return chatCompletionTitle(input, user, "openai", "gpt-4o");
 }
 
-async function generateTitleAzureOpenAI(input: string, userId: number) {
-  const userSettings = await db.getUserSettings(userId);
-  if (!userSettings.selectedAzureId) {
-    throw new Error("Azure OpenAI model not found for the active user");
-  }
-  const azureModel = db.getAzureOpenAIModel(
-    userId,
-    Number(userSettings.selectedAzureId)
-  );
-  if (!azureModel) {
-    throw new Error("Azure OpenAI model not found for the active user");
-  }
-  const openai = new AzureOpenAI({
-    baseURL: azureModel.endpoint,
-    apiKey: azureModel.api_key,
-    deployment: azureModel.model,
-    apiVersion: "2024-05-01-preview",
-  });
-
-  if (!openai) {
-    throw new Error("Azure OpenAI instance not initialized");
-  }
-  try {
-    const llmTitleRequest = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: titleMessages(input),
-      max_tokens: 20,
-      temperature: 0.7,
-    });
-    const generatedTitle = llmTitleRequest.choices[0]?.message?.content?.trim();
-    return generatedTitle;
-  } catch (error) {
-    console.error("Error generating title:", error);
-    return "New Conversation";
-  }
+async function generateTitleAzureOpenAI(input: string, user: User) {
+  return chatCompletionTitle(input, user, "azure open ai", "gpt-4o");
 }
 
 async function generateTitleLocalOpenAI(
   input: string,
-  userId: number,
+  user: User,
   userSettings: UserSettings
 ) {
-  const apiKey = await getToken({ userId: userId.toString() });
-  if (!apiKey) {
-    throw new Error("Local OpenAI API key not found for the active user");
-  }
-  const openai = new OpenAI({ apiKey, baseURL: "http://127.0.0.1:47372" });
+  const openai = await providerInitialize("local", user);
   const stream = await openai.chat.completions.create({
     model: userSettings.model || "",
     messages: titleMessages(input),
@@ -303,38 +189,29 @@ async function generateTitleLocalOpenAI(
   return generatedTitle;
 }
 
-export async function generateTitle(
-  input: string,
-  userId: number,
-  model?: string
-) {
-  const userSettings = await db.getUserSettings(userId);
+export async function generateTitle(input: string, user: User) {
+  const userSettings = await db.getUserSettings(user.id);
   switch (userSettings.provider?.toLowerCase()) {
     case "openai":
-      return generateTitleOpenAI(input, userId);
+      return generateTitleOpenAI(input, user);
     case "openrouter":
-      return generateTitleOpenRouter(input, userId);
+      return generateTitleOpenRouter(input, user);
     case "azure open ai":
-      return generateTitleAzureOpenAI(input, userId);
+      return generateTitleAzureOpenAI(input, user);
     case "anthropic":
-      return generateTitleAnthropic(input, userId);
+      return generateTitleAnthropic(input, user);
     case "gemini":
-      return generateTitleGemini(input, userId);
+      return generateTitleGemini(input, user);
     case "xai":
-      return generateTitleXAI(input, userId);
+      return generateTitleXAI(input, user);
     case "local":
-      return generateTitleLocalOpenAI(input, userId, userSettings);
+      return generateTitleLocalOpenAI(input, user, userSettings);
     case "ollama":
-      return generateOllamaTitle(input, model || "llama3.2");
+      return generateOllamaTitle(input, userSettings.model || "llama3.2");
     case "custom":
-      return generateTitleCustom(
-        input,
-        userId,
-        Number(userSettings.selectedCustomId),
-        userSettings
-      );
+      return generateTitleCustom(input, user, userSettings);
     case "deepseek":
-      return generateTitleDeepSeek(input, userId);
+      return generateTitleDeepSeek(input, user);
     default:
       return "New Conversation";
   }
