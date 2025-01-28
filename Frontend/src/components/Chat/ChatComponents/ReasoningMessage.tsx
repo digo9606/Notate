@@ -1,6 +1,21 @@
 import { BrainCircuit, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
-import { useState, CSSProperties } from "react";
+import { useState, CSSProperties, useEffect, lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkRehype from "remark-rehype";
+import rehypeStringify from "rehype-stringify";
+import remarkGfm from "remark-gfm";
+import remarkFrontmatter from "remark-frontmatter";
+import { visit } from "unist-util-visit";
+import type { Root, Element } from "hast";
+
+// Lazy load the syntax highlighter
+const SyntaxHighlightedCode = lazy(() =>
+  import("@/components/Chat/ChatComponents/SyntaxHightlightedCode").then(
+    (module) => ({ default: module.SyntaxHighlightedCode })
+  )
+);
 
 interface ReasoningMessageProps {
   content: string;
@@ -8,6 +23,98 @@ interface ReasoningMessageProps {
 
 export const ReasoningMessage = ({ content }: ReasoningMessageProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [renderedContent, setRenderedContent] = useState<(string | JSX.Element)[]>([]);
+
+  const renderContent = async (content: string) => {
+    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = codeBlockRegex.exec(content)) !== null) {
+      if (match.index > lastIndex) {
+        const textContent = content.slice(lastIndex, match.index).trim();
+        if (textContent) {
+          const result = await unified()
+            .use(remarkParse)
+            .use(remarkFrontmatter)
+            .use(remarkGfm)
+            .use(remarkRehype)
+            .use(() => (tree: Root) => {
+              // Transform links to open in new window
+              visit(tree, "element", (node: Element) => {
+                if (node.tagName === "a" && node.properties?.href) {
+                  node.properties.onclick = `(function(e){e.preventDefault();window.electron.openExternal("${node.properties.href}")})`;
+                  node.properties.href = "#";
+                }
+              });
+              return tree;
+            })
+            .use(rehypeStringify)
+            .process(textContent);
+          parts.push(
+            <div
+              key={`text-${lastIndex}`}
+              className="contentMarkdown"
+              dangerouslySetInnerHTML={{ __html: result }}
+            />
+          );
+        }
+      }
+
+      const language = match[1] || "text";
+      const code = match[2].trim();
+      parts.push(
+        <div
+          key={`code-${match.index}`}
+          className="w-full overflow-x-auto my-2"
+        >
+          <Suspense fallback={<div>Loading...</div>}>
+            <SyntaxHighlightedCode code={code} language={language} />
+          </Suspense>
+        </div>
+      );
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < content.length) {
+      const textContent = content.slice(lastIndex).trim();
+      if (textContent) {
+        const result = await unified()
+          .use(remarkParse)
+          .use(remarkFrontmatter)
+          .use(remarkGfm)
+          .use(remarkRehype)
+          .use(() => (tree: Root) => {
+            // Transform links to open in new window
+            visit(tree, "element", (node: Element) => {
+              if (node.tagName === "a" && node.properties?.href) {
+                node.properties.onclick = `(function(e){e.preventDefault();window.electron.openExternal("${node.properties.href}")})`;
+                node.properties.href = "#";
+              }
+            });
+            return tree;
+          })
+          .use(rehypeStringify)
+          .process(textContent);
+
+        parts.push(
+          <div
+            key={`text-${lastIndex}`}
+            className="contentMarkdown"
+            dangerouslySetInnerHTML={{ __html: String(result) }}
+          />
+        );
+      }
+    }
+
+    return parts;
+  };
+
+  useEffect(() => {
+    renderContent(content).then(setRenderedContent);
+  }, [content]);
 
   return (
     <div className="flex flex-col gap-2 my-4 w-full justify-center items-center">
@@ -78,8 +185,9 @@ export const ReasoningMessage = ({ content }: ReasoningMessageProps) => {
             </div>
           </div>
           <div className="bg-secondary/10 backdrop-blur-sm">
-            <div className="px-5 py-4 text-sm  [overflow-wrap:anywhere] text-left overflow-hidden contentMarkdown leading-relaxed">
-              {content}
+            <div className="px-5 py-4 text-sm [overflow-wrap:anywhere] text-left overflow-hidden">
+              {renderedContent}
+              <div className="sr-only">{content}</div>
             </div>
           </div>
         </div>
