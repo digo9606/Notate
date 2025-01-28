@@ -4,6 +4,7 @@ import db from "../../db.js";
 import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
 import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
 
 let openai: OpenAI;
 
@@ -96,25 +97,12 @@ export async function XAIProvider(
     }
   }
 
-  const sysPrompt: ChatCompletionMessageParam = {
-    role: "system",
-    content:
-      "When asked about previous messages, only consider messages marked as '(most recent message)' as the last message. " +
-      prompt +
-      (reasoning
-        ? "\n\nUse this reasoning process to guide your response but DONT COPY THE REASONING: " +
-          reasoning +
-          "\n\n"
-        : "") +
-      (data
-        ? "The following is the data that the user has provided via their custom data collection: " +
-          `\n\n${JSON.stringify(data)}` +
-          `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
-          `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
-          `\n\nCollection/Store Description: ${dataCollectionInfo?.description}`
-        : ""),
-  };
-
+  const sysPrompt = await returnSystemPrompt(
+    prompt,
+    dataCollectionInfo,
+    reasoning || null,
+    data
+  );
   // Truncate messages to fit within token limits
   const truncatedMessages = truncateMessages(newMessages, maxOutputTokens);
   truncatedMessages.unshift(sysPrompt);

@@ -5,6 +5,7 @@ import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import OpenAI from "openai";
 import { getToken } from "../../authentication/token.js";
+import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
 
 let openai: OpenAI;
 
@@ -96,24 +97,12 @@ export async function LocalModelProvider(
     }
   }
 
-  const newSysPrompt: ChatCompletionMessageParam = {
-    role: "system",
-    content:
-      prompt +
-      (reasoning
-        ? "\n\nUse this reasoning process to guide your response: " +
-          reasoning +
-          "\n\n"
-        : "") +
-      (data
-        ? "The following is the data that the user has provided via their custom data collection: " +
-          `\n\n${JSON.stringify(data)}` +
-          `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
-          `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
-          `\n\nCollection/Store Description: ${dataCollectionInfo?.description}` +
-          `\n\n*** THIS IS THE END OF THE DATA COLLECTION ***`
-        : ""),
-  };
+  const newSysPrompt = await returnSystemPrompt(
+    prompt,
+    dataCollectionInfo,
+    reasoning || null,
+    data
+  );
 
   // Truncate messages to fit within token limits
   const truncatedMessages = truncateMessages(newMessages, maxOutputTokens);

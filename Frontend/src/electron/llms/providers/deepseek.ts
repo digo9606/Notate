@@ -4,6 +4,7 @@ import { BrowserWindow } from "electron";
 import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
 import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
 
 interface DeepSeekDelta
   extends OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta {
@@ -110,25 +111,12 @@ export async function DeepSeekProvider(
       mainWindow.webContents.send("reasoningEnd");
     }
   }
-
-  const newSysPrompt: ChatCompletionMessageParam = {
-    role: "system",
-    content:
-      prompt +
-      (reasoning
-        ? "\n\nUse this reasoning process to guide your response: " +
-          reasoning +
-          "\n\n"
-        : "") +
-      (data
-        ? "The following is the data that the user has provided via their custom data collection: " +
-          `\n\n${JSON.stringify(data)}` +
-          `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
-          `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
-          `\n\nCollection/Store Description: ${dataCollectionInfo?.description}` +
-          `\n\n*** THIS IS THE END OF THE DATA COLLECTION ***`
-        : ""),
-  };
+  const newSysPrompt = await returnSystemPrompt(
+    prompt,
+    dataCollectionInfo,
+    reasoning || null,
+    data
+  );
 
   // Truncate messages to fit within token limits while preserving max output tokens
   const truncatedMessages = truncateMessages(newMessages, maxOutputTokens);

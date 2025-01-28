@@ -4,6 +4,7 @@ import { BrowserWindow } from "electron";
 import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
 import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
 
 export async function AnthropicProvider(
   messages: Message[],
@@ -120,7 +121,7 @@ export async function AnthropicProvider(
     return reasoningContent;
   }
 
-  let reasoning;
+  let reasoning: string | undefined;
   if (userSettings.cot) {
     // Do reasoning first
     reasoning = await chainOfThought(
@@ -139,25 +140,12 @@ export async function AnthropicProvider(
     }
   }
 
-  const sysPrompt: ChatCompletionMessageParam = {
-    role: "system",
-    content:
-      "When asked about previous messages, only consider messages marked as '(most recent message)' as the last message. " +
-      prompt +
-      (reasoning
-        ? "\n\nUse this reasoning process to guide your response: " +
-          reasoning +
-          "\n\n"
-        : "") +
-      (data
-        ? "The following is the data that the user has provided via their custom data collection: " +
-          `\n\n${JSON.stringify(data)}` +
-          `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
-          `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
-          `\n\nCollection/Store Description: ${dataCollectionInfo?.description}`
-        : ""),
-  };
-
+  const sysPrompt = await returnSystemPrompt(
+    prompt,
+    dataCollectionInfo,
+    reasoning || null,
+    data
+  );
   // Truncate messages to fit within token limits
   const truncatedMessages = truncateMessages(newMessages, maxOutputTokens);
 

@@ -796,7 +796,7 @@ type Keys = {
   expiration: string | null;
 };
 interface DataContent {
-  top_k: string;
+  top_k: number;
   results: {
     content: string;
     metadata: {
@@ -903,4 +903,24 @@ interface DownloadProgressData {
   totalSize?: string;
   currentStep?: string;
   speed?: string;
+}
+
+/* Provider Response  & Chat Request Result */
+
+interface ProviderResponse {
+  id: bigint | number;
+  messages: Message[];
+  title: string;
+  content: string;
+  reasoning?: string;
+  aborted: boolean;
+}
+
+interface ChatRequestResult {
+  messages: Message[];
+  data_content?: string;
+  reasoning_content?: string;
+  id: bigint | number;
+  title: string;
+  error?: string;
 }

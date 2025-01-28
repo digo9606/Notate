@@ -3,6 +3,7 @@ import db from "../../db.js";
 import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
 import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
 
 export async function OllamaProvider(
   messages: Message[],
@@ -78,24 +79,12 @@ export async function OllamaProvider(
     }
   }
 
-  const newSysPrompt: ChatCompletionMessageParam = {
-    role: "system",
-    content:
-      prompt +
-      (reasoning
-        ? "\n\nUse this reasoning process to guide your response: " +
-          reasoning +
-          "\n\n"
-        : "") +
-      (data
-        ? "The following is the data that the user has provided via their custom data collection: " +
-          `\n\n${JSON.stringify(data)}` +
-          `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
-          `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
-          `\n\nCollection/Store Description: ${dataCollectionInfo?.description}` +
-          `\n\n*** THIS IS THE END OF THE DATA COLLECTION ***`
-        : ""),
-  };
+  const newSysPrompt = await returnSystemPrompt(
+    prompt,
+    dataCollectionInfo,
+    reasoning || null,
+    data
+  );
 
   const truncatedMessages = truncateMessages(newMessages, maxOutputTokens);
   truncatedMessages.unshift(newSysPrompt);
