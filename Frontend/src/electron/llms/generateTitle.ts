@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import db from "../db.js";
-import OpenAI from "openai";
+import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { providerInitialize } from "./llmHelpers/providerInit.js";
 
@@ -19,7 +20,7 @@ async function chatCompletionTitle(
   return llmTitleRequest.choices[0]?.message?.content?.trim();
 }
 
-const titleMessages = (input: string): OpenAI.ChatCompletionMessageParam[] => [
+const titleMessages = (input: string): ChatCompletionMessageParam[] => [
   {
     role: "system" as const,
     content:

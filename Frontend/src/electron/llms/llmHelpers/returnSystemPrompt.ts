@@ -1,4 +1,4 @@
-import type { ChatCompletionMessageParam } from "openai/resources/index.mjs";
+import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 export async function returnSystemPrompt(
   prompt: string,
