@@ -17,23 +17,20 @@ function initializeLocalOpenAI(apiKey: string) {
 }
 
 export async function LocalModelProvider(
-  messages: Message[],
-  activeUser: User,
-  userSettings: UserSettings,
-  prompt: string,
-  conversationId: bigint | number,
-  mainWindow: BrowserWindow | null = null,
-  currentTitle: string,
-  collectionId?: number,
-  data?: {
-    top_k: number;
-    results: {
-      content: string;
-      metadata: string;
-    }[];
-  },
-  signal?: AbortSignal
-) {
+  params: ProviderInputParams
+): Promise<ProviderResponse> {
+  const {
+    messages,
+    activeUser,
+    userSettings,
+    prompt,
+    conversationId,
+    mainWindow,
+    currentTitle,
+    collectionId,
+    data,
+    signal,
+  } = params;
   const apiKey = await getToken({ userId: activeUser.id.toString() });
   if (!openai) {
     initializeLocalOpenAI(apiKey);

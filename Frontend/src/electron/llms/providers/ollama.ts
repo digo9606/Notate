@@ -6,23 +6,19 @@ import type { ChatCompletionMessageParam } from "openai/resources/chat/completio
 import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
 
 export async function OllamaProvider(
-  messages: Message[],
-  activeUser: User,
-  userSettings: UserSettings,
-  prompt: string,
-  conversationId: bigint | number,
-  mainWindow: BrowserWindow | null = null,
-  currentTitle: string,
-  collectionId?: number,
-  data?: {
-    top_k: number;
-    results: {
-      content: string;
-      metadata: string;
-    }[];
-  },
-  signal?: AbortSignal
-) {
+  params: ProviderInputParams
+): Promise<ProviderResponse> {
+  const {
+    messages,
+    userSettings,
+    prompt,
+    conversationId,
+    mainWindow,
+    currentTitle,
+    collectionId,
+    data,
+    signal,
+  } = params;
   let dataCollectionInfo;
   if (collectionId) {
     dataCollectionInfo = db.getCollection(collectionId) as Collection;

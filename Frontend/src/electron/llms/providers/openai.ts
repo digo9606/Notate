@@ -13,23 +13,20 @@ async function initializeOpenAI(apiKey: string) {
 }
 
 export async function OpenAIProvider(
-  messages: Message[],
-  activeUser: User,
-  userSettings: UserSettings,
-  prompt: string,
-  conversationId: bigint | number,
-  mainWindow: BrowserWindow | null = null,
-  currentTitle: string,
-  collectionId?: number,
-  data?: {
-    top_k: number;
-    results: {
-      content: string;
-      metadata: string;
-    }[];
-  } | null,
-  signal?: AbortSignal
-) {
+  params: ProviderInputParams
+): Promise<ProviderResponse> {
+  const {
+    messages,
+    activeUser,
+    userSettings,
+    prompt,
+    conversationId,
+    mainWindow,
+    currentTitle,
+    collectionId,
+    data,
+    signal,
+  } = params;
   const apiKey = db.getApiKey(activeUser.id, "openai");
 
   if (!apiKey) {

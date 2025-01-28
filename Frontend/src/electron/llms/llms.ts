@@ -70,18 +70,18 @@ export async function chatRequest(
       throw new Error("Conversation ID is required");
     }
 
-    const result = (await provider(
+    const result = (await provider({
       messages,
       activeUser,
       userSettings,
       prompt,
       conversationId,
       mainWindow,
-      title,
-      collectionId ? Number(collectionId) : undefined,
-      data ? data : undefined,
-      signal
-    )) as ProviderResponse;
+      currentTitle: title,
+      collectionId: collectionId ? Number(collectionId) : undefined,
+      data: data ? data : undefined,
+      signal,
+    })) as ProviderResponse;
 
     try {
       await addUserMessage(activeUser, conversationId, messages);

@@ -112,6 +112,15 @@ interface TranscribeAudioOutput {
   error?: string;
 }
 
+interface Model {
+  name: string;
+  type: string;
+  model_location: string;
+  modified_at: string;
+  size: number;
+  digest: string;
+}
+
 interface CustomModel {
   id: number;
   user_id: number;
@@ -366,15 +375,6 @@ interface EventPayloadMapping {
   getCustomModels: {
     userId: number;
   };
-}
-
-interface Model {
-  name: string;
-  type: string;
-  model_location: string;
-  modified_at: string;
-  size: number;
-  digest: string;
 }
 
 interface Window {
@@ -923,4 +923,23 @@ interface ChatRequestResult {
   id: bigint | number;
   title: string;
   error?: string;
+}
+
+interface ProviderInputParams {
+  messages: Message[];
+  activeUser: User;
+  userSettings: UserSettings;
+  prompt: string;
+  conversationId: bigint | number;
+  mainWindow: BrowserWindow | null;
+  currentTitle: string;
+  collectionId?: number;
+  data?: {
+    top_k: number;
+    results: {
+      content: string;
+      metadata: string;
+    }[];
+  };
+  signal?: AbortSignal;
 }

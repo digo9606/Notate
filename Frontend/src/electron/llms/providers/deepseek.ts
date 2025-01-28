@@ -25,23 +25,20 @@ async function initializeDeepSeek(apiKey: string) {
 }
 
 export async function DeepSeekProvider(
-  messages: Message[],
-  activeUser: User,
-  userSettings: UserSettings,
-  prompt: string,
-  conversationId: bigint | number,
-  mainWindow: BrowserWindow | null = null,
-  currentTitle: string,
-  collectionId?: number,
-  data?: {
-    top_k: number;
-    results: {
-      content: string;
-      metadata: string;
-    }[];
-  } | null,
-  signal?: AbortSignal
-) {
+  params: ProviderInputParams
+): Promise<ProviderResponse> {
+  const {
+    messages,
+    activeUser,
+    userSettings,
+    prompt,
+    conversationId,
+    mainWindow,
+    currentTitle,
+    collectionId,
+    data,
+    signal,
+  } = params;
   const apiKey = db.getApiKey(activeUser.id, "deepseek");
 
   if (!apiKey) {
