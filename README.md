@@ -162,4 +162,3 @@ _MacOS_
 - [ ] Advanced Ingestion Settings
 - [ ] Additional Document Types
 - [ ] Output to Speech
-- [ ] Custom API Endpoints
