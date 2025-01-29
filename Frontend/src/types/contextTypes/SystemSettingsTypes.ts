@@ -1,6 +1,8 @@
 import { SystemSpecs } from "@/data/sysSpecs";
 
 export interface SysSettingsContextType {
+  ollamaInit: boolean;
+  setOllamaInit: React.Dispatch<React.SetStateAction<boolean>>;
   isOllamaRunning: boolean;
   setIsOllamaRunning: (isOllamaRunning: boolean) => void;
   systemSpecs: SystemSpecs;

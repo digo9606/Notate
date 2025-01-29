@@ -21,6 +21,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
   const [settings, setSettings] = useState<UserSettings>({});
   const [users, setUsers] = useState<User[]>([]);
+  const [ollamaInit, setOllamaInit] = useState<boolean>(false);
   const progressRef = useRef<HTMLDivElement>(null);
   const [isRunningModel, setIsRunningModel] = useState(false);
   const [isFFMPEGInstalled, setisFFMPEGInstalled] = useState(false);
@@ -311,6 +312,8 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         setLocalModel,
         fetchSettings,
         handleOllamaIntegration,
+        ollamaInit,
+        setOllamaInit,
       }}
     >
       {children}
