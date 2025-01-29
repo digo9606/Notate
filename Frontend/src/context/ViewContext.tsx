@@ -1,7 +1,7 @@
 import React, { createContext, useState } from "react";
-import { ViewContextType } from "@/types/contextTypes/UserViewTypes";
+import { UserViewContextType } from "@/types/contextTypes/UserViewTypes";
 
-const ViewContext = createContext<ViewContextType | undefined>(undefined);
+const ViewContext = createContext<UserViewContextType | undefined>(undefined);
 
 const ViewProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
