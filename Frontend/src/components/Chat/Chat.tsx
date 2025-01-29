@@ -7,6 +7,7 @@ import { ChatHeader } from "./ChatComponents/ChatHeader";
 import { ChatMessagesArea } from "./ChatComponents/ChatMessagesArea";
 import { ChatInput } from "./ChatComponents/ChatInput";
 import { LoadingIndicator } from "./ChatComponents/LoadingIndicator";
+
 export default function Chat() {
   const {
     scrollAreaRef,

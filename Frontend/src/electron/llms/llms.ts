@@ -26,7 +26,7 @@ export async function chatRequest(
     if ((!title && conversationId) || (title === undefined && conversationId)) {
       title = await db.getUserConversationTitle(conversationId, activeUser.id);
     }
-    
+
     if (!conversationId) {
       const { cId, title: newTitle } = await ifNewConversation(
         messages,
@@ -55,6 +55,7 @@ export async function chatRequest(
       providersMap[
         userSettings?.provider?.toLowerCase() as keyof typeof providersMap
       ];
+
     if (!provider) {
       throw new Error(
         "No AI provider selected. Please open Settings (top right) make sure you add an API key and select a provider under the 'AI Provider' tab."
@@ -97,7 +98,9 @@ export async function chatRequest(
     } catch (error) {
       log.error("Error adding messages:", error);
     }
+
     log.info(`Returning result`);
+
     return {
       ...result,
       messages: result.messages.map((msg) => ({
@@ -111,17 +114,37 @@ export async function chatRequest(
     };
   } catch (error) {
     log.error("Error in chat request:", error);
+    
+    let errorMessage = "An unexpected error occurred.";
+    
+    if (error instanceof Error) {
+      // Handle API key related errors
+      if (error.message.includes("API key") || error.message.includes("provider")) {
+        errorMessage = "Please add an API key and select an AI Model in Settings.";
+      }
+      // Handle aborted requests
+      else if (error.message.includes("aborted")) {
+        errorMessage = "The request was cancelled.";
+      }
+      // Use the actual error message for other cases
+      else {
+        errorMessage = error.message;
+      }
+    }
+
     const newMessage = {
       role: "assistant",
-      content: "Please add an API key and select an AI Model in Settings.",
+      content: errorMessage,
       timestamp: new Date(),
       data_content: undefined,
     } as Message;
+
     log.info(`New message: ${newMessage}`);
+
     return {
       id: -1,
       messages: [...messages, newMessage],
-      title: "Need API Key",
+      title: "Error",
     };
   }
 }

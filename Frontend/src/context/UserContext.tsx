@@ -69,6 +69,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         window.electron.abortChatRequest(currentRequestId);
         setTimeout(() => {
           setStreamingMessage("");
+          setStreamingMessageReasoning("");
           resolve();
         }, 100);
       } else {
@@ -84,6 +85,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsLoading(false);
     setStreamingMessage("");
     setActiveConversation(null);
+    setStreamingMessageReasoning("");
   }, [cancelRequest]);
 
   const fetchOpenRouterModels = useCallback(async () => {

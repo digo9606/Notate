@@ -629,7 +629,7 @@ class DatabaseService {
   }
   getFilesInCollection(userId: number, collectionId: number) {
     return this.db
-      .prepare("SELECT files FROM collections WHERE id = ? AND user_id = ?")
+      .prepare("SELECT files FROM collections WHERE id = ? AND user_id =?")
       .get(collectionId, userId) as { files: string };
   }
   getUserCollections(userId: number) {
@@ -680,7 +680,15 @@ class DatabaseService {
 
   getUserConversations(userId: number) {
     return this.db
-      .prepare("SELECT * FROM conversations WHERE user_id = ?")
+      .prepare(
+        `
+        SELECT DISTINCT c.* 
+        FROM conversations c
+        INNER JOIN messages m ON c.id = m.conversation_id
+        WHERE c.user_id = ?
+        ORDER BY c.created_at DESC
+      `
+      )
       .all(userId);
   }
 
