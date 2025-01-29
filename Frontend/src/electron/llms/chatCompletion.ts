@@ -1,45 +1,36 @@
 import OpenAI from "openai";
-import db from "../../db.js";
-import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
-import { truncateMessages } from "../llmHelpers/truncateMessages.js";
-import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
-import { prepMessages } from "../llmHelpers/prepMessages.js";
-import { openAiChainOfThought } from "../chainOfThought/openAiChainOfThought.js";
-import { providerInitialize } from "../llmHelpers/providerInit.js";
+import db from "../db.js";
+import { openAiChainOfThought } from "./chainOfThought/openAiChainOfThought.js";
+import { prepMessages } from "./llmHelpers/prepMessages.js";
+import { returnSystemPrompt } from "./llmHelpers/returnSystemPrompt.js";
+import { sendMessageChunk } from "./llmHelpers/sendMessageChunk.js";
+import { truncateMessages } from "./llmHelpers/truncateMessages.js";
 
-interface DeepSeekDelta
-  extends OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta {
-  reasoning_content?: string;
-}
-
-export async function DeepSeekProvider(
+export async function chatCompletion(
+  openai: OpenAI,
   params: ProviderInputParams
 ): Promise<ProviderResponse> {
   const {
     messages,
-    activeUser,
     userSettings,
-    prompt,
-    conversationId,
-    mainWindow,
-    currentTitle,
     collectionId,
     data,
     signal,
+    conversationId,
+    currentTitle,
+    prompt,
+    mainWindow,
   } = params;
-
-  const openai = await providerInitialize("deepseek", activeUser);
-
   const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
+
   const newMessages = await prepMessages(messages);
   let dataCollectionInfo;
   if (collectionId) {
-    dataCollectionInfo = db.getCollection(collectionId) as Collection;
+    dataCollectionInfo = db.getCollection(Number(collectionId)) as Collection;
   }
 
   let reasoning;
-  // Only do manual CoT if not using deepseek-reasoner
-  if (userSettings.cot && !userSettings.model?.includes("deepseek-reasoner")) {
+  if (userSettings.cot) {
     // Do reasoning first
     reasoning = await openAiChainOfThought(
       openai,
@@ -57,24 +48,23 @@ export async function DeepSeekProvider(
       mainWindow.webContents.send("reasoningEnd");
     }
   }
+
   const newSysPrompt = await returnSystemPrompt(
     prompt,
     dataCollectionInfo,
     reasoning || null,
     data
   );
-
   // Truncate messages to fit within token limits while preserving max output tokens
   const truncatedMessages = truncateMessages(newMessages, maxOutputTokens);
   truncatedMessages.unshift(newSysPrompt);
-
   const stream = await openai.chat.completions.create(
     {
       model: userSettings.model as string,
       messages: truncatedMessages,
       stream: true,
       temperature: Number(userSettings.temperature),
-      max_tokens: maxOutputTokens,
+      max_tokens: Number(maxOutputTokens),
     },
     { signal }
   );
@@ -86,24 +76,14 @@ export async function DeepSeekProvider(
     data_content: data ? JSON.stringify(data) : undefined,
   };
 
-  let reasoningContent = "";
-
   try {
     for await (const chunk of stream) {
       if (signal?.aborted) {
         throw new Error("AbortError");
       }
-
-      const delta = chunk.choices[0]?.delta as DeepSeekDelta;
-
-      if (delta?.reasoning_content) {
-        reasoningContent += delta.reasoning_content;
-        sendMessageChunk("[REASONING]:" + delta.reasoning_content, mainWindow);
-      } else if (delta?.content) {
-        const content = delta.content;
-        newMessage.content += content;
-        sendMessageChunk(content, mainWindow);
-      }
+      const content = chunk.choices[0]?.delta?.content || "";
+      newMessage.content += content;
+      sendMessageChunk(content, mainWindow);
     }
 
     if (mainWindow) {
@@ -112,8 +92,8 @@ export async function DeepSeekProvider(
 
     return {
       id: conversationId,
-      messages: [...messages, { ...newMessage, content: newMessage.content }],
-      reasoning: reasoningContent || reasoning, // Use either deepseek-reasoner content or manual CoT reasoning
+      messages: [...messages, newMessage],
+      reasoning: reasoning || "",
       title: currentTitle,
       content: newMessage.content,
       aborted: false,
@@ -126,7 +106,7 @@ export async function DeepSeekProvider(
       return {
         id: conversationId,
         messages: messages,
-        reasoning: reasoningContent,
+        reasoning: reasoning || "",
         title: currentTitle,
         content: "",
         aborted: true,

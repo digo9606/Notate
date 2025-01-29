@@ -1,75 +1,7 @@
 import React, { createContext, useRef, useState } from "react";
 import { toast } from "@/hooks/use-toast";
-
-interface SysSettingsContextType {
-  isOllamaRunning: boolean;
-  setIsOllamaRunning: (isOllamaRunning: boolean) => void;
-  systemSpecs: {
-    cpu: string;
-    vram: string;
-    GPU_Manufacturer?: string;
-  };
-  setSystemSpecs: (systemSpecs: {
-    cpu: string;
-    vram: string;
-    GPU_Manufacturer?: string;
-  }) => void;
-  settingsOpen: boolean;
-  setSettingsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  settings: UserSettings;
-  setSettings: React.Dispatch<React.SetStateAction<UserSettings>>;
-  platform: "win32" | "darwin" | "linux" | null;
-  setPlatform: React.Dispatch<
-    React.SetStateAction<"win32" | "darwin" | "linux" | null>
-  >;
-  sourceType: "local" | "external";
-  setSourceType: React.Dispatch<React.SetStateAction<"local" | "external">>;
-  users: User[];
-  setUsers: React.Dispatch<React.SetStateAction<User[]>>;
-  totalVRAM: number;
-  localModels: Model[];
-  setLocalModels: React.Dispatch<React.SetStateAction<Model[]>>;
-  isRunningModel: boolean;
-  setIsRunningModel: React.Dispatch<React.SetStateAction<boolean>>;
-  isFFMPEGInstalled: boolean;
-  setisFFMPEGInstalled: React.Dispatch<React.SetStateAction<boolean>>;
-  localModalLoading: boolean;
-  setLocalModalLoading: React.Dispatch<React.SetStateAction<boolean>>;
-  progressRef: React.RefObject<HTMLDivElement>;
-  progressLocalOutput: string[];
-  setProgressLocalOutput: React.Dispatch<React.SetStateAction<string[]>>;
-  handleRunOllama: (model: string, activeUser: User) => Promise<void>;
-  isMaximized: boolean;
-  setIsMaximized: React.Dispatch<React.SetStateAction<boolean>>;
-  checkFFMPEG: () => Promise<void>;
-  fetchLocalModels: () => Promise<void>;
-  fetchSystemSpecs: () => Promise<void>;
-  checkOllama: () => Promise<void>;
-  maxTokens: number;
-  setMaxTokens: React.Dispatch<React.SetStateAction<number>>;
-  localModelDir: string;
-  setLocalModelDir: React.Dispatch<React.SetStateAction<string>>;
-  loadModelsFromDirectory: (dirPath: string) => Promise<void>;
-  fetchSettings: (activeUser: User) => Promise<void>;
-  handleRunModel: (
-    model_name: string,
-    model_location: string,
-    model_type: string,
-    user_id: string
-  ) => Promise<void>;
-  ollamaModels: OllamaModel[];
-  setOllamaModels: React.Dispatch<React.SetStateAction<OllamaModel[]>>;
-  selectedModel: Model | null;
-  setSelectedModel: React.Dispatch<React.SetStateAction<Model | null>>;
-  selectedProvider: string;
-  setSelectedProvider: React.Dispatch<React.SetStateAction<string>>;
-  localModel: string;
-  setLocalModel: React.Dispatch<React.SetStateAction<string>>;
-  embeddingModels: { name: string }[];
-  setEmbeddingModels: React.Dispatch<React.SetStateAction<{ name: string }[]>>;
-  fetchEmbeddingModels: () => Promise<void>;
-  handleOllamaIntegration: (activeUser: User) => Promise<void>;
-}
+import { SysSettingsContextType } from "@/types/contextTypes/SystemSettingsTypes";
+import { SystemSpecs } from "@/data/sysSpecs";
 
 const SysSettingsContext = createContext<SysSettingsContextType | undefined>(
   undefined
@@ -89,6 +21,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
   const [settings, setSettings] = useState<UserSettings>({});
   const [users, setUsers] = useState<User[]>([]);
+  const [ollamaInit, setOllamaInit] = useState<boolean>(false);
   const progressRef = useRef<HTMLDivElement>(null);
   const [isRunningModel, setIsRunningModel] = useState(false);
   const [isFFMPEGInstalled, setisFFMPEGInstalled] = useState(false);
@@ -100,15 +33,8 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [platform, setPlatform] = useState<"win32" | "darwin" | "linux" | null>(
     null
   );
-  const [embeddingModels, setEmbeddingModels] = useState<{ name: string }[]>(
-    []
-  );
 
-  const [systemSpecs, setSystemSpecs] = useState<{
-    cpu: string;
-    vram: string;
-    GPU_Manufacturer?: string;
-  }>({
+  const [systemSpecs, setSystemSpecs] = useState<SystemSpecs>({
     cpu: "Unknown",
     vram: "Unknown",
     GPU_Manufacturer: "Unknown",
@@ -129,21 +55,6 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (error) {
       console.error("Error checking FFMPEG:", error);
       setisFFMPEGInstalled(false);
-    }
-  };
-
-  const fetchSystemSpecs = async () => {
-    try {
-      const { cpu, vram, GPU_Manufacturer } =
-        await window.electron.systemSpecs();
-      setSystemSpecs({ cpu, vram, GPU_Manufacturer });
-    } catch (error) {
-      console.error("Error fetching system specs:", error);
-      setSystemSpecs({
-        cpu: "Unknown",
-        vram: "Unknown",
-        GPU_Manufacturer: "Unknown",
-      });
     }
   };
 
@@ -350,18 +261,6 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const fetchEmbeddingModels = async () => {
-    try {
-      const result = await window.electron.getEmbeddingsModels();
-      if (result && result.models) {
-        setEmbeddingModels(result.models);
-      }
-    } catch (error) {
-      console.error("Error fetching embedding models:", error);
-      setEmbeddingModels([]);
-    }
-  };
-
   return (
     <SysSettingsContext.Provider
       value={{
@@ -396,7 +295,6 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsMaximized,
         checkFFMPEG,
         fetchLocalModels,
-        fetchSystemSpecs,
         checkOllama,
         maxTokens,
         setMaxTokens,
@@ -412,11 +310,10 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         setSelectedProvider,
         localModel,
         setLocalModel,
-        embeddingModels,
-        setEmbeddingModels,
-        fetchEmbeddingModels,
         fetchSettings,
         handleOllamaIntegration,
+        ollamaInit,
+        setOllamaInit,
       }}
     >
       {children}

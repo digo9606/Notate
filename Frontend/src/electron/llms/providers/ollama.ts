@@ -3,25 +3,23 @@ import db from "../../db.js";
 import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
 import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
+import { prepMessages } from "../llmHelpers/prepMessages.js";
 
 export async function OllamaProvider(
-  messages: Message[],
-  activeUser: User,
-  userSettings: UserSettings,
-  prompt: string,
-  conversationId: bigint | number,
-  mainWindow: BrowserWindow | null = null,
-  currentTitle: string,
-  collectionId?: number,
-  data?: {
-    top_k: number;
-    results: {
-      content: string;
-      metadata: string;
-    }[];
-  },
-  signal?: AbortSignal
-) {
+  params: ProviderInputParams
+): Promise<ProviderResponse> {
+  const {
+    messages,
+    userSettings,
+    prompt,
+    conversationId,
+    mainWindow,
+    currentTitle,
+    collectionId,
+    data,
+    signal,
+  } = params;
   let dataCollectionInfo;
   if (collectionId) {
     dataCollectionInfo = db.getCollection(collectionId) as Collection;
@@ -29,35 +27,7 @@ export async function OllamaProvider(
 
   // Truncate messages to fit within token limits
   const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
-
-  // Sort messages by timestamp to ensure proper chronological order
-  const sortedMessages = [...messages].sort((a, b) => {
-    const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-    const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-    return timeA - timeB; // Oldest first
-  });
-
-  // Add timestamp context to messages
-  const newMessages = sortedMessages.map((msg, index) => {
-    const isLastMessage = index === sortedMessages.length - 1;
-    const timeStr = msg.timestamp
-      ? new Date(msg.timestamp).toLocaleTimeString()
-      : "";
-    let content = msg.content;
-
-    // Only add context to user messages
-    if (msg.role === "user") {
-      content = `[${timeStr}] ${content}${
-        isLastMessage ? " (most recent message)" : ""
-      }`;
-    }
-
-    return {
-      role: msg.role as "user" | "assistant" | "system",
-      content: content,
-    };
-  }) as ChatCompletionMessageParam[];
-
+  const newMessages = await prepMessages(messages);
   let reasoning;
   if (userSettings.cot) {
     // Do reasoning first
@@ -78,24 +48,12 @@ export async function OllamaProvider(
     }
   }
 
-  const newSysPrompt: ChatCompletionMessageParam = {
-    role: "system",
-    content:
-      prompt +
-      (reasoning
-        ? "\n\nUse this reasoning process to guide your response: " +
-          reasoning +
-          "\n\n"
-        : "") +
-      (data
-        ? "The following is the data that the user has provided via their custom data collection: " +
-          `\n\n${JSON.stringify(data)}` +
-          `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
-          `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
-          `\n\nCollection/Store Description: ${dataCollectionInfo?.description}` +
-          `\n\n*** THIS IS THE END OF THE DATA COLLECTION ***`
-        : ""),
-  };
+  const newSysPrompt = await returnSystemPrompt(
+    prompt,
+    dataCollectionInfo,
+    reasoning || null,
+    data
+  );
 
   const truncatedMessages = truncateMessages(newMessages, maxOutputTokens);
   truncatedMessages.unshift(newSysPrompt);

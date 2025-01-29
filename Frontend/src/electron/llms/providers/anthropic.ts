@@ -4,36 +4,91 @@ import { BrowserWindow } from "electron";
 import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
 import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
+import { returnReasoningPrompt } from "../llmHelpers/returnReasoningPrompt.js";
 
-export async function AnthropicProvider(
-  messages: Message[],
-  activeUser: User,
+async function chainOfThought(
+  anthropic: Anthropic,
+  messages: ChatCompletionMessageParam[],
+  maxOutputTokens: number,
   userSettings: UserSettings,
-  prompt: string,
-  conversationId: bigint | number,
-  mainWindow: BrowserWindow | null = null,
-  currentTitle: string,
-  collectionId?: number,
-  data?: {
+  data: {
     top_k: number;
     results: {
       content: string;
       metadata: string;
     }[];
-  },
-  signal?: AbortSignal
-): Promise<{
-  id: bigint | number;
-  messages: Message[];
-  title: string;
-  content: string;
-  reasoning: string;
-  aborted: boolean;
-}> {
+  } | null,
+  dataCollectionInfo: Collection | null,
+  signal?: AbortSignal,
+  mainWindow: BrowserWindow | null = null
+) {
+  const reasoningPrompt = await returnReasoningPrompt(data, dataCollectionInfo);
+
+  const truncatedMessages = truncateMessages(
+    messages as Message[],
+    maxOutputTokens
+  );
+
+  const stream = await anthropic.messages.stream(
+    {
+      messages: truncatedMessages.map((msg) => ({
+        role: msg.role === "assistant" ? "assistant" : "user",
+        content: msg.content as string,
+      })),
+      system: reasoningPrompt,
+      model: userSettings.model as string,
+      max_tokens: Number(maxOutputTokens),
+      temperature: Number(userSettings.temperature),
+    },
+    { signal }
+  );
+
+  let reasoningContent = "";
+  try {
+    for await (const chunk of stream) {
+      if (signal?.aborted) {
+        throw new Error("AbortError");
+      }
+      if (chunk.type === "content_block_delta") {
+        const content = "text" in chunk.delta ? chunk.delta.text : "";
+        reasoningContent += content;
+        sendMessageChunk("[REASONING]: " + content, mainWindow);
+      }
+    }
+  } catch (error) {
+    if (
+      signal?.aborted ||
+      (error instanceof Error && error.message === "AbortError")
+    ) {
+      throw error;
+    }
+  }
+
+  return reasoningContent;
+}
+
+export async function AnthropicProvider(
+  params: ProviderInputParams
+): Promise<ProviderResponse> {
+  const {
+    messages,
+    activeUser,
+    userSettings,
+    prompt,
+    conversationId,
+    mainWindow,
+    currentTitle,
+    collectionId,
+    data,
+    signal,
+  } = params;
+
   const apiKey = db.getApiKey(activeUser.id, "anthropic");
   if (!apiKey) {
     throw new Error("Anthropic API key not found for the active user");
   }
+
   const anthropic = new Anthropic({ apiKey });
 
   const newMessage: Message = {
@@ -54,76 +109,12 @@ export async function AnthropicProvider(
   }
   const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
 
-  async function chainOfThought(
-    messages: ChatCompletionMessageParam[],
-    maxOutputTokens: number,
-    userSettings: UserSettings,
-    data: {
-      top_k: number;
-      results: {
-        content: string;
-        metadata: string;
-      }[];
-    } | null,
-    dataCollectionInfo: Collection | null,
-    signal?: AbortSignal,
-    mainWindow: BrowserWindow | null = null
-  ) {
-    const sysPrompt =
-      "You are a reasoning engine. Your task is to analyze the question and outline your step-by-step reasoning process for how to answer it. Keep your reasoning concise and focused on the key logical steps. Only return the reasoning process, do not provide the final answer." +
-      (data
-        ? "The following is the data that the user has provided via their custom data collection: " +
-          `\n\n${JSON.stringify(data)}` +
-          `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
-          `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
-          `\n\nCollection/Store Description: ${dataCollectionInfo?.description}` +
-          `\n\n*** THIS IS THE END OF THE DATA COLLECTION ***`
-        : "");
+  let reasoning: string | undefined;
 
-    const truncatedMessages = truncateMessages(messages, maxOutputTokens);
-
-    const stream = await anthropic.messages.stream(
-      {
-        messages: truncatedMessages.map((msg) => ({
-          role: msg.role === "assistant" ? "assistant" : "user",
-          content: msg.content as string,
-        })),
-        system: sysPrompt,
-        model: userSettings.model as string,
-        max_tokens: Number(maxOutputTokens),
-        temperature: Number(userSettings.temperature),
-      },
-      { signal }
-    );
-
-    let reasoningContent = "";
-    try {
-      for await (const chunk of stream) {
-        if (signal?.aborted) {
-          throw new Error("AbortError");
-        }
-        if (chunk.type === "content_block_delta") {
-          const content = "text" in chunk.delta ? chunk.delta.text : "";
-          reasoningContent += content;
-          sendMessageChunk("[REASONING]: " + content, mainWindow);
-        }
-      }
-    } catch (error) {
-      if (
-        signal?.aborted ||
-        (error instanceof Error && error.message === "AbortError")
-      ) {
-        throw error;
-      }
-    }
-
-    return reasoningContent;
-  }
-
-  let reasoning;
   if (userSettings.cot) {
     // Do reasoning first
     reasoning = await chainOfThought(
+      anthropic,
       newMessages,
       maxOutputTokens,
       userSettings,
@@ -139,25 +130,12 @@ export async function AnthropicProvider(
     }
   }
 
-  const sysPrompt: ChatCompletionMessageParam = {
-    role: "system",
-    content:
-      "When asked about previous messages, only consider messages marked as '(most recent message)' as the last message. " +
-      prompt +
-      (reasoning
-        ? "\n\nUse this reasoning process to guide your response: " +
-          reasoning +
-          "\n\n"
-        : "") +
-      (data
-        ? "The following is the data that the user has provided via their custom data collection: " +
-          `\n\n${JSON.stringify(data)}` +
-          `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
-          `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
-          `\n\nCollection/Store Description: ${dataCollectionInfo?.description}`
-        : ""),
-  };
-
+  const sysPrompt = await returnSystemPrompt(
+    prompt,
+    dataCollectionInfo,
+    reasoning || null,
+    data
+  );
   // Truncate messages to fit within token limits
   const truncatedMessages = truncateMessages(newMessages, maxOutputTokens);
 

@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { useSysSettings } from "@/context/useSysSettings";
 import { Progress } from "@/components/ui/progress";
+import { fetchEmbeddingModels } from "@/data/models";
 
 export default function AddLibrary() {
   const [newStore, setNewStore] = useState("");
@@ -54,8 +55,9 @@ export default function AddLibrary() {
     setFiles,
     setProgressMessage,
     progressMessage,
+    embeddingModels,
+    setEmbeddingModels,
   } = useLibrary();
-  const { embeddingModels, fetchEmbeddingModels } = useSysSettings();
 
   useEffect(() => {
     const handleProgress = (
@@ -346,7 +348,7 @@ export default function AddLibrary() {
                               modelId: customModel.trim(),
                               dirPath: modelsPath + "/" + customModel.trim(),
                             });
-                            await fetchEmbeddingModels();
+                            await fetchEmbeddingModels(setEmbeddingModels);
                             setLocalEmbeddingModel(customModel.trim());
                             setShowCustomInput(false);
                           } catch (error) {

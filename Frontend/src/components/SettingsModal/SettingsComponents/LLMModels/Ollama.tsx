@@ -20,6 +20,8 @@ export default function Ollama() {
     setOllamaModels,
     handleRunOllama,
     localModalLoading,
+    ollamaInit,
+    setOllamaInit,
   } = useSysSettings();
   const { activeUser } = useUser();
   const [selectedModel, setSelectedModel] = useState("");
@@ -41,6 +43,7 @@ export default function Ollama() {
         ollamaIntegration: 1,
       });
       setOllamaModels(filteredModels);
+      setOllamaInit(true);
     }
   };
 
@@ -64,18 +67,18 @@ export default function Ollama() {
 
               if (settings.ollamaIntegration === 1) {
                 await handleOllamaIntegration();
+                setOllamaInit(true);
               } else {
                 setOllamaModels([]);
+                setOllamaInit(false);
               }
             }
           }}
         >
-          {ollamaModels.length > 0
-            ? "Ollama Integration Enabled"
-            : "Integrate with Ollama"}
+          {ollamaInit ? "Ollama Integration Enabled" : "Integrate with Ollama"}
         </Button>
       </div>
-      {ollamaModels.length > 0 && (
+      {ollamaInit && (
         <div className="flex flex-row gap-2">
           <Select value={selectedModel} onValueChange={setSelectedModel}>
             <SelectTrigger className="w-full">
@@ -111,7 +114,7 @@ export default function Ollama() {
         </div>
       )}
       <div className="flex flex-col gap-2">
-        {ollamaModels.length > 0 && <AddOllamaModel />}
+        {ollamaInit && <AddOllamaModel />}
       </div>
     </div>
   );

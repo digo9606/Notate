@@ -4,7 +4,8 @@ import { useUser } from "@/context/useUser";
 import { useSysSettings } from "@/context/useSysSettings";
 import { initializeShiki } from "@/lib/shikiHightlight";
 import { useLibrary } from "@/context/useLibrary";
-
+import { fetchEmbeddingModels } from "@/data/models";
+import { fetchSystemSpecs } from "@/data/sysSpecs";
 export function useAppInitialization() {
   const { setActiveView } = useView();
   const {
@@ -31,16 +32,16 @@ export function useAppInitialization() {
     setOpenLibrary,
     setOpenAddToCollection,
     fetchCollections,
-    fetchEmbeddingModels,
+    setEmbeddingModels,
   } = useLibrary();
   const {
     setSettings,
     setUsers,
     setSettingsOpen,
     checkFFMPEG,
-    fetchSystemSpecs,
     setPlatform,
     fetchSettings,
+    setSystemSpecs,
   } = useSysSettings();
 
   // Initial setup that doesn't depend on activeUser
@@ -73,7 +74,7 @@ export function useAppInitialization() {
     getPlatform();
     checkFFMPEG();
     fetchUsers();
-    fetchSystemSpecs();
+    fetchSystemSpecs(setSystemSpecs);
   }, []);
 
   // User-dependent initialization
@@ -84,7 +85,7 @@ export function useAppInitialization() {
       getUserConversations();
       fetchApiKey();
       fetchPrompts();
-      fetchEmbeddingModels();
+      fetchEmbeddingModels(setEmbeddingModels);
       fetchDevAPIKeys();
       fetchCollections();
       fetchAzureModels();

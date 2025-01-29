@@ -9,6 +9,7 @@ import { BrowserWindow } from "electron";
 import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
 
 let genAI: GoogleGenerativeAI;
 
@@ -43,9 +44,6 @@ async function chainOfThought(
         `\n\nCollection/Store Description: ${dataCollectionInfo?.description}` +
         `\n\n*** THIS IS THE END OF THE DATA COLLECTION ***`
       : "");
-
-  // Add console.log for reasoning prompt
-  console.log("[REASONING PROMPT]:", JSON.stringify(sysPromptContent));
 
   const truncatedMessages = truncateMessages(messages, maxOutputTokens);
 
@@ -100,7 +98,6 @@ async function chainOfThought(
     if (content) {
       reasoningContent += content;
       sendMessageChunk("[REASONING]: " + content, mainWindow);
-      console.log("[REASONING]: " + content);
     }
   }
 
@@ -108,23 +105,20 @@ async function chainOfThought(
 }
 
 export async function GeminiProvider(
-  messages: Message[],
-  activeUser: User,
-  userSettings: UserSettings,
-  prompt: string,
-  conversationId: bigint | number,
-  mainWindow: BrowserWindow | null = null,
-  currentTitle: string,
-  collectionId?: number,
-  data?: {
-    top_k: number;
-    results: {
-      content: string;
-      metadata: string;
-    }[];
-  },
-  signal?: AbortSignal
-) {
+  params: ProviderInputParams
+): Promise<ProviderResponse> {
+  const {
+    messages,
+    activeUser,
+    userSettings,
+    prompt,
+    conversationId,
+    mainWindow,
+    currentTitle,
+    collectionId,
+    data,
+    signal,
+  } = params;
   const apiKey = db.getApiKey(activeUser.id, "gemini");
   if (!apiKey) {
     throw new Error("Gemini API key not found for the active user");
@@ -145,13 +139,20 @@ export async function GeminiProvider(
   });
 
   const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
-  const newMessages = messages.map((msg) => ({
+  const newMainMessages = messages.map((msg) => ({
+    role: msg.role as "user" | "assistant" | "system",
+    content: msg.content,
+  })) as ChatCompletionMessageParam[];
+  const newReasoningMessages = messages.map((msg) => ({
     role: msg.role as "user" | "assistant" | "system",
     content: msg.content,
   })) as ChatCompletionMessageParam[];
 
   // Truncate messages to fit within token limits
-  const truncatedMessages = truncateMessages(newMessages, maxOutputTokens);
+  const truncatedMessages = truncateMessages(
+    newReasoningMessages,
+    maxOutputTokens
+  );
 
   const temperature = Number(userSettings.temperature);
 
@@ -176,30 +177,18 @@ export async function GeminiProvider(
   }
 
   // Create new system prompt that includes both the original prompt and reasoning
-  const newSysPromptContent =
-    prompt +
-    (reasoning
-      ? "\n\nUse this reasoning process to guide your response but DONT COPY THE REASONING: " +
-        reasoning +
-        "\n\n"
-      : "") +
-    (data
-      ? "The following is the data that the user has provided via their custom data collection: " +
-        `\n\n${JSON.stringify(data)}` +
-        `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
-        `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
-        `\n\nCollection/Store Description: ${dataCollectionInfo?.description}` +
-        `\n\n*** THIS IS THE END OF THE DATA COLLECTION ***`
-      : "");
-
-  // Add console.log for main prompt
-  console.log("[MAIN PROMPT]:", JSON.stringify(newSysPromptContent));
+  const newSysPrompt = await returnSystemPrompt(
+    prompt,
+    dataCollectionInfo,
+    reasoning || null,
+    data
+  );
 
   // Create a fresh copy of messages for the main response
-  const mainMessages = [...truncatedMessages];
+  const mainMessages = [...newMainMessages];
   if (mainMessages.length > 0) {
     const firstMsg = mainMessages[0];
-    firstMsg.content = `${newSysPromptContent}\n\n${firstMsg.content}`;
+    firstMsg.content = `${newSysPrompt}\n\n${firstMsg.content}`;
   }
 
   const chat: ChatSession = model.startChat({
