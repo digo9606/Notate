@@ -122,8 +122,17 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     await cancelRequest();
     setMessages([]);
     setStreamingMessage("");
+    setStreamingMessageReasoning("");
+    setIsLoading(false);
     setActiveConversation(null);
-  }, [cancelRequest, setMessages, setStreamingMessage, setActiveConversation]);
+  }, [
+    cancelRequest,
+    setMessages,
+    setStreamingMessage,
+    setStreamingMessageReasoning,
+    setActiveConversation,
+    setIsLoading,
+  ]);
 
   // Memoize chat input related values
   const chatInputValue = useMemo<ChatInputContextType>(
