@@ -15,7 +15,7 @@ export default function Openrouter() {
   const handleSaveOpenRouterKey = async () => {
     if (!activeUser) return;
     console.log("Saving OpenRouter key");
-    await window.electron.addAPIKey(activeUser.id, "openrouter", openRouterKey);
+    await window.electron.addAPIKey(activeUser.id, openRouterKey, "openrouter");
     await window.electron.updateUserSettings({
       userId: activeUser.id,
       provider: "openrouter",

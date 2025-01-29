@@ -1,53 +1,7 @@
 import React, { createContext, useCallback, useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useUser } from "./useUser";
-
-interface LibraryContextType {
-  handleDeleteCollection: () => void;
-  files: string[];
-  setFiles: React.Dispatch<React.SetStateAction<string[]>>;
-  loadFiles: () => Promise<void>;
-  handleCancelEmbed: () => Promise<void>;
-  handleProgressData: (data: ProgressData) => void;
-  showProgress: boolean;
-  progressMessage: string;
-  progress: number;
-  openLibrary: boolean;
-  setOpenLibrary: React.Dispatch<React.SetStateAction<boolean>>;
-  openAddToCollection: boolean;
-  setOpenAddToCollection: React.Dispatch<React.SetStateAction<boolean>>;
-  fetchCollections: () => Promise<void>;
-  ingesting: boolean;
-  setIngesting: React.Dispatch<React.SetStateAction<boolean>>;
-  userCollections: Collection[];
-  setUserCollections: React.Dispatch<React.SetStateAction<Collection[]>>;
-  selectedCollection: Collection | null;
-  setSelectedCollection: React.Dispatch<
-    React.SetStateAction<Collection | null>
-  >;
-  embeddingModels: Model[];
-  fetchEmbeddingModels: () => Promise<void>;
-  showUpload: boolean;
-  setShowUpload: React.Dispatch<React.SetStateAction<boolean>>;
-  showAddStore: boolean;
-  setShowAddStore: React.Dispatch<React.SetStateAction<boolean>>;
-  fileExpanded: boolean;
-  setFileExpanded: React.Dispatch<React.SetStateAction<boolean>>;
-  link: string;
-  setLink: React.Dispatch<React.SetStateAction<string>>;
-  selectedFile: File | null;
-  setSelectedFile: React.Dispatch<React.SetStateAction<File | null>>;
-  selectedLinkType: "website" | "youtube" | "crawl" | "documentation" | null;
-  setSelectedLinkType: React.Dispatch<
-    React.SetStateAction<
-      "website" | "youtube" | "crawl" | "documentation" | null
-    >
-  >;
-  setProgressMessage: React.Dispatch<React.SetStateAction<string>>;
-  setProgress: React.Dispatch<React.SetStateAction<number>>;
-  setShowProgress: React.Dispatch<React.SetStateAction<boolean>>;
-  handleUpload: () => Promise<void>;
-}
+import { LibraryContextType } from "@/types/contextTypes/LibraryContextTypes";
 
 const LibraryContext = createContext<LibraryContextType | undefined>(undefined);
 
@@ -93,11 +47,6 @@ const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (error) {
       console.error("Error cancelling embed:", error);
     }
-  };
-
-  const fetchEmbeddingModels = async () => {
-    const models = await window.electron.getEmbeddingsModels();
-    setEmbeddingModels(models.models);
   };
 
   const handleDeleteCollection = () => {
@@ -363,11 +312,11 @@ const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({
         setShowUpload,
         setProgressMessage,
         setProgress,
+        setEmbeddingModels,
         setShowProgress,
         handleUpload,
         handleDeleteCollection,
         embeddingModels,
-        fetchEmbeddingModels,
       }}
     >
       {children}

@@ -7,63 +7,7 @@ import React, {
   useMemo,
 } from "react";
 import { ChatInputContext, ChatInputContextType } from "./ChatInputContext";
-
-interface UserContextType {
-  title: string | null;
-  setTitle: React.Dispatch<React.SetStateAction<string | null>>;
-  activeUser: User | null;
-  setActiveUser: React.Dispatch<React.SetStateAction<User | null>>;
-  apiKeys: ApiKey[];
-  setApiKeys: React.Dispatch<React.SetStateAction<ApiKey[]>>;
-  activeConversation: number | null;
-  setActiveConversation: React.Dispatch<React.SetStateAction<number | null>>;
-  conversations: Conversation[];
-  setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
-  prompts: UserPrompts[];
-  setPrompts: React.Dispatch<React.SetStateAction<UserPrompts[]>>;
-  streamingMessage: string;
-  setStreamingMessage: React.Dispatch<React.SetStateAction<string>>;
-  filteredConversations: Conversation[];
-  setFilteredConversations: React.Dispatch<
-    React.SetStateAction<Conversation[]>
-  >;
-  isSearchOpen: boolean;
-  setIsSearchOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  searchTerm: string;
-  setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
-  searchRef: React.RefObject<HTMLDivElement>;
-  messages: Message[];
-  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
-  newConversation: boolean;
-  setNewConversation: React.Dispatch<React.SetStateAction<boolean>>;
-  handleResetChat: () => void;
-  devAPIKeys: Keys[];
-  setDevAPIKeys: React.Dispatch<React.SetStateAction<Keys[]>>;
-  fetchDevAPIKeys: () => Promise<void>;
-  getUserConversations: () => Promise<void>;
-  alertForUser: boolean;
-  setAlertForUser: React.Dispatch<React.SetStateAction<boolean>>;
-  fetchApiKey: () => Promise<void>;
-  fetchPrompts: () => Promise<void>;
-  error: string | null;
-  setError: React.Dispatch<React.SetStateAction<string | null>>;
-  currentRequestId: number | null;
-  setCurrentRequestId: React.Dispatch<React.SetStateAction<number | null>>;
-  fetchMessages: () => Promise<void>;
-  openRouterModels: OpenRouterModel[];
-  setOpenRouterModels: React.Dispatch<React.SetStateAction<OpenRouterModel[]>>;
-  apiKeyInput: string;
-  setApiKeyInput: React.Dispatch<React.SetStateAction<string>>;
-  azureModels: AzureModel[];
-  setAzureModels: React.Dispatch<React.SetStateAction<AzureModel[]>>;
-  customModels: CustomModel[];
-  setCustomModels: React.Dispatch<React.SetStateAction<CustomModel[]>>;
-  fetchOpenRouterModels: () => Promise<void>;
-  fetchAzureModels: () => Promise<void>;
-  fetchCustomModels: () => Promise<void>;
-  streamingMessageReasoning: string | null;
-  setStreamingMessageReasoning: React.Dispatch<React.SetStateAction<string>>;
-}
+import { UserContextType } from "@/types/contextTypes/UserContextType";
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
@@ -118,6 +62,30 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  const cancelRequest = useCallback(() => {
+    return new Promise<void>((resolve) => {
+      if (currentRequestId) {
+        window.electron.abortChatRequest(currentRequestId);
+        setTimeout(() => {
+          setStreamingMessage("");
+          resolve();
+        }, 100);
+      } else {
+        resolve();
+      }
+    });
+  }, [currentRequestId]);
+
+  const handleResetChat = useCallback(async () => {
+    await cancelRequest();
+    setMessages([]);
+    setInput("");
+    setIsLoading(false);
+    setStreamingMessage("");
+    setActiveConversation(null);
+  }, [cancelRequest]);
+
   const fetchOpenRouterModels = useCallback(async () => {
     if (activeUser) {
       const models = await window.electron.getOpenRouterModels(activeUser.id);
@@ -145,6 +113,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       setCustomModels(models.api);
     }
   }, [activeUser]);
+
   const fetchMessages = useCallback(async () => {
     if (activeConversation) {
       const conversation = conversations.find(
@@ -160,29 +129,6 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
   }, [activeConversation, conversations, activeUser]);
-
-  const cancelRequest = useCallback(() => {
-    return new Promise<void>((resolve) => {
-      if (currentRequestId) {
-        window.electron.abortChatRequest(currentRequestId);
-        setTimeout(() => {
-          setStreamingMessage("");
-          resolve();
-        }, 100);
-      } else {
-        resolve();
-      }
-    });
-  }, [currentRequestId]);
-
-  const handleResetChat = useCallback(async () => {
-    await cancelRequest();
-    setMessages([]);
-    setInput("");
-    setIsLoading(false);
-    setStreamingMessage("");
-    setActiveConversation(null);
-  }, [cancelRequest]);
 
   const getUserConversations = useCallback(async () => {
     if (activeUser) {

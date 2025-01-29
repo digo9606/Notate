@@ -1,9 +1,6 @@
 import React, { createContext, useState } from "react";
+import { ViewContextType } from "@/types/contextTypes/UserViewTypes";
 
-interface ViewContextType {
-  activeView: View;
-  setActiveView: React.Dispatch<React.SetStateAction<View>>;
-}
 const ViewContext = createContext<ViewContextType | undefined>(undefined);
 
 const ViewProvider: React.FC<{ children: React.ReactNode }> = ({
