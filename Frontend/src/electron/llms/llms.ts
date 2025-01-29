@@ -26,6 +26,7 @@ export async function chatRequest(
     if ((!title && conversationId) || (title === undefined && conversationId)) {
       title = await db.getUserConversationTitle(conversationId, activeUser.id);
     }
+    
     if (!conversationId) {
       const { cId, title: newTitle } = await ifNewConversation(
         messages,
@@ -34,6 +35,7 @@ export async function chatRequest(
       conversationId = cId;
       title = newTitle;
     }
+
     if (collectionId) {
       const { collectionData } = await ifCollection(
         messages,
@@ -58,6 +60,7 @@ export async function chatRequest(
         "No AI provider selected. Please open Settings (top right) make sure you add an API key and select a provider under the 'AI Provider' tab."
       );
     }
+
     /* Fallback Settings last ditch effort to save from a failure */
     if (!title) {
       title = messages[messages.length - 1].content.substring(0, 20);

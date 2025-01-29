@@ -33,6 +33,7 @@ export async function openAiChainOfThought(
           `\n\n*** THIS IS THE END OF THE DATA COLLECTION ***`
         : ""),
   };
+  
   const truncatedMessages = truncateMessages(messages, maxOutputTokens);
   const newMessages = [sysPrompt, ...truncatedMessages];
   const reasoning = await provider.chat.completions.create(

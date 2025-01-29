@@ -17,6 +17,7 @@ import {
 import { useUser } from "@/context/useUser";
 import { toast } from "@/hooks/use-toast";
 import AddLocalModel from "./AddLocalModel";
+
 const formatDirectoryPath = (path: string | null) => {
   if (!path) return "Not set";
   const parts = path.split("/");
