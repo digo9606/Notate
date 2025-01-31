@@ -5,7 +5,7 @@
   "license": "MIT",
   "homepage": "https://github.com/CNTRLAI/notate",
   "private": true,
-  "version": "1.0.8",
+  "version": "1.0.9",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
