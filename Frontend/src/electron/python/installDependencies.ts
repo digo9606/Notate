@@ -14,33 +14,64 @@ export async function installDependencies(
     log.info("Pip upgraded successfully");
     updateLoadingStatus("Pip upgraded successfully", 14.5);
 
-    // Install NumPy with specific version
+    // Install wheel and setuptools first with specific versions and no dependencies
     await spawnAsync(venvPython, [
       "-m",
       "pip",
       "install",
-      "numpy==1.24.3",
       "--no-deps",
+      "wheel>=0.42.0",
+      "setuptools>=69.0.3",
+    ]);
+    log.info("Wheel and setuptools installed successfully");
+    updateLoadingStatus("Basic build dependencies installed successfully", 15);
+
+    // Install pkg_resources separately (needed for some builds)
+    await spawnAsync(venvPython, [
+      "-m",
+      "pip",
+      "install",
+      "--no-deps",
+      "setuptools>=69.0.3",
+      "packaging>=23.2",
+    ]);
+    log.info("Additional build dependencies installed successfully");
+
+    // Install NumPy with Python 3.12 compatible version
+    await spawnAsync(venvPython, [
+      "-m",
+      "pip",
+      "install",
+      "numpy>=1.26.0",  // This version supports Python 3.12
       "--no-cache-dir",
     ]);
-    log.info("NumPy 1.24.3 installed successfully");
-    updateLoadingStatus("NumPy 1.24.3 installed successfully", 15.5);
+    log.info("NumPy installed successfully");
+    updateLoadingStatus("NumPy installed successfully", 15.5);
 
-    // Install FastAPI and dependencies
+    // Install llvmlite and numba before whisper
+    await spawnAsync(venvPython, [
+      "-m",
+      "pip",
+      "install",
+      "--no-cache-dir",
+      "llvmlite>=0.42.0",  // Python 3.12 compatible version
+      "numba>=0.59.0",     // Python 3.12 compatible version
+    ]);
+    log.info("Numba and llvmlite installed successfully");
+
+    // Install FastAPI and dependencies with build isolation disabled
     const fastApiDeps =
       process.platform === "darwin"
         ? [
             "fastapi==0.115.6",
             "pydantic>=2.9.0,<3.0.0",
             "uvicorn[standard]==0.27.0",
-            "numpy==1.24.3",
             "PyJWT==2.10.1",
           ]
         : [
             "fastapi>=0.115.6",
             "pydantic>=2.5.0",
             "uvicorn[standard]>=0.27.0",
-            "numpy==1.24.3",
             "PyJWT==2.10.1",
           ];
 
@@ -52,10 +83,7 @@ export async function installDependencies(
       ...fastApiDeps,
     ]);
     log.info("FastAPI and dependencies installed successfully");
-    updateLoadingStatus(
-      "FastAPI and dependencies installed successfully",
-      16.5
-    );
+    updateLoadingStatus("FastAPI and dependencies installed successfully", 16.5);
 
     // Install PyTorch
     if (hasNvidiaGpu && cudaAvailable) {
