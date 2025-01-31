@@ -376,6 +376,27 @@ interface EventPayloadMapping {
   getCustomModels: {
     userId: number;
   };
+  ƒ;
+  getUserTools: {
+    userId: number;
+  };
+  addUserTool: {
+    userId: number;
+    toolId: number;
+    enabled: number;
+    docked: number;
+  };
+  removeUserTool: {
+    userId: number;
+    toolId: number;
+  };
+  updateUserTool: {
+    userId: number;
+    toolId: number;
+    enabled: number;
+    docked: number;
+  };
+  getTools: void;
 }
 
 interface Window {
@@ -787,6 +808,42 @@ interface Window {
       id: number;
     }>;
     deleteCustomAPI: (userId: number, id: number) => Promise<void>;
+    getUserTools: (userId: number) => Promise<{
+      tools: {
+        id: number;
+        name: string;
+        enabled: number;
+      }[];
+    }>;
+    addUserTool: (
+      userId: number,
+      toolId: number,
+      enabled: number,
+      docked: number
+    ) => Promise<{
+      result: number;
+    }>;
+    removeUserTool: (
+      userId: number,
+      toolId: number
+    ) => Promise<{
+      result: boolean;
+    }>;
+    getTools: () => Promise<{
+      tools: {
+        id: number;
+        name: string;
+        description: string;
+      }[];
+    }>;
+    updateUserTool: (
+      userId: number,
+      toolId: number,
+      enabled: number,
+      docked: number
+    ) => Promise<{
+      result: boolean;
+    }>;
   };
 }
 type Keys = {
@@ -943,4 +1000,17 @@ interface ProviderInputParams {
     }[];
   };
   signal?: AbortSignal;
+}
+
+interface Tool {
+  id: number;
+  name: string;
+  description: string;
+}
+
+interface UserTool {
+  id: number;
+  name: string;
+  enabled: number;
+  docked: number;
 }

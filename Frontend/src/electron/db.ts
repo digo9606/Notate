@@ -8,6 +8,10 @@ import Database from "better-sqlite3";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const initialTools = [
+  { name: "Web Search", description: "Search the web for information" },
+];
+
 class DatabaseService {
   db: Database.Database;
 
@@ -35,7 +39,7 @@ class DatabaseService {
           name TEXT NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
-  
+        
         CREATE TABLE IF NOT EXISTS settings (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user_id INTEGER,
@@ -93,7 +97,22 @@ class DatabaseService {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
-        
+         
+        CREATE TABLE IF NOT EXISTS tools (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT,
+          description TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS user_tools (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER,
+          tool_id INTEGER,
+          docked INTEGER DEFAULT 0,
+          enabled INTEGER DEFAULT 0,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+          FOREIGN KEY (tool_id) REFERENCES tools(id) ON DELETE CASCADE
+        );
         CREATE TABLE IF NOT EXISTS prompts (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user_id INTEGER,
@@ -116,7 +135,7 @@ class DatabaseService {
           user_id INTEGER,
           name TEXT,
           description TEXT,
-          is_local BOOLEAN DEFAULT FALSE,
+          is_local INTEGER DEFAULT 0,
           local_embedding_model TEXT,
           type TEXT,
           files TEXT, 
@@ -131,7 +150,7 @@ class DatabaseService {
           role TEXT NOT NULL,
           content TEXT NOT NULL,
           reasoning_content TEXT DEFAULT NULL,
-          is_retrieval BOOLEAN DEFAULT FALSE,
+          is_retrieval INTEGER DEFAULT 0,
           collection_id INTEGER,
           data_id INTEGER,
           timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -311,6 +330,8 @@ class DatabaseService {
       // Expected schema for each table
       type TableName = keyof typeof expectedColumns;
       const expectedColumns = {
+        tools: ["id", "name", "description"],
+        user_tools: ["id", "user_id", "tool_id", "enabled", "docked"],
         openrouter_models: ["id", "user_id", "model"],
         azure_openai_models: [
           "id",
@@ -437,6 +458,13 @@ class DatabaseService {
   init() {
     this.initializeDBTables();
     this.checkAndAddMissingColumns();
+    this.addInitialTools();
+  }
+
+  addInitialTools() {
+    initialTools.forEach((tool) => {
+      this.addTool(tool.name, tool.description);
+    });
   }
 
   getUsers() {
@@ -941,6 +969,77 @@ class DatabaseService {
       )
       .run(userId, name, endpoint, api_key, model);
     return result.lastInsertRowid as number;
+  }
+
+  // Tool Section
+
+  addTool(name: string, description: string) {
+    const existingTool = this.db
+      .prepare("SELECT * FROM tools WHERE name = ?")
+      .get(name);
+    if (existingTool) {
+      return;
+    }
+    return this.db
+      .prepare("INSERT INTO tools ( name, description) VALUES ( ?, ?)")
+      .run(name, description);
+  }
+
+  getUserTools(userId: number) {
+    return this.db
+      .prepare("SELECT * FROM user_tools WHERE user_id = ?")
+      .all(userId) as {
+      id: number;
+      user_id: number;
+      tool_id: number;
+      enabled: number;
+      docked: number;
+    }[];
+  }
+
+  addUserTool(userId: number, toolId: number, enabled: number, docked: number) {
+    const existingUserTool = this.db
+      .prepare("SELECT * FROM user_tools WHERE user_id = ? AND tool_id = ?")
+      .get(userId, toolId);
+    if (existingUserTool) {
+      return;
+    }
+    const newToolId = this.db
+      .prepare(
+        "INSERT INTO user_tools (user_id, tool_id, enabled, docked) VALUES (?, ?, ?, ?)"
+      )
+      .run(userId, toolId, enabled, docked).lastInsertRowid;
+    return newToolId;
+  }
+
+  removeUserTool(userId: number, toolId: number) {
+    return this.db
+      .prepare("DELETE FROM user_tools WHERE user_id = ? AND tool_id = ?")
+      .run(userId, toolId);
+  }
+
+  updateUserTool(
+    userId: number,
+    toolId: number,
+    enabled: number,
+    docked: number
+  ) {
+    const existingTool = this.db
+      .prepare("SELECT * FROM user_tools WHERE user_id = ? AND tool_id = ?")
+      .get(userId, toolId);
+    if (!existingTool) {
+      const addedTool = this.addUserTool(userId, toolId, enabled, docked);
+      return addedTool;
+    }
+    return this.db
+      .prepare(
+        "UPDATE user_tools SET enabled = ?, docked = ? WHERE user_id = ? AND tool_id = ?"
+      )
+      .run(enabled, docked, userId, toolId);
+  }
+
+  getTools() {
+    return this.db.prepare("SELECT * FROM tools").all();
   }
 }
 

@@ -6,7 +6,7 @@ import SettingsDialog from "./HeaderComponents/SettingsDialog";
 import WindowControls from "./HeaderComponents/MainWindowControl";
 import WinLinuxControls from "./HeaderComponents/WinLinuxControls";
 import { useChatInput } from "@/context/useChatInput";
-
+import ToolsDialog from "./HeaderComponents/ToolsDialog";
 export function Header() {
   const { isSearchOpen, searchTerm, conversations, setFilteredConversations } =
     useUser();
@@ -56,12 +56,13 @@ export function Header() {
       <div className="flex items-center">
         {platform === "darwin" ? renderWindowControls : <WinLinuxControls />}
       </div>
-
       {/* Center column */}
       <SearchComponent />
-
       {/* Right column */}
-      <SettingsDialog />
+      <div className="flex items-center justify-end">
+        <ToolsDialog />
+        <SettingsDialog />
+      </div>
     </header>
   );
 }

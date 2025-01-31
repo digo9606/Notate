@@ -558,6 +558,56 @@ electron.contextBridge.exposeInMainWorld("electron", {
       }[];
     }>,
   getModelsPath: () => ipcInvoke("getModelsPath") as unknown as Promise<string>,
+  getUserTools: (userId: number) =>
+    ipcInvoke("getUserTools", { userId }) as unknown as Promise<{
+      tools: {
+        id: number;
+        name: string;
+        description: string;
+        enabled: number;
+        docked: number;
+      }[];
+    }>,
+  addUserTool: (
+    userId: number,
+    toolId: number,
+    enabled: number,
+    docked: number
+  ) =>
+    ipcInvoke("addUserTool", {
+      userId,
+      toolId,
+      enabled,
+      docked,
+    }) as unknown as Promise<{
+      result: number;
+    }>,
+  removeUserTool: (userId: number, toolId: number) =>
+    ipcInvoke("removeUserTool", { userId, toolId }) as unknown as Promise<{
+      result: boolean;
+    }>,
+  updateUserTool: (
+    userId: number,
+    toolId: number,
+    enabled: number,
+    docked: number
+  ) =>
+    ipcInvoke("updateUserTool", {
+      userId,
+      toolId,
+      enabled,
+      docked,
+    }) as unknown as Promise<{
+      result: boolean;
+    }>,
+  getTools: () =>
+    ipcInvoke("getTools") as unknown as Promise<{
+      tools: {
+        id: number;
+        name: string;
+        description: string;
+      }[];
+    }>,
 } satisfies Window["electron"]);
 
 function ipcInvoke<Key extends keyof EventPayloadMapping>(

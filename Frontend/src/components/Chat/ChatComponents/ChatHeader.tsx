@@ -1,28 +1,15 @@
 import { Button } from "@/components/ui/button";
-import { Globe, PlusCircle } from "lucide-react";
+import { PlusCircle } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { IngestProgress } from "@/components/CollectionModals/CollectionComponents/IngestProgress";
 import logo from "@/assets/icon.png";
 import { useSysSettings } from "@/context/useSysSettings";
 import { useChatLogic } from "@/hooks/useChatLogic";
-import { useUser } from "@/context/useUser";
 
 export function ChatHeader() {
   const { localModalLoading } = useSysSettings();
   const { handleResetChat } = useChatLogic();
 
-  const { activeUser, enableWebSearch, setEnableWebSearch } = useUser();
-
-  const handleWebSearch = () => {
-    setEnableWebSearch(!enableWebSearch);
-    console.log("enableWebSearch", enableWebSearch);
-    if (activeUser) {
-      window.electron.updateUserSettings({
-        userId: activeUser.id,
-        webSearch: enableWebSearch ? 1 : 0,
-      });
-    }
-  };
   return (
     <div className="p-2 bg-card border-b border-secondary flex items-center">
       <div className="flex items-center flex-1">
@@ -40,12 +27,6 @@ export function ChatHeader() {
         <IngestProgress truncate={true} />
       </div>
       <div className="flex-1 flex justify-end">
-        <Button
-          variant={enableWebSearch ? "secondary" : "outline"}
-          onClick={handleWebSearch}
-        >
-          <Globe className="mr-2" /> Web Search
-        </Button>
         <Button
           variant="secondary"
           onClick={() => {

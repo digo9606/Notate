@@ -24,15 +24,24 @@ export async function chatCompletion(
   } = params;
 
   const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
-
+  const userId = params.activeUser.id;
+  console.log("userId", userId);
+  const userTools = db.getUserTools(userId);
+  console.log("userTools", userTools);
+  let agentActions = null;
+  let webSearchResult = null;
   // If the user has Web Search enabled, we need to do web search first
-  const { content: agentActions, webSearchResult } = await openAiAgent(
-    openai,
-    messages,
-    maxOutputTokens,
-    userSettings,
-    signal
-  );
+  if (userTools.find((tool) => tool.tool_id === 1)?.enabled === 1) {
+    const { content: actions, webSearchResult: webResults } = await openAiAgent(
+      openai,
+      messages,
+      maxOutputTokens,
+      userSettings,
+      signal
+    );
+    agentActions = actions;
+    webSearchResult = webResults;
+  }
 
   console.log(agentActions);
 

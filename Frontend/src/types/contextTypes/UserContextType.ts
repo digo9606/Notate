@@ -13,8 +13,6 @@ export interface UserContextType {
   setPrompts: React.Dispatch<React.SetStateAction<UserPrompts[]>>;
   streamingMessage: string;
   setStreamingMessage: React.Dispatch<React.SetStateAction<string>>;
-  enableWebSearch: boolean;
-  setEnableWebSearch: React.Dispatch<React.SetStateAction<boolean>>;
   filteredConversations: Conversation[];
   setFilteredConversations: React.Dispatch<
     React.SetStateAction<Conversation[]>
@@ -57,4 +55,14 @@ export interface UserContextType {
   fetchCustomModels: () => Promise<void>;
   streamingMessageReasoning: string | null;
   setStreamingMessageReasoning: React.Dispatch<React.SetStateAction<string>>;
+  tools: Tool[];
+  setTools: React.Dispatch<React.SetStateAction<Tool[]>>;
+  dockTool: (tool: UserTool) => void;
+  fetchTools: () => Promise<void>;
+  systemTools: Tool[];
+  setSystemTools: React.Dispatch<React.SetStateAction<Tool[]>>;
+  fetchSystemTools: () => Promise<void>;
+  userTools: UserTool[];
+  setUserTools: React.Dispatch<React.SetStateAction<UserTool[]>>;
+  toggleTool: (tool: UserTool) => void;
 }

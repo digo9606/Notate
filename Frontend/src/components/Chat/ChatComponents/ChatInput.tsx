@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Library, Send, X, Mic, Loader2 } from "lucide-react";
+import { Library, Send, X, Mic, Loader2, Globe } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { useUser } from "@/context/useUser";
 import { useChatInput } from "@/context/useChatInput";
@@ -24,7 +24,7 @@ import { WebAudioRecorder } from "@/utils/webAudioRecorder";
 import { useLibrary } from "@/context/useLibrary";
 
 export const ChatInput = memo(function ChatInput() {
-  const { activeUser } = useUser();
+  const { activeUser, toggleTool, userTools } = useUser();
   const {
     handleChatRequest,
     cancelRequest,
@@ -195,6 +195,26 @@ export const ChatInput = memo(function ChatInput() {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+        </div>
+        <div className="absolute right-14 bottom-12 z-50">
+          {userTools.map((tool) => (
+            <Button
+              key={tool.id}
+              size="icon"
+              variant={tool.enabled === 1 ? "secondary" : "outline"}
+              onClick={() =>
+                toggleTool({
+                  id: tool.id,
+                  name: tool.name,
+                  enabled: tool.enabled,
+                  docked: tool.docked,
+                })
+              }
+              className={`${tool.enabled === 1 ? "opacity-100" : "opacity-40"}`}
+            >
+              {tool.name === "Web Search" ? <Globe /> : <></>}
+            </Button>
+          ))}
         </div>
         <Textarea
           placeholder="Type your message here..."

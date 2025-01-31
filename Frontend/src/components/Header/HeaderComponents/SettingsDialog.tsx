@@ -26,12 +26,16 @@ export default function SettingsDialog() {
     setIsMaximized,
     platform,
   });
-
   return (
-    <div className="flex items-center justify-end">
+    <>
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
         <DialogTrigger asChild className="clickable-header-section">
-          <Button type="button" size="icon" variant="ghost">
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="rounded-none"
+          >
             <Settings className="h-5 w-5" />
             <span className="sr-only">Chat Settings</span>
           </Button>
@@ -51,6 +55,6 @@ export default function SettingsDialog() {
         </DialogContent>
       </Dialog>
       {platform !== "darwin" && renderWindowControls}
-    </div>
+    </>
   );
 }
