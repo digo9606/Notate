@@ -4,6 +4,17 @@ export async function returnSystemPrompt(
   prompt: string,
   dataCollectionInfo?: Collection | null,
   reasoning?: string | null,
+  webSearchResult?: {
+    metadata: {
+      title: string;
+      source: string;
+      description: string;
+      author: string;
+      keywords: string;
+      ogImage: string;
+    };
+    textContent: string;
+  },
   data?: {
     top_k: number;
     results: {
@@ -16,9 +27,14 @@ export async function returnSystemPrompt(
     role: "system",
     content:
       "When asked about previous messages, only consider messages marked as '(most recent message)' as the last message. " +
+      (webSearchResult
+        ? "\n\nThe following is the web results from the agent web tool used in the reasoning: " +
+          JSON.stringify(webSearchResult) +
+          "\n\n"
+        : "") +
       prompt +
       (reasoning
-        ? "\n\nUse this reasoning process to guide your response (Reasoning has already been provided, DO NOT RE-REASON): " +
+        ? "\n\nUse this reasoning process to answer the question (Reasoning has already been provided, DO NOT RE-REASON): " +
           reasoning +
           "\n\n"
         : "") +
@@ -30,5 +46,6 @@ export async function returnSystemPrompt(
           `\n\nCollection/Store Description: ${dataCollectionInfo?.description}`
         : ""),
   };
+  console.log("sysPrompt", sysPrompt);
   return sysPrompt;
 }

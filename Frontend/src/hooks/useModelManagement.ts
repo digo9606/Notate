@@ -1,10 +1,12 @@
 import { useCallback, useState } from "react";
 
 export const useModelManagement = (activeUser: User | null) => {
-  const [openRouterModels, setOpenRouterModels] = useState<OpenRouterModel[]>([]);
+  const [openRouterModels, setOpenRouterModels] = useState<OpenRouterModel[]>(
+    []
+  );
   const [azureModels, setAzureModels] = useState<AzureModel[]>([]);
   const [customModels, setCustomModels] = useState<CustomModel[]>([]);
-
+  const [enableWebSearch, setEnableWebSearch] = useState(false);
   const fetchOpenRouterModels = useCallback(async () => {
     if (!window.electron || !activeUser) return;
     const models = await window.electron.getOpenRouterModels(activeUser.id);
@@ -40,5 +42,7 @@ export const useModelManagement = (activeUser: User | null) => {
     fetchOpenRouterModels,
     fetchAzureModels,
     fetchCustomModels,
+    enableWebSearch,
+    setEnableWebSearch,
   };
 };

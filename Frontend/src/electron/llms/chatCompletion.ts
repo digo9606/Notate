@@ -1,10 +1,11 @@
 import OpenAI from "openai";
 import db from "../db.js";
-import { openAiChainOfThought } from "./chainOfThought/openAiChainOfThought.js";
+import { openAiChainOfThought } from "./reasoningLayer/openAiChainOfThought.js";
 import { prepMessages } from "./llmHelpers/prepMessages.js";
 import { returnSystemPrompt } from "./llmHelpers/returnSystemPrompt.js";
 import { sendMessageChunk } from "./llmHelpers/sendMessageChunk.js";
 import { truncateMessages } from "./llmHelpers/truncateMessages.js";
+import { openAiAgent } from "./agentLayer/openAiAgent.js";
 
 export async function chatCompletion(
   openai: OpenAI,
@@ -21,15 +22,31 @@ export async function chatCompletion(
     prompt,
     mainWindow,
   } = params;
+
   const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
 
+  // If the user has Web Search enabled, we need to do web search first
+  const { content: agentActions, webSearchResult } = await openAiAgent(
+    openai,
+    messages,
+    maxOutputTokens,
+    userSettings,
+    signal
+  );
+
+  console.log(agentActions);
+
   const newMessages = await prepMessages(messages);
+
   let dataCollectionInfo;
+
   if (collectionId) {
     dataCollectionInfo = db.getCollection(Number(collectionId)) as Collection;
   }
 
+  // If the user has COT enabled, we need to do reasoning second
   let reasoning;
+
   if (userSettings.cot) {
     // Do reasoning first
     reasoning = await openAiChainOfThought(
@@ -39,6 +56,8 @@ export async function chatCompletion(
       userSettings,
       data ? data : null,
       dataCollectionInfo ? dataCollectionInfo : null,
+      String(JSON.stringify(agentActions)),
+      webSearchResult ? webSearchResult : undefined,
       signal,
       mainWindow
     );
@@ -52,7 +71,8 @@ export async function chatCompletion(
   const newSysPrompt = await returnSystemPrompt(
     prompt,
     dataCollectionInfo,
-    reasoning || null,
+    reasoning ? reasoning : null,
+    webSearchResult ? webSearchResult : undefined,
     data
   );
   // Truncate messages to fit within token limits while preserving max output tokens

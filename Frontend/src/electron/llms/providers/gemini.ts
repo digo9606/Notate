@@ -176,11 +176,13 @@ export async function GeminiProvider(
     }
   }
 
+  let webSearchResult;
   // Create new system prompt that includes both the original prompt and reasoning
   const newSysPrompt = await returnSystemPrompt(
     prompt,
     dataCollectionInfo,
     reasoning || null,
+    webSearchResult,
     data
   );
 

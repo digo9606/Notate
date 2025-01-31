@@ -5,6 +5,7 @@ export const useChatManagement = (activeUser: User | null) => {
   const [streamingMessage, setStreamingMessage] = useState<string>("");
   const [streamingMessageReasoning, setStreamingMessageReasoning] =
     useState<string>("");
+  const [agentActions, setAgentActions] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [currentRequestId, setCurrentRequestId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +17,7 @@ export const useChatManagement = (activeUser: User | null) => {
       setIsLoading(true);
       const requestId = Date.now();
       setCurrentRequestId(requestId);
-
+      
       setError(null);
       const newUserMessage = {
         role: "user",
@@ -84,5 +85,7 @@ export const useChatManagement = (activeUser: User | null) => {
     cancelRequest,
     input,
     setInput,
+    agentActions,
+    setAgentActions,
   };
 };

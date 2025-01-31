@@ -130,10 +130,12 @@ export async function AnthropicProvider(
     }
   }
 
+  let webSearchResult;
   const sysPrompt = await returnSystemPrompt(
     prompt,
     dataCollectionInfo,
     reasoning || null,
+    webSearchResult,
     data
   );
   // Truncate messages to fit within token limits

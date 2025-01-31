@@ -15,6 +15,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [activeUser, setActiveUser] = useState<User | null>(null);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [apiKeyInput, setApiKeyInput] = useState<string>("");
+  const [agentActions, setAgentActions] = useState<string>("");
   const [filteredConversations, setFilteredConversations] = useState<
     Conversation[]
   >([]);
@@ -62,6 +63,8 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     setOpenRouterModels,
     setAzureModels,
     setCustomModels,
+    enableWebSearch,
+    setEnableWebSearch,
   } = useModelManagement(activeUser);
 
   const {
@@ -202,6 +205,10 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       fetchCustomModels,
       streamingMessageReasoning,
       setStreamingMessageReasoning,
+      agentActions,
+      setAgentActions,
+      enableWebSearch,
+      setEnableWebSearch,
     }),
     [
       activeUser,
@@ -250,6 +257,10 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       setOpenRouterModels,
       setAzureModels,
       setCustomModels,
+      setAgentActions,
+      agentActions,
+      enableWebSearch,
+      setEnableWebSearch,
     ]
   );
 

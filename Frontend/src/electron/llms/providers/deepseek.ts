@@ -4,8 +4,9 @@ import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
 import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
 import { prepMessages } from "../llmHelpers/prepMessages.js";
-import { openAiChainOfThought } from "../chainOfThought/openAiChainOfThought.js";
+import { openAiChainOfThought } from "../reasoningLayer/openAiChainOfThought.js";
 import { providerInitialize } from "../llmHelpers/providerInit.js";
+import { openAiAgent } from "../agentLayer/openAiAgent.js";
 
 interface DeepSeekDelta
   extends OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta {
@@ -32,6 +33,15 @@ export async function DeepSeekProvider(
 
   const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
   const newMessages = await prepMessages(messages);
+  const { content: agentActions, webSearchResult } = await openAiAgent(
+    openai,
+    messages,
+    maxOutputTokens,
+    userSettings,
+    signal,
+    mainWindow
+  );
+  console.log(agentActions);
   let dataCollectionInfo;
   if (collectionId) {
     dataCollectionInfo = db.getCollection(collectionId) as Collection;
@@ -48,6 +58,8 @@ export async function DeepSeekProvider(
       userSettings,
       data ? data : null,
       dataCollectionInfo ? dataCollectionInfo : null,
+      String(agentActions),
+      webSearchResult ? webSearchResult : undefined,
       signal,
       mainWindow
     );
@@ -60,14 +72,15 @@ export async function DeepSeekProvider(
   const newSysPrompt = await returnSystemPrompt(
     prompt,
     dataCollectionInfo,
-    reasoning || null,
+    reasoning ? reasoning : null,
+    webSearchResult ? webSearchResult : undefined,
     data
   );
 
   // Truncate messages to fit within token limits while preserving max output tokens
   const truncatedMessages = truncateMessages(newMessages, maxOutputTokens);
   truncatedMessages.unshift(newSysPrompt);
-
+  console.log("truncatedMessages", truncatedMessages);
   const stream = await openai.chat.completions.create(
     {
       model: userSettings.model as string,

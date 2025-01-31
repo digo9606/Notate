@@ -13,6 +13,8 @@ export interface UserContextType {
   setPrompts: React.Dispatch<React.SetStateAction<UserPrompts[]>>;
   streamingMessage: string;
   setStreamingMessage: React.Dispatch<React.SetStateAction<string>>;
+  enableWebSearch: boolean;
+  setEnableWebSearch: React.Dispatch<React.SetStateAction<boolean>>;
   filteredConversations: Conversation[];
   setFilteredConversations: React.Dispatch<
     React.SetStateAction<Conversation[]>
@@ -39,6 +41,8 @@ export interface UserContextType {
   setError: React.Dispatch<React.SetStateAction<string | null>>;
   currentRequestId: number | null;
   setCurrentRequestId: React.Dispatch<React.SetStateAction<number | null>>;
+  agentActions: string;
+  setAgentActions: React.Dispatch<React.SetStateAction<string>>;
   fetchMessages: () => Promise<void>;
   openRouterModels: OpenRouterModel[];
   setOpenRouterModels: React.Dispatch<React.SetStateAction<OpenRouterModel[]>>;

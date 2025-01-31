@@ -47,11 +47,12 @@ export async function OllamaProvider(
       mainWindow.webContents.send("reasoningEnd");
     }
   }
-
+  let webSearchResult;
   const newSysPrompt = await returnSystemPrompt(
     prompt,
     dataCollectionInfo,
     reasoning || null,
+    webSearchResult,
     data
   );
 

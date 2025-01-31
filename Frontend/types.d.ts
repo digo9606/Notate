@@ -68,6 +68,7 @@ interface UserSettings {
   maxTokens?: number;
   topP?: number;
   promptId?: number;
+  webSearch?: number;
 }
 
 type Collection = {

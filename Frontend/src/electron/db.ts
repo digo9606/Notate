@@ -54,6 +54,7 @@ class DatabaseService {
           selectedAzureId INTEGER,
           selectedCustomId INTEGER,
           cot INTEGER DEFAULT 0,
+          webSearch INTEGER DEFAULT 0,
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
 
@@ -184,6 +185,7 @@ class DatabaseService {
         { name: "selectedAzureId", type: "INTEGER" },
         { name: "selectedCustomId", type: "INTEGER" },
         { name: "cot", type: "INTEGER" },
+        { name: "webSearch", type: "INTEGER" },
       ];
 
       // Get current table info
@@ -225,6 +227,7 @@ class DatabaseService {
             selectedAzureId INTEGER,
             selectedCustomId INTEGER,
             cot INTEGER DEFAULT 0,
+            webSearch INTEGER DEFAULT 0,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
           );
         `);
@@ -247,6 +250,7 @@ class DatabaseService {
           selectedAzureId: number;
           selectedCustomId: number;
           cot: number;
+          webSearch: number;
         }[]) {
           try {
             // Check if user exists before restoring their settings
@@ -261,8 +265,8 @@ class DatabaseService {
               INSERT INTO settings (
                 user_id, model, promptId, temperature, provider, maxTokens,
                 vectorstore, modelDirectory, modelType, modelLocation,
-                ollamaIntegration, ollamaModel, baseUrl, selectedAzureId, selectedCustomId
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ollamaIntegration, ollamaModel, baseUrl, selectedAzureId, selectedCustomId, webSearch
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `
               )
               .run(
@@ -280,7 +284,8 @@ class DatabaseService {
                 row.ollamaModel,
                 row.baseUrl,
                 row.selectedAzureId,
-                row.selectedCustomId
+                row.selectedCustomId,
+                row.webSearch
               );
           } catch (error) {
             console.error("Error restoring settings row:", error);
@@ -335,6 +340,7 @@ class DatabaseService {
           "selectedAzureId",
           "selectedCustomId",
           "cot",
+          "webSearch",
         ],
         api_keys: ["id", "user_id", "key", "provider", "created_at"],
         prompts: ["id", "user_id", "name", "prompt", "created_at"],
@@ -475,11 +481,12 @@ class DatabaseService {
         settings.selectedAzureId ?? currentSettings?.selectedAzureId,
       selectedCustomId:
         settings.selectedCustomId ?? currentSettings?.selectedCustomId,
+      webSearch: settings.webSearch ?? currentSettings?.webSearch,
     };
 
     return this.db
       .prepare(
-        "UPDATE settings SET model = ?, promptId = ?, temperature = ?, provider = ?, maxTokens = ?, vectorstore = ?, modelDirectory = ?, modelType = ?, modelLocation = ?, ollamaIntegration = ?, ollamaModel = ?, baseUrl = ?, selectedAzureId = ?, selectedCustomId = ?, cot = ? WHERE user_id = ?"
+        "UPDATE settings SET model = ?, promptId = ?, temperature = ?, provider = ?, maxTokens = ?, vectorstore = ?, modelDirectory = ?, modelType = ?, modelLocation = ?, ollamaIntegration = ?, ollamaModel = ?, baseUrl = ?, selectedAzureId = ?, selectedCustomId = ?, cot = ?, webSearch = ? WHERE user_id = ?"
       )
       .run(
         updatedSettings.model,
@@ -497,6 +504,7 @@ class DatabaseService {
         updatedSettings.selectedAzureId,
         updatedSettings.selectedCustomId,
         updatedSettings.cot,
+        updatedSettings.webSearch,
         settings.userId
       );
   }
