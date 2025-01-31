@@ -80,7 +80,7 @@ _MacOS_
 
 - Xcode 15.0 or later
 
-- Python 3.10
+- Python 3.12
 - Node.js v16 or higher
 - Package manager: npm or pnpm
 - At least 2GB of free disk space (Recommended 10GB+ minimum for local models and FileCollections)
@@ -94,7 +94,7 @@ _MacOS_
 
 ### External Requirements
 
-- Python 3.10
+- Python 3.12
 - Node.js v16 or higher
 - Package manager: npm or pnpm
 - CPU: 4 cores or more

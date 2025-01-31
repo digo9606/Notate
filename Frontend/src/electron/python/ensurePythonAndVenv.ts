@@ -64,7 +64,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
     if (response.response === 0) {
       updateLoadingStatus("Opening Python download page...", 4.5);
       await shell.openExternal(
-        "https://www.python.org/downloads/release/python-31010/"
+        "https://www.python.org/downloads/release/python-3128/"
       );
       updateLoadingStatus(
         "Please restart the application after installing Python 3.12",

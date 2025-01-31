@@ -69,7 +69,7 @@ test("successfully starts python server in dev mode", async () => {
   (isDev.isDev as Mock).mockReturnValue(true);
   (spawn as unknown as Mock).mockReturnValue(mockEventEmitter);
   (fs.existsSync as Mock).mockReturnValue(true);
-  (execSync as Mock).mockReturnValue(Buffer.from("Python 3.10.0"));
+  (execSync as Mock).mockReturnValue(Buffer.from("Python 3.12.0"));
 
   await startPythonServer();
 
@@ -84,17 +84,17 @@ test("handles missing Python 3.10 installation", async () => {
   (dialog.showMessageBox as Mock).mockResolvedValue({ response: 0 });
 
   await expect(startPythonServer()).rejects.toThrow(
-    "Please restart the application after installing Python 3.10"
+    "Please restart the application after installing Python 3.12"
   );
   expect(shell.openExternal).toHaveBeenCalledWith(
-    "https://www.python.org/downloads/release/python-31010/"
+    "https://www.python.org/downloads/release/python-3128/"
   );
 });
 
 test("handles dependency installation failure", async () => {
   const isDev = await import("../util.js");
   (isDev.isDev as Mock).mockReturnValue(true);
-  (execSync as Mock).mockReturnValue(Buffer.from("Python 3.10.0")); // Mock successful Python check
+  (execSync as Mock).mockReturnValue(Buffer.from("Python 3.12.0")); // Mock successful Python check
   const failingEventEmitter = {
     ...mockEventEmitter,
     on: vi.fn((event: string, callback: (code: number) => void) => {
@@ -109,15 +109,15 @@ test("handles dependency installation failure", async () => {
 test("extracts backend in production mode when needed", async () => {
   const isDev = await import("../util.js");
   (isDev.isDev as Mock).mockReturnValue(false);
-  (execSync as Mock).mockReturnValue(Buffer.from("Python 3.10.0")); // Mock successful Python check
-  
+  (execSync as Mock).mockReturnValue(Buffer.from("Python 3.12.0")); // Mock successful Python check
+
   // Mock file system checks
   (fs.existsSync as Mock)
     .mockReturnValueOnce(false) // unpacked backend doesn't exist
-    .mockReturnValueOnce(true)  // source path exists
+    .mockReturnValueOnce(true) // source path exists
     .mockReturnValueOnce(false) // destination directory doesn't exist
-    .mockReturnValue(true);     // subsequent checks return true
-    
+    .mockReturnValue(true); // subsequent checks return true
+
   (fs.readdirSync as Mock).mockReturnValue(["main.py", "requirements.txt"]);
   (fs.statSync as Mock).mockReturnValue({ isDirectory: () => false });
   (spawn as unknown as Mock).mockReturnValue(mockEventEmitter);
@@ -125,7 +125,9 @@ test("extracts backend in production mode when needed", async () => {
   await startPythonServer();
 
   // Verify file system operations
-  expect(fs.mkdirSync).toHaveBeenCalledWith("/mock/temp/notate-backend", { recursive: true });
+  expect(fs.mkdirSync).toHaveBeenCalledWith("/mock/temp/notate-backend", {
+    recursive: true,
+  });
   expect(fs.copyFileSync).toHaveBeenCalledWith(
     "/mock/app/path/Backend/main.py",
     "/mock/temp/notate-backend/main.py"
@@ -134,4 +136,4 @@ test("extracts backend in production mode when needed", async () => {
     "/mock/app/path/Backend/requirements.txt",
     "/mock/temp/notate-backend/requirements.txt"
   );
-}); 
+});
