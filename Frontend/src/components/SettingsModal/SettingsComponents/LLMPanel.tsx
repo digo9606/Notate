@@ -153,61 +153,75 @@ export default function LLMPanel() {
         return null;
     }
   };
-
+  console.log(selectedProvider);
   return (
     <div className="space-y-8">
       <div className="w-full">
-        <Button
-          variant="outline"
-          className="w-full justify-between"
-          onClick={() => setIsOpen(true)}
-        >
-          {selectedProvider ? (
-            <div className="flex items-center gap-2">
-              {providerIcons[selectedProvider as keyof typeof providerIcons]}
-              <span>
-                {selectedProvider.charAt(0).toUpperCase() +
-                  selectedProvider.slice(1)}
-              </span>
+        <div className="rounded-[6px] p-4 bg-gradient-to-br from-secondary/50 via-secondary/30 to-background border">
+          {selectedProvider === "" && (
+            <div className="flex items-center justify-center mb-4">
+              <p className="text-sm font-medium">Select a provider</p>
             </div>
-          ) : (
-            <span className="text-muted-foreground">Select a provider...</span>
           )}
-          <Search className="h-4 w-4 text-muted-foreground" />
-        </Button>
+          <Button
+            variant="outline"
+            className="w-full justify-between"
+            onClick={() => setIsOpen(true)}
+          >
+            {selectedProvider ? (
+              <div className="flex items-center gap-2">
+                {providerIcons[selectedProvider as keyof typeof providerIcons]}
+                <span>
+                  {selectedProvider.charAt(0).toUpperCase() +
+                    selectedProvider.slice(1)}
+                </span>
+              </div>
+            ) : (
+              <span className="text-muted-foreground">
+                Select a provider...
+              </span>
+            )}
+            <Search className="h-4 w-4 text-muted-foreground" />
+          </Button>
 
-        <CommandDialog open={isOpen} onOpenChange={setIsOpen}>
-          <Command className="rounded-lg border shadow-md">
-            <CommandInput placeholder="Search providers..." />
-            <CommandList>
-              <CommandEmpty>No providers found.</CommandEmpty>
-              {Object.entries(providerCategories).map(
-                ([category, providers]) => (
-                  <CommandGroup key={category} heading={category}>
-                    {providers.map((provider) => (
-                      <CommandItem
-                        key={provider}
-                        value={provider}
-                        onSelect={(value) => {
-                          setSelectedProvider(value as LLMProvider);
-                          setApiKeyInput("");
-                          setShowUpdateInput(false);
-                          setIsOpen(false);
-                        }}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        {providerIcons[provider as keyof typeof providerIcons]}
-                        <span>
-                          {provider.charAt(0).toUpperCase() + provider.slice(1)}
-                        </span>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                )
-              )}
-            </CommandList>
-          </Command>
-        </CommandDialog>
+          <CommandDialog open={isOpen} onOpenChange={setIsOpen}>
+            <Command className="rounded-lg border shadow-md">
+              <CommandInput placeholder="Search providers..." />
+              <CommandList>
+                <CommandEmpty>No providers found.</CommandEmpty>
+                {Object.entries(providerCategories).map(
+                  ([category, providers]) => (
+                    <CommandGroup key={category} heading={category}>
+                      {providers.map((provider) => (
+                        <CommandItem
+                          key={provider}
+                          value={provider}
+                          onSelect={(value) => {
+                            setSelectedProvider(value as LLMProvider);
+                            setApiKeyInput("");
+                            setShowUpdateInput(false);
+                            setIsOpen(false);
+                          }}
+                          className="flex items-center gap-2 cursor-pointer"
+                        >
+                          {
+                            providerIcons[
+                              provider as keyof typeof providerIcons
+                            ]
+                          }
+                          <span>
+                            {provider.charAt(0).toUpperCase() +
+                              provider.slice(1)}
+                          </span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )
+                )}
+              </CommandList>
+            </Command>
+          </CommandDialog>
+        </div>
       </div>
       {selectedProvider && (
         <>

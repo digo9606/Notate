@@ -61,6 +61,7 @@ export default function ChatSettings() {
     ollamaModels,
     setLocalModalLoading,
     fetchSettings,
+    setSelectedProvider,
   } = useSysSettings();
   const [localMaxTokens, setLocalMaxTokens] = useState<string>("");
 
@@ -584,6 +585,7 @@ export default function ChatSettings() {
               setConversations([]);
               setActiveView("SelectAccount");
               setSettingsOpen(false);
+              setSelectedProvider("");
               toast({
                 title: "Logged out",
                 description: `Logged out of all accounts`,
