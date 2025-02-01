@@ -30,19 +30,45 @@ export const useModelManagement = (activeUser: User | null) => {
 
   const fetchTools = useCallback(async () => {
     if (!window.electron || !activeUser) return;
-    const tools = await window.electron.getUserTools(activeUser.id);
-    const toolsWithEnabled = tools.tools.map((tool) => ({
-      ...tool,
-      enabled: tool.enabled,
-    }));
-    console.log(toolsWithEnabled);
+
+    // First get system tools to have the complete tool information
+    const systemToolsResult = await window.electron.getTools();
+    const systemTools = systemToolsResult.tools;
+
+    // Then get user tool settings
+    const userToolsResult = await window.electron.getUserTools(activeUser.id);
+    const userToolSettings = userToolsResult.tools;
+
+    // Join the user tool settings with system tool information
+    const completeUserTools = userToolSettings
+      .map((userTool) => {
+        const systemTool = systemTools.find((st) => st.id === userTool.id);
+        if (!systemTool) return null;
+
+        return {
+          id: userTool.id,
+          name: systemTool.name,
+          description: systemTool.description,
+          enabled: userTool.enabled,
+          docked: Number(userTool.docked),
+        };
+      })
+      .filter((tool): tool is NonNullable<typeof tool> => tool !== null);
+
+    setUserTools(completeUserTools);
+
+    if (process.env.NODE_ENV === "development") {
+      console.log("Fetched User Tools:", completeUserTools);
+    }
   }, [activeUser]);
 
   const fetchSystemTools = useCallback(async () => {
     if (!window.electron || !activeUser) return;
     const tools = await window.electron.getTools();
     setSystemTools(tools.tools);
-    console.log(tools.tools);
+    if (process.env.NODE_ENV === "development") {
+      console.log("Fetched System Tools:", tools.tools);
+    }
   }, [activeUser]);
 
   const toggleTool = (tool: UserTool) => {
@@ -59,28 +85,8 @@ export const useModelManagement = (activeUser: User | null) => {
         activeUser.id,
         tool.id,
         existingTool.enabled === 1 ? 0 : 1,
-        tool.docked
+        1
       );
-    } else {
-      setUserTools((prev) => [
-        ...prev,
-        {
-          ...tool,
-          enabled: 1,
-          docked: tool.docked,
-        },
-      ]);
-      window.electron.updateUserTool(activeUser.id, tool.id, 1, tool.docked);
-    }
-  };
-
-  const dockTool = (tool: UserTool) => {
-    if (
-      userTools.some((t) => t.name.toLowerCase() === tool.name.toLowerCase())
-    ) {
-      if (!activeUser) return;
-      setUserTools((prev) => prev.filter((t) => t.name !== tool.name));
-      window.electron.updateUserTool(activeUser.id, tool.id, 0, 0);
     } else {
       setUserTools((prev) => [
         ...prev,
@@ -90,7 +96,24 @@ export const useModelManagement = (activeUser: User | null) => {
           docked: 1,
         },
       ]);
-      if (!activeUser) return;
+      window.electron.updateUserTool(activeUser.id, tool.id, 1, 1);
+    }
+  };
+
+  const dockTool = (tool: UserTool) => {
+    if (!activeUser) return;
+    const existingTool = userTools.find((t) => t.name === tool.name);
+
+    if (existingTool) {
+      setUserTools((prev) => prev.filter((t) => t.name !== tool.name));
+      window.electron.updateUserTool(activeUser.id, tool.id, 0, 0);
+    } else {
+      const newTool = {
+        ...tool,
+        enabled: 1,
+        docked: 1,
+      };
+      setUserTools((prev) => [...prev, newTool]);
       window.electron.updateUserTool(activeUser.id, tool.id, 1, 1);
     }
   };

@@ -34,7 +34,11 @@ export async function OllamaProvider(
   const userTools = await db.getUserTools(params.activeUser.id);
   let agentActions = null;
   let agentsResults = null;
-  if (userTools.length > 0) {
+  if (
+    userTools.some(
+      (tool) => tool.tool_id === 1 && tool.enabled === 1 && tool.enabled === 1
+    )
+  ) {
     const { content, webSearchResult } = await ollamaAgent(
       newMessages,
       maxOutputTokens,

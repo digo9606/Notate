@@ -10,6 +10,7 @@ import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import { sendMessageChunk } from "../llmHelpers/sendMessageChunk.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
+import { geminiAgent } from "../agentLayer/geminiAgent.js";
 
 let genAI: GoogleGenerativeAI;
 
@@ -139,10 +140,31 @@ export async function GeminiProvider(
   });
 
   const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
+  let webSearchResult;
+  let agentActions;
+  const userTools = db.getUserTools(activeUser.id);
+  if (
+    userTools.length > 0 &&
+    userTools.some((tool) => tool.tool_id === 1 && tool.enabled === 1)
+  ) {
+    const { content, webSearchResult: webSearchResultFromAgent } =
+      await geminiAgent(
+        genAI,
+        messages,
+        maxOutputTokens,
+        userSettings,
+        signal,
+        mainWindow
+      );
+    webSearchResult = webSearchResultFromAgent;
+    agentActions = content;
+  }
+  console.log(agentActions);
   const newMainMessages = messages.map((msg) => ({
     role: msg.role as "user" | "assistant" | "system",
     content: msg.content,
   })) as ChatCompletionMessageParam[];
+
   const newReasoningMessages = messages.map((msg) => ({
     role: msg.role as "user" | "assistant" | "system",
     content: msg.content,
@@ -175,24 +197,29 @@ export async function GeminiProvider(
       mainWindow.webContents.send("reasoningEnd");
     }
   }
-
-  let webSearchResult;
   // Create new system prompt that includes both the original prompt and reasoning
   const newSysPrompt = await returnSystemPrompt(
     prompt,
     dataCollectionInfo,
     reasoning || null,
-    webSearchResult,
+    webSearchResult || undefined,
     data
   );
-
   // Create a fresh copy of messages for the main response
   const mainMessages = [...newMainMessages];
-  if (mainMessages.length > 0) {
-    const firstMsg = mainMessages[0];
-    firstMsg.content = `${newSysPrompt}\n\n${firstMsg.content}`;
+  // Add system prompt as first message if messages array is empty, otherwise update first message
+  if (mainMessages.length === 0) {
+    mainMessages.push({
+      role: "user",
+      content: JSON.stringify(newSysPrompt),
+    });
+  } else {
+    mainMessages[0] = {
+      ...mainMessages[0],
+      content: `${JSON.stringify(newSysPrompt)}\n\n${mainMessages[0].content}`,
+    };
   }
-
+  console.log(mainMessages);
   const chat: ChatSession = model.startChat({
     history: mainMessages
       .filter((msg) => msg.role !== "system")

@@ -813,6 +813,7 @@ interface Window {
         id: number;
         name: string;
         enabled: number;
+        docked: number;
       }[];
     }>;
     addUserTool: (

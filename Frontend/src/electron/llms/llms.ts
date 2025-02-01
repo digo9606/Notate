@@ -55,7 +55,7 @@ export async function chatRequest(
       providersMap[
         userSettings?.provider?.toLowerCase() as keyof typeof providersMap
       ];
-
+    console.log("provider", provider);
     if (!provider) {
       throw new Error(
         "No AI provider selected. Please open Settings (top right) make sure you add an API key and select a provider under the 'AI Provider' tab."

@@ -46,6 +46,6 @@ export async function returnSystemPrompt(
           `\n\nCollection/Store Description: ${dataCollectionInfo?.description}`
         : ""),
   };
-  console.log("sysPrompt", sysPrompt);
+
   return sysPrompt;
 }
