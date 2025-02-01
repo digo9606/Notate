@@ -88,7 +88,6 @@ export async function OllamaProvider(
 
   const truncatedMessages = truncateMessages(newMessages, maxOutputTokens);
   truncatedMessages.unshift(newSysPrompt);
-  console.log("truncatedMessages", truncatedMessages);
 
   const response = await ollama.chat({
     model: userSettings.model || "llama2",

@@ -89,7 +89,6 @@ export async function DeepSeekProvider(
   // Truncate messages to fit within token limits while preserving max output tokens
   const truncatedMessages = truncateMessages(newMessages, maxOutputTokens);
   truncatedMessages.unshift(newSysPrompt);
-  console.log("truncatedMessages", truncatedMessages);
   const stream = await openai.chat.completions.create(
     {
       model: userSettings.model as string,
