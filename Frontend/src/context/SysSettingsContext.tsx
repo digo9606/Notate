@@ -162,7 +162,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     setLocalModalLoading(true);
     setProgressLocalOutput([]);
     await window.electron.updateUserSettings({
-      ...activeUser,
+      userId: activeUser.id,
       ollamaModel: model,
     });
     try {

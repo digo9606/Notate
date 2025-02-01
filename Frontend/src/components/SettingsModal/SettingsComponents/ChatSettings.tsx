@@ -540,7 +540,6 @@ export default function ChatSettings() {
             />
           </div>
         </div>
-      
       </div>
 
       <div className="flex flex-col space-y-4 pt-6 border-t">
@@ -554,7 +553,6 @@ export default function ChatSettings() {
               setSettingsOpen(false);
               if (activeUser) {
                 window.electron.updateUserSettings({
-                  ...settings,
                   vectorstore: settings.vectorstore ?? "",
                   temperature: Number(settings.temperature),
                   model: settings.model ?? "",

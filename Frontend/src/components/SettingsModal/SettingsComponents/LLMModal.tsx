@@ -85,7 +85,7 @@ export default function LLMPanel() {
     try {
       if (activeUser) {
         await window.electron.updateUserSettings({
-          ...activeUser,
+          userId: activeUser.id,
           provider: provider.toLowerCase(),
         });
         if (provider === "openrouter") {
@@ -95,7 +95,7 @@ export default function LLMPanel() {
           );
         } else {
           await window.electron.updateUserSettings({
-            ...activeUser,
+            userId: activeUser.id,
             model:
               defaultProviderModel[
                 provider as keyof typeof defaultProviderModel

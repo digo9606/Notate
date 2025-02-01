@@ -143,7 +143,7 @@ export default function AddLibrary() {
     }
 
     window.electron.updateUserSettings({
-      ...activeUser,
+      userId: activeUser.id,
       vectorstore: newCollection.id.toString(),
     });
 
