@@ -197,7 +197,7 @@ export async function GeminiProvider(
       mainWindow.webContents.send("reasoningEnd");
     }
   }
-  // Create new system prompt that includes both the original prompt and reasoning
+  
   const newSysPrompt = await returnSystemPrompt(
     prompt,
     dataCollectionInfo,

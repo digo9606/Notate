@@ -105,7 +105,6 @@ export async function AnthropicProvider(
         anthropic,
         messages,
         maxOutputTokens,
-        userSettings,
         signal,
         mainWindow
       );

@@ -28,7 +28,7 @@ export async function webSearch(payload: { url: string }) {
   try {
     await page.goto(payload.url, {
       waitUntil: "networkidle",
-      timeout: 30000,
+      timeout: 3000,
     });
 
     await page.waitForSelector("body");
@@ -68,6 +68,11 @@ export async function webSearch(payload: { url: string }) {
     return {
       metadata,
       textContent: content,
+    };
+  } catch {
+    return {
+      metadata: null,
+      textContent: "The URL is invalid or the page is not accessible",
     };
   } finally {
     await context.close();

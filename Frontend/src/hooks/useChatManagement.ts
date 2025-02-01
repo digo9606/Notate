@@ -17,7 +17,7 @@ export const useChatManagement = (activeUser: User | null) => {
       setIsLoading(true);
       const requestId = Date.now();
       setCurrentRequestId(requestId);
-      
+
       setError(null);
       const newUserMessage = {
         role: "user",
@@ -42,6 +42,8 @@ export const useChatManagement = (activeUser: User | null) => {
           setIsLoading(false);
           console.error("Error in chat:", result.error);
         }
+
+        setMessages(result.messages);
       } catch (error) {
         if (error instanceof Error && error.name === "AbortError") {
           setError("Request was cancelled");

@@ -22,9 +22,8 @@ import {
 } from "@/components/ui/tooltip";
 import { WebAudioRecorder } from "@/utils/webAudioRecorder";
 import { useLibrary } from "@/context/useLibrary";
-
 export const ChatInput = memo(function ChatInput() {
-  const { activeUser, toggleTool, userTools } = useUser();
+  const { activeUser, toggleTool, userTools, fetchMessages } = useUser();
   const {
     handleChatRequest,
     cancelRequest,
@@ -111,19 +110,23 @@ export const ChatInput = memo(function ChatInput() {
     (e: React.FormEvent) => {
       e.preventDefault();
       if (input.trim()) {
+        console.log("handleSubmit");
         handleChatRequest(selectedCollection?.id || undefined);
+        fetchMessages();
       }
     },
-    [input, handleChatRequest, selectedCollection?.id]
+    [input, handleChatRequest, selectedCollection?.id, fetchMessages]
   );
 
   // Memoize the send button handler
-  const handleSendClick = useCallback(() => {
+  const handleSendClick = useCallback(async () => {
     if (isLoading) {
       cancelRequest();
       setIsLoading(false);
     } else if (input.trim()) {
-      handleChatRequest(selectedCollection?.id || undefined);
+      console.log("handleSendClick");
+      await handleChatRequest(selectedCollection?.id || undefined);
+      fetchMessages();
     }
   }, [
     isLoading,
@@ -132,6 +135,7 @@ export const ChatInput = memo(function ChatInput() {
     handleChatRequest,
     selectedCollection?.id,
     setIsLoading,
+    fetchMessages,
   ]);
 
   return (

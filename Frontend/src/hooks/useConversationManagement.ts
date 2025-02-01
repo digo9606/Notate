@@ -2,13 +2,19 @@ import { useCallback, useState } from "react";
 
 export const useConversationManagement = (activeUser: User | null) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConversation, setActiveConversation] = useState<number | null>(null);
+  const [activeConversation, setActiveConversation] = useState<number | null>(
+    null
+  );
   const [title, setTitle] = useState<string | null>(null);
   const [newConversation, setNewConversation] = useState<boolean>(true);
 
   const getUserConversations = useCallback(async () => {
+    console.log("getUserConversations");
     if (!window.electron || !activeUser) return;
-    const conversations = await window.electron.getUserConversations(activeUser.id);
+    const conversations = await window.electron.getUserConversations(
+      activeUser.id
+    );
+    console.log("conversations", conversations);
     if (conversations?.conversations) {
       setConversations(conversations.conversations);
     }

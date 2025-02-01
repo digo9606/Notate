@@ -1,4 +1,4 @@
-import puppeteer from "puppeteer";
+import { chromium } from "playwright";
 
 import fs from "fs";
 import path from "path";
@@ -129,11 +129,27 @@ export async function websiteFetch(payload: {
       }
     }
 
-    const browser = await puppeteer.launch({
+    const browser = await chromium.launch({
       headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      executablePath:
+        process.platform === "win32"
+          ? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+          : process.platform === "linux"
+          ? "/usr/bin/google-chrome"
+          : "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     });
 
+    const context = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+      viewport: { width: 1920, height: 1080 },
+      deviceScaleFactor: 1,
+      isMobile: false,
+      hasTouch: false,
+      javaScriptEnabled: true,
+      bypassCSP: true,
+      ignoreHTTPSErrors: true,
+    });
     sendProgress(
       JSON.stringify({
         type: "progress",
@@ -144,8 +160,7 @@ export async function websiteFetch(payload: {
       })
     );
 
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1280, height: 800 });
+    const page = await context.newPage();
 
     sendProgress(
       JSON.stringify({
@@ -158,7 +173,7 @@ export async function websiteFetch(payload: {
     );
 
     await page.goto(payload.url, {
-      waitUntil: "networkidle0",
+      waitUntil: "networkidle",
       timeout: 30000,
     });
     await page.waitForSelector("body");
@@ -170,6 +185,7 @@ export async function websiteFetch(payload: {
         );
         return element ? (element as HTMLMetaElement).content : "";
       };
+
       return {
         title: document.title,
         source: url,

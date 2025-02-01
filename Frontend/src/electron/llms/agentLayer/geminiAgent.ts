@@ -14,36 +14,43 @@ export async function geminiAgent(
   mainWindow: BrowserWindow | null = null
 ): Promise<{
   content: string;
-  webSearchResult: {
-    metadata: {
-      title: string;
-      source: string;
-      description: string;
-      author: string;
-      keywords: string;
-      ogImage: string;
-    };
-    textContent: string;
-  } | null;
+  webSearchResult: WebSearchResult | null;
 }> {
+  console.log("geminiAgent");
   sendMessageChunk("[Agent]: ", mainWindow);
-  const sysPrompt = `You are an AI Agent with the ability to visit websites and extract text and metadata. 
-    Your task is to analyze the user's question and determine if visiting a website would help answer it.
+  const sysPrompt = `You are an AI Agent with the ability to visit websites and extract text and metadata.
+    Your task is to analyze if the user is DIRECTLY requesting to visit or check a specific website.
     
-    If web search would be helpful, respond with EXACTLY this JSON format without any markdown formatting or code blocks:
+    ONLY use web search or news search if the user explicitly asks to visit, check, or get information from a specific URL or website or websearch or news search.
+    Do not infer or assume web search would be helpful unless directly requested asking what is on a website is a valid web search. 
+    
+    If the user directly requests web search, respond with EXACTLY this JSON format:
     {
       "webUrl": 1,
       "url": "full_url_here"
     }
     
-    If web search is not needed, respond with EXACTLY without any markdown formatting or code blocks:
+    For all other queries, even if web search might be helpful, respond with EXACTLY:
     {
       "webUrl": 0,
       "url": ""
     }
     
+    example:
+    user: "What is on the google news page?"
+    agent: {
+      "webUrl": 1,
+      "url": "https://news.google.com"
+    }
+    
+
+    user: "What is the capital of France?"
+    agent: {
+      "webUrl": 0,
+      "url": ""
+    }
+
     Only respond with one of these two JSON formats, nothing else.
-    Do not wrap the response in markdown code blocks or add any other formatting.
     Make sure the URL is a complete, valid URL starting with http:// or https://
     Do not include any explanation or additional text in your response.`;
 
@@ -65,10 +72,11 @@ export async function geminiAgent(
   });
 
   const result = await chat.sendMessage(
-    sysPrompt + "\n\n" + messages[messages.length - 1].content
+    sysPrompt + "\n\n" + messages[messages.length - 1].content,
+    { signal }
   );
   const responseText = result.response.text();
-
+  console.log("responseText", responseText);
   let agentActions;
   try {
     // Clean up markdown formatting if present
@@ -88,13 +96,9 @@ export async function geminiAgent(
   let webSearchResult = null;
   if (agentActions.webUrl === 1 && agentActions.url) {
     try {
-      webSearchResult = await webSearch({
+      webSearchResult = (await webSearch({
         url: agentActions.url,
-      });
-      sendMessageChunk(
-        "[REASONING]: Visiting website: " + agentActions.url + "\n",
-        mainWindow
-      );
+      })) as WebSearchResult;
     } catch (error) {
       console.error("Web search failed:", error);
       sendMessageChunk(

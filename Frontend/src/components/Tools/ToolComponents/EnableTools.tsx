@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/context/useUser";
 import { Globe } from "lucide-react";
-import { useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useSysSettings } from "@/context/useSysSettings";
@@ -14,13 +13,6 @@ const toolIcons = {
 export default function EnableTools() {
   const { dockTool, systemTools, userTools, activeUser } = useUser();
   const { settings, setSettings } = useSysSettings();
-  useEffect(() => {
-    // Only log in development
-    if (process.env.NODE_ENV === "development") {
-      console.log("User Tools:", userTools);
-      console.log("System Tools:", systemTools);
-    }
-  }, [userTools, systemTools]);
 
   return (
     <div className="w-full flex flex-col gap-2">

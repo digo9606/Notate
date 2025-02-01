@@ -1015,3 +1015,14 @@ interface UserTool {
   enabled: number;
   docked: number;
 }
+type WebSearchResult = {
+  metadata: {
+    title: string;
+    source: string;
+    description: string;
+    author: string;
+    keywords: string;
+    ogImage: string;
+  };
+  textContent: string;
+};

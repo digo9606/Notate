@@ -41,9 +41,7 @@ export async function OllamaProvider(
   ) {
     const { content, webSearchResult } = await ollamaAgent(
       newMessages,
-      maxOutputTokens,
       userSettings,
-      signal,
       mainWindow
     );
     agentActions = content;
@@ -52,7 +50,6 @@ export async function OllamaProvider(
 
   let reasoning;
   if (userSettings.cot) {
-    // Do reasoning first
     const {
       reasoning: reasoningContent,
       actions,
@@ -61,7 +58,7 @@ export async function OllamaProvider(
       newMessages,
       maxOutputTokens,
       userSettings,
-      "", // Empty prompt for pure reasoning
+      "",
       data ? data : null,
       dataCollectionInfo ? dataCollectionInfo : null,
       signal,
@@ -73,7 +70,6 @@ export async function OllamaProvider(
     reasoning = reasoningContent;
     agentActions = actions;
     agentsResults = results;
-    // Send end of reasoning marker
     if (mainWindow) {
       mainWindow.webContents.send("reasoningEnd");
     }

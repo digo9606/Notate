@@ -34,7 +34,7 @@ export async function returnSystemPrompt(
           "\n\n"
         : "") +
       (webSearchResult
-        ? "\n\nThe following is the web results from the agent web tool used in the reasoning: " +
+        ? "\n\n If you get asked to visit or go to a web url or web action you already have and this is the following web results from the agent web tool used in the reasoning: " +
           JSON.stringify(webSearchResult) +
           "\n\n"
         : "") +
