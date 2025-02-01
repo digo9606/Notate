@@ -15,7 +15,6 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [activeUser, setActiveUser] = useState<User | null>(null);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [apiKeyInput, setApiKeyInput] = useState<string>("");
-  const [agentActions, setAgentActions] = useState<string>("");
   const [filteredConversations, setFilteredConversations] = useState<
     Conversation[]
   >([]);
@@ -53,6 +52,8 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsLoading,
     input,
     setInput,
+    agentActions,
+    setAgentActions,
   } = useChatManagement(activeUser, getUserConversations);
 
   const {
