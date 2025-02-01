@@ -224,7 +224,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
   }) => ipcInvoke("loadModel", payload) as unknown as Promise<void>,
   fetchOllamaModels: () =>
     ipcInvoke("fetchOllamaModels") as unknown as Promise<{
-      models: OllamaModel[];
+      models: string[];
     }>,
   changeUser: () => ipcInvoke("changeUser"),
   quit: () => ipcInvoke("quit"),

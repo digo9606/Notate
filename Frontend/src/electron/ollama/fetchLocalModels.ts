@@ -1,50 +1,51 @@
-import { ExecException, exec } from "child_process";
-import { platform } from "os";
-import log from "electron-log";
+import { ipcMain } from 'electron';
+import { platform } from 'os';
+import log from 'electron-log';
+import { promisify } from 'util';
+import { exec as execCallback } from 'child_process';
 
+const exec = promisify(execCallback);
 const getOllamaPath = () => platform() === "darwin" ? "/usr/local/bin/ollama" : "ollama";
 
-export async function fetchOllamaModels(): Promise<string[]> {
+export async function fetchOllamaModels(): Promise<{ models: string[] }> {
   log.info("Fetching Ollama models...");
   try {
-    return new Promise((resolve) => {
-      exec(`${getOllamaPath()} list`, (error: ExecException | null, stdout: string) => {
-        if (error) {
-          log.info(`Error executing ollama list: ${error?.message}`);
-          // If the direct path fails on macOS, try PATH lookup as fallback
-          if (platform() === "darwin") {
-            exec("ollama list", (fallbackError: ExecException | null, fallbackStdout: string) => {
-              if (fallbackError) {
-                log.info("Error executing ollama list:", fallbackError);
-                resolve([]);
-                return;
-              }
-              const models = fallbackStdout
-                .split("\n")
-                .slice(1)
-                .filter((line) => line.trim())
-                .map((line) => line.split(/\s+/)[0]);
-              log.info(`Fetched models: ${models}`);
-              resolve(models);
-            });
-            return;
-          }
-          log.info("Error executing ollama list:", error);
-          resolve([]);
-          return;
-        }
+    const ollamaPath = getOllamaPath();
+    const { stdout } = await exec(`${ollamaPath} list`);
+    
+    const models = stdout
+      .split("\n")
+      .slice(1)
+      .filter((line) => line.trim())
+      .map((line) => line.split(/\s+/)[0]);
 
+    return { models };
+  } catch (error) {
+    log.error("Failed to fetch Ollama models:", error);
+    // If the direct path fails on macOS, try PATH lookup as fallback
+    if (platform() === "darwin") {
+      try {
+        const { stdout } = await exec("ollama list");
         const models = stdout
           .split("\n")
           .slice(1)
           .filter((line) => line.trim())
           .map((line) => line.split(/\s+/)[0]);
-
-        resolve(models);
-      });
-    });
-  } catch (error) {
-    console.error("Failed to fetch Ollama models:", error);
-    return [];
+        
+        log.info(`Fetched models: ${models}`);
+        return { models };
+      } catch (fallbackError) {
+        log.error("Error executing ollama list:", fallbackError);
+        return { models: [] };
+      }
+    }
+    return { models: [] };
   }
+}
+
+// Register IPC handler in main process
+export function setupOllamaModelHandlers() {
+  ipcMain.handle('fetchOllamaModels', async () => {
+    return await fetchOllamaModels();
+  });
 }

@@ -22,6 +22,7 @@ export default function Ollama() {
     localModalLoading,
     ollamaInit,
     setOllamaInit,
+    handleOllamaIntegration,
   } = useSysSettings();
   const { activeUser } = useUser();
   const [selectedModel, setSelectedModel] = useState("");
@@ -29,22 +30,6 @@ export default function Ollama() {
     const parts = name.split("-");
     if (parts.length <= 2) return name;
     return `${parts[0]}-${parts[1]}...`;
-  };
-
-  const handleOllamaIntegration = async () => {
-    const startUpOllama = await window.electron.checkOllama();
-    if (activeUser && startUpOllama) {
-      const models = await window.electron.fetchOllamaModels();
-      const filteredModels = (models.models as unknown as string[])
-        .filter((model) => !model.includes("granite"))
-        .map((model) => ({ name: model, type: "ollama" }));
-      await window.electron.updateUserSettings({
-        ...activeUser,
-        ollamaIntegration: 1,
-      });
-      setOllamaModels(filteredModels);
-      setOllamaInit(true);
-    }
   };
 
   return (
@@ -66,7 +51,7 @@ export default function Ollama() {
               });
 
               if (settings.ollamaIntegration === 1) {
-                await handleOllamaIntegration();
+                await handleOllamaIntegration(activeUser);
                 setOllamaInit(true);
               } else {
                 setOllamaModels([]);

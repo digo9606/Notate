@@ -66,7 +66,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         .filter((model) => !model.includes("granite"))
         .map((model) => ({ name: model, type: "ollama" }));
       await window.electron.updateUserSettings({
-        ...activeUser,
+        userId: activeUser.id,
         ollamaIntegration: 1,
       });
       setOllamaModels(filteredModels);
@@ -201,8 +201,10 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   const fetchSettings = async (activeUser: User) => {
     if (activeUser) {
       const settings = await window.electron.getUserSettings(activeUser.id);
+      console.log(settings);
       if (parseInt(settings?.ollamaIntegration?.toString() ?? "0") === 1) {
         handleOllamaIntegration(activeUser);
+        console.log("ollamaIntegration");
       }
       setSettings(settings);
       if (settings.modelDirectory) {
