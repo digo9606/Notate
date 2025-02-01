@@ -36,21 +36,22 @@ export default function Ollama() {
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <Button
-          variant={ollamaModels.length > 0 ? "default" : "outline"}
-          className="w-full"
+          variant={ollamaInit ? "default" : "outline"}
+          className="w-full"  
           onClick={async () => {
             if (activeUser) {
+              const newIntegrationValue = settings.ollamaIntegration === 1 ? 0 : 1;
               setSettings({
                 ...settings,
-                ollamaIntegration: settings.ollamaIntegration === 1 ? 0 : 1,
+                ollamaIntegration: newIntegrationValue,
               });
 
               await window.electron.updateUserSettings({
                 userId: activeUser.id,
-                ollamaIntegration: settings.ollamaIntegration === 1 ? 0 : 1,
+                ollamaIntegration: newIntegrationValue,
               });
 
-              if (settings.ollamaIntegration === 1) {
+              if (newIntegrationValue === 1) {
                 await handleOllamaIntegration(activeUser);
                 setOllamaInit(true);
               } else {

@@ -74,10 +74,10 @@ export default function EnableTools() {
             }}
           />
         </div>
-        <div className="rounded-md bg-muted/50 p-3">
+        <div className="rounded-[6px] bg-muted/50 p-3">
           <div className="text-xs text-muted-foreground flex items-center gap-2">
             <span className="font-medium text-yellow-500">Beta</span>
-            This feature is currently in development and may not work as
+            These tools are currently in development and may not work as
             expected with all models.
           </div>
         </div>

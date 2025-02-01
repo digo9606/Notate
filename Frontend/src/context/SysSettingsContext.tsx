@@ -202,10 +202,8 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   const fetchSettings = async (activeUser: User) => {
     if (activeUser) {
       const settings = await window.electron.getUserSettings(activeUser.id);
-      console.log(settings);
       if (parseInt(settings?.ollamaIntegration?.toString() ?? "0") === 1) {
         handleOllamaIntegration(activeUser);
-        console.log("ollamaIntegration");
       }
       setSettings(settings);
       if (settings.modelDirectory) {

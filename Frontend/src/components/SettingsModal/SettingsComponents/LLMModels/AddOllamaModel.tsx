@@ -90,6 +90,14 @@ export default function AddOllamaModel() {
   };
 
   const handleDownload = async () => {
+    if (ollamaModel.length === 0) {
+      toast({
+        title: "Invalid Model",
+        description: "Please enter a valid model ID",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!activeUser) {
       toast({
         title: "Invalid User",

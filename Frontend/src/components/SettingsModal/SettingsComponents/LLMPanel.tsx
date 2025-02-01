@@ -13,9 +13,27 @@ import External from "./LLMModels/External";
 import Openrouter from "./LLMModels/Openrouter";
 import CustomLLM from "./LLMModels/CustomLLM";
 import AzureOpenAI from "./LLMModels/AzureOpenAI";
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Search } from "lucide-react";
+
+// Provider categories for better organization
+const providerCategories = {
+  "Cloud Providers": ["openai", "anthropic", "gemini", "deepseek", "xai"],
+  "Self-Hosted": ["ollama", "local"],
+  Advanced: ["openrouter", "azure open ai", "custom"],
+} as const;
 
 export default function LLMPanel() {
   const [showUpdateInput, setShowUpdateInput] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const {
     activeUser,
     apiKeys,
@@ -138,28 +156,58 @@ export default function LLMPanel() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap gap-2">
-        {Object.keys(providerIcons)
-          .sort()
-          .map((provider) => (
-            <Button
-              key={provider}
-              onClick={() => {
-                setSelectedProvider(provider as LLMProvider);
-                setApiKeyInput("");
-                setShowUpdateInput(false);
-              }}
-              variant={selectedProvider === provider ? "secondary" : "outline"}
-              className={`btn-provider ${
-                selectedProvider === provider ? "selected" : ""
-              }`}
-            >
-              <div className="mr-2">
-                {providerIcons[provider as keyof typeof providerIcons]}
-              </div>
-              {provider.charAt(0).toUpperCase() + provider.slice(1)}
-            </Button>
-          ))}
+      <div className="w-full">
+        <Button
+          variant="outline"
+          className="w-full justify-between"
+          onClick={() => setIsOpen(true)}
+        >
+          {selectedProvider ? (
+            <div className="flex items-center gap-2">
+              {providerIcons[selectedProvider as keyof typeof providerIcons]}
+              <span>
+                {selectedProvider.charAt(0).toUpperCase() +
+                  selectedProvider.slice(1)}
+              </span>
+            </div>
+          ) : (
+            <span className="text-muted-foreground">Select a provider...</span>
+          )}
+          <Search className="h-4 w-4 text-muted-foreground" />
+        </Button>
+
+        <CommandDialog open={isOpen} onOpenChange={setIsOpen}>
+          <Command className="rounded-lg border shadow-md">
+            <CommandInput placeholder="Search providers..." />
+            <CommandList>
+              <CommandEmpty>No providers found.</CommandEmpty>
+              {Object.entries(providerCategories).map(
+                ([category, providers]) => (
+                  <CommandGroup key={category} heading={category}>
+                    {providers.map((provider) => (
+                      <CommandItem
+                        key={provider}
+                        value={provider}
+                        onSelect={(value) => {
+                          setSelectedProvider(value as LLMProvider);
+                          setApiKeyInput("");
+                          setShowUpdateInput(false);
+                          setIsOpen(false);
+                        }}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        {providerIcons[provider as keyof typeof providerIcons]}
+                        <span>
+                          {provider.charAt(0).toUpperCase() + provider.slice(1)}
+                        </span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )
+              )}
+            </CommandList>
+          </Command>
+        </CommandDialog>
       </div>
       {selectedProvider && (
         <>

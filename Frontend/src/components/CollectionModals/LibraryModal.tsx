@@ -14,7 +14,7 @@ export function LibraryModal() {
           <IngestModal setShowUpload={setShowUpload} />
         ) : (
           <div className="space-y-6">
-            <div className="rounded-[6px] p-4 bg-gradient-to-br from-secondary/50 via-secondary/30 to-background border">
+            <div>
               {!showAddStore && <DataStoreSelect />}
               {showAddStore && <AddLibrary />}
             </div>

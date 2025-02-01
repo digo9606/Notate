@@ -143,7 +143,6 @@ export default function AddLibrary() {
     }
 
     window.electron.updateUserSettings({
-      userId: activeUser.id,
       vectorstore: newCollection.id.toString(),
     });
 
@@ -165,7 +164,7 @@ export default function AddLibrary() {
       <div className="space-y-4">
         <div className="grid grid-cols-4 items-center gap-4">
           <div className="col-span-4">
-            <div className="grid grid-cols-4 items-center gap-4">
+            <div className="grid grid-cols-4 items-center gap-4 ">
               <Button
                 variant="outline"
                 size="icon"
@@ -197,252 +196,255 @@ export default function AddLibrary() {
             </div>
           </div>
         </div>
-
-        <div className="rounded-[6px] p-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="newStore" className="text-right">
-              Store Name
-            </Label>
-            <div className="col-span-3">
-              {newStoreError && (
-                <p className="text-destructive text-sm mb-2">{newStoreError}</p>
-              )}
-              <Textarea
-                id="newStore"
-                placeholder="Enter store name"
-                value={newStore}
-                onChange={(e) => {
-                  setNewStore(e.target.value);
-                  setNewStoreError(null);
-                }}
-                className="resize-none bg-background"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-4 items-center gap-4 mt-4">
-            <Label htmlFor="description" className="text-right">
-              Description
-            </Label>
-            <div className="col-span-3">
-              <Textarea
-                id="description"
-                placeholder="Enter store description (optional)"
-                value={newStoreDescription}
-                onChange={(e) => setNewStoreDescription(e.target.value)}
-                className="resize-none bg-background"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="w-full">
-            <div className="">
-              <div className="flex gap-4">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div>
-                        <Button
-                          disabled={
-                            apiKeys.find((key) => key.provider === "openai") ===
-                            undefined
-                          }
-                          type="button"
-                          variant={isLocal ? "outline" : "secondary"}
-                          className="flex-1 sm:text-[14px] text-[10px]"
-                          onClick={() => setIsLocal(false)}
-                        >
-                          <Cloud className="h-4 w-4 mr-2" />
-                          Open AI Embeddings
-                        </Button>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        You must have an OpenAI API key to use this feature.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <Button
-                  type="button"
-                  variant={isLocal ? "secondary" : "outline"}
-                  className="flex-1 sm:text-[14px] text-[10px]"
-                  onClick={() => setIsLocal(true)}
-                >
-                  <Database className="h-4 w-4 mr-2" />
-                  Local Embeddings
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {isLocal && showAdvancedSettings && (
-            <>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="localEmbeddingModel" className="text-right">
-                  Embeddings
-                </Label>
-                <div className="col-span-3">
-                  <Select
-                    value={localEmbeddingModel}
-                    onValueChange={(value) => {
-                      setLocalEmbeddingModel(value);
-                      setShowCustomInput(value === "custom");
-                    }}
-                  >
-                    <SelectTrigger
-                      id="localEmbeddingModel"
-                      className="bg-background"
-                    >
-                      <SelectValue placeholder="Select embedding model" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background">
-                      <SelectItem value="HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5">
-                        Default:
-                        HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5
-                      </SelectItem>
-                      {embeddingModels
-                        .filter(
-                          (model) =>
-                            model.name !==
-                            "HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5"
-                        )
-                        .map((model) => (
-                          <SelectItem key={model.name} value={model.name}>
-                            {model.name}
-                          </SelectItem>
-                        ))}
-                      <SelectItem value="custom">
-                        Add Hugging Face Model
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {showCustomInput && (
-                <div className="space-y-4">
-                  <div className="">
-                    <Input
-                      id="customModel"
-                      placeholder="Enter Model Repo eg: 'HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5'"
-                      value={customModel}
-                      onChange={(e) => setCustomModel(e.target.value)}
-                      className="resize-none"
-                    />
-                  </div>
-                  <div className="col-span-1">
-                    <Button
-                      type="button"
-                      disabled={isDownloading}
-                      onClick={async () => {
-                        if (customModel.trim()) {
-                          setIsDownloading(true);
-                          try {
-                            const modelsPath =
-                              await window.electron.getModelsPath();
-                            await window.electron.downloadModel({
-                              modelId: customModel.trim(),
-                              dirPath: modelsPath + "/" + customModel.trim(),
-                            });
-                            await fetchEmbeddingModels(setEmbeddingModels);
-                            setLocalEmbeddingModel(customModel.trim());
-                            setShowCustomInput(false);
-                          } catch (error) {
-                            console.error("Error downloading model:", error);
-                            // You might want to show an error message to the user here
-                          } finally {
-                            setIsDownloading(false);
-                          }
-                        }
-                      }}
-                      className="w-full"
-                    >
-                      {isDownloading ? "Downloading..." : "Download Model"}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-          {progressMessage && (
-            <div className="mt-4 p-4 rounded-md border bg-background">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-secondary-foreground">
-                    {progressMessage}
+        <div className="rounded-[6px] px-4 pb-4 bg-gradient-to-br from-secondary/50 via-secondary/30 to-background border">
+          <div className="rounded-[6px] p-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="newStore" className="text-right">
+                Store Name
+              </Label>
+              <div className="col-span-3">
+                {newStoreError && (
+                  <p className="text-destructive text-sm mb-2">
+                    {newStoreError}
                   </p>
-                  {isDownloading && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={handleCancel}
-                      className="h-6 px-2"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
+                )}
+                <Textarea
+                  id="newStore"
+                  placeholder="Enter store name"
+                  value={newStore}
+                  onChange={(e) => {
+                    setNewStore(e.target.value);
+                    setNewStoreError(null);
+                  }}
+                  className="resize-none bg-background"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4 mt-4">
+              <Label htmlFor="description" className="text-right">
+                Description
+              </Label>
+              <div className="col-span-3">
+                <Textarea
+                  id="description"
+                  placeholder="Enter store description (optional)"
+                  value={newStoreDescription}
+                  onChange={(e) => setNewStoreDescription(e.target.value)}
+                  className="resize-none bg-background"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="w-full">
+              <div className="">
+                <div className="flex gap-4">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <Button
+                            disabled={
+                              apiKeys.find(
+                                (key) => key.provider === "openai"
+                              ) === undefined
+                            }
+                            type="button"
+                            variant={isLocal ? "outline" : "secondary"}
+                            className="flex-1 sm:text-[14px] text-[10px]"
+                            onClick={() => setIsLocal(false)}
+                          >
+                            <Cloud className="h-4 w-4 mr-2" />
+                            Open AI Embeddings
+                          </Button>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          You must have an OpenAI API key to use this feature.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Button
+                    type="button"
+                    variant={isLocal ? "secondary" : "outline"}
+                    className="flex-1 sm:text-[14px] text-[10px]"
+                    onClick={() => setIsLocal(true)}
+                  >
+                    <Database className="h-4 w-4 mr-2" />
+                    Local Embeddings
+                  </Button>
                 </div>
-                {currentFile && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between items-center">
-                      <p className="text-xs text-muted-foreground truncate flex-1">
-                        {currentFile}
-                      </p>
-                      <p className="text-xs text-muted-foreground ml-2">
-                        {fileProgress}%
-                      </p>
+              </div>
+            </div>
+
+            {isLocal && showAdvancedSettings && (
+              <>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="localEmbeddingModel" className="text-right">
+                    Embeddings
+                  </Label>
+                  <div className="col-span-3">
+                    <Select
+                      value={localEmbeddingModel}
+                      onValueChange={(value) => {
+                        setLocalEmbeddingModel(value);
+                        setShowCustomInput(value === "custom");
+                      }}
+                    >
+                      <SelectTrigger
+                        id="localEmbeddingModel"
+                        className="bg-background"
+                      >
+                        <SelectValue placeholder="Select embedding model" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background">
+                        <SelectItem value="HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5">
+                          Default:
+                          HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5
+                        </SelectItem>
+                        {embeddingModels
+                          .filter(
+                            (model) =>
+                              model.name !==
+                              "HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5"
+                          )
+                          .map((model) => (
+                            <SelectItem key={model.name} value={model.name}>
+                              {model.name}
+                            </SelectItem>
+                          ))}
+                        <SelectItem value="custom">
+                          Add Hugging Face Model
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {showCustomInput && (
+                  <div className="space-y-4">
+                    <div className="">
+                      <Input
+                        id="customModel"
+                        placeholder="Enter Model Repo eg: 'HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5'"
+                        value={customModel}
+                        onChange={(e) => setCustomModel(e.target.value)}
+                        className="resize-none"
+                      />
                     </div>
-                    <Progress value={fileProgress} className="h-1" />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>
-                        {downloadProgress.currentSize || "0 B"} /{" "}
-                        {downloadProgress.totalSize || "0 B"}
-                      </span>
-                      {downloadProgress.speed && (
-                        <span>{downloadProgress.speed}</span>
-                      )}
+                    <div className="col-span-1">
+                      <Button
+                        type="button"
+                        disabled={isDownloading}
+                        onClick={async () => {
+                          if (customModel.trim()) {
+                            setIsDownloading(true);
+                            try {
+                              const modelsPath =
+                                await window.electron.getModelsPath();
+                              await window.electron.downloadModel({
+                                modelId: customModel.trim(),
+                                dirPath: modelsPath + "/" + customModel.trim(),
+                              });
+                              await fetchEmbeddingModels(setEmbeddingModels);
+                              setLocalEmbeddingModel(customModel.trim());
+                              setShowCustomInput(false);
+                            } catch (error) {
+                              console.error("Error downloading model:", error);
+                              // You might want to show an error message to the user here
+                            } finally {
+                              setIsDownloading(false);
+                            }
+                          }
+                        }}
+                        className="w-full"
+                      >
+                        {isDownloading ? "Downloading..." : "Download Model"}
+                      </Button>
                     </div>
                   </div>
                 )}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Total Progress</span>
-                    <span>{downloadProgress.totalProgress}%</span>
+              </>
+            )}
+            {progressMessage && (
+              <div className="mt-4 p-4 rounded-md border bg-background">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-secondary-foreground">
+                      {progressMessage}
+                    </p>
+                    {isDownloading && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleCancel}
+                        className="h-6 px-2"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
-                  <Progress
-                    value={downloadProgress.totalProgress}
-                    className="h-1"
-                  />
+                  {currentFile && (
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <p className="text-xs text-muted-foreground truncate flex-1">
+                          {currentFile}
+                        </p>
+                        <p className="text-xs text-muted-foreground ml-2">
+                          {fileProgress}%
+                        </p>
+                      </div>
+                      <Progress value={fileProgress} className="h-1" />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>
+                          {downloadProgress.currentSize || "0 B"} /{" "}
+                          {downloadProgress.totalSize || "0 B"}
+                        </span>
+                        {downloadProgress.speed && (
+                          <span>{downloadProgress.speed}</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Total Progress</span>
+                      <span>{downloadProgress.totalProgress}%</span>
+                    </div>
+                    <Progress
+                      value={downloadProgress.totalProgress}
+                      className="h-1"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-          <div className="grid grid-cols-4 items-center gap-4 ">
-            <Label htmlFor="storeType" className="text-right ">
-              Store Type
-            </Label>
-            <div className="col-span-3 bg-background">
-              <Select
-                value={newStoreType}
-                onValueChange={(value) => setNewStoreType(value)}
-              >
-                <SelectTrigger id="storeType">
-                  <SelectValue placeholder="Select store type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Notes">Notes</SelectItem>
-                  <SelectItem value="Chats">Chats</SelectItem>
-                </SelectContent>
-              </Select>
+            )}
+            <div className="grid grid-cols-4 items-center gap-4 ">
+              <Label htmlFor="storeType" className="text-right ">
+                Store Type
+              </Label>
+              <div className="col-span-3 bg-background">
+                <Select
+                  value={newStoreType}
+                  onValueChange={(value) => setNewStoreType(value)}
+                >
+                  <SelectTrigger id="storeType">
+                    <SelectValue placeholder="Select store type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Notes">Notes</SelectItem>
+                    <SelectItem value="Chats">Chats</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
       <div className="flex justify-between gap-4 pt-4 border-t">
         <Button
           type="button"
