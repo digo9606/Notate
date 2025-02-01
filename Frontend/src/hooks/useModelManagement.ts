@@ -56,10 +56,6 @@ export const useModelManagement = (activeUser: User | null) => {
       .filter((tool): tool is NonNullable<typeof tool> => tool !== null);
 
     setUserTools(completeUserTools);
-
-    if (process.env.NODE_ENV === "development") {
-      console.log("Fetched User Tools:", completeUserTools);
-    }
   }, [activeUser]);
 
   const fetchSystemTools = useCallback(async () => {
