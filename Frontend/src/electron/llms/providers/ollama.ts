@@ -48,7 +48,11 @@ export async function OllamaProvider(
   let reasoning;
   if (userSettings.cot) {
     // Do reasoning first
-    reasoning = await chainOfThought(
+    const {
+      reasoning: reasoningContent,
+      actions,
+      results,
+    } = await chainOfThought(
       newMessages,
       maxOutputTokens,
       userSettings,
@@ -61,17 +65,19 @@ export async function OllamaProvider(
       agentsResults
     );
 
+    reasoning = reasoningContent;
+    agentActions = actions;
+    agentsResults = results;
     // Send end of reasoning marker
     if (mainWindow) {
       mainWindow.webContents.send("reasoningEnd");
     }
   }
-  let webSearchResult;
   const newSysPrompt = await returnSystemPrompt(
     prompt,
     dataCollectionInfo,
     reasoning || null,
-    webSearchResult,
+    agentsResults ? agentsResults : undefined,
     data
   );
 
@@ -353,7 +359,11 @@ async function chainOfThought(
       }
     }
 
-    return reasoningContent;
+    return {
+      reasoning: reasoningContent,
+      actions: agentActions,
+      results: agentsResults,
+    };
   } finally {
     reader.releaseLock();
   }
