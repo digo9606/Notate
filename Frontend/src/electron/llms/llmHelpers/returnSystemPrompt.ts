@@ -27,15 +27,15 @@ export async function returnSystemPrompt(
     role: "system",
     content:
       "When asked about previous messages, only consider messages marked as '(most recent message)' as the last message. " +
-      (webSearchResult
-        ? "\n\nThe following is the web results from the agent web tool used in the reasoning: " +
-          JSON.stringify(webSearchResult) +
-          "\n\n"
-        : "") +
       prompt +
       (reasoning
         ? "\n\nUse this reasoning process to answer the question (Reasoning has already been provided, DO NOT RE-REASON): " +
           reasoning +
+          "\n\n"
+        : "") +
+      (webSearchResult
+        ? "\n\nThe following is the web results from the agent web tool used in the reasoning: " +
+          JSON.stringify(webSearchResult) +
           "\n\n"
         : "") +
       (data

@@ -5,6 +5,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import ollama from "ollama";
 import { z } from "zod";
 import { webSearch } from "./tools/websearch.js";
+
 export async function ollamaAgent(
   messages: ChatCompletionMessageParam[],
   maxOutputTokens: number,

@@ -6,6 +6,7 @@ import type { ChatCompletionMessageParam } from "openai/resources/chat/completio
 import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
 import { prepMessages } from "../llmHelpers/prepMessages.js";
 import { ollamaAgent } from "../agentLayer/ollamaAgent.js";
+import ollama from "ollama";
 
 export async function OllamaProvider(
   params: ProviderInputParams
@@ -84,33 +85,15 @@ export async function OllamaProvider(
   const truncatedMessages = truncateMessages(newMessages, maxOutputTokens);
   truncatedMessages.unshift(newSysPrompt);
   console.log("truncatedMessages", truncatedMessages);
-  const response = await fetch("http://localhost:11434/api/chat", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: userSettings.model || "llama2",
-      messages: truncatedMessages.map((msg) => ({
-        role: msg.role,
-        content: msg.content as string,
-      })),
-      stream: true,
-      keep_alive: -1,
-      max_tokens: maxOutputTokens,
-    }),
+
+  const response = await ollama.chat({
+    model: userSettings.model || "llama2",
+    messages: truncatedMessages.map((msg) => ({
+      role: msg.role,
+      content: msg.content as string,
+    })),
+    stream: true,
   });
-
-  if (!response.ok) {
-    throw new Error(
-      `Ollama API error: ${response.status} ${response.statusText}`
-    );
-  }
-
-  const reader = response.body?.getReader();
-  if (!reader) {
-    throw new Error("Failed to get response reader");
-  }
 
   const newMessage: Message = {
     role: "assistant",
@@ -119,62 +102,12 @@ export async function OllamaProvider(
     data_content: data ? JSON.stringify(data) : undefined,
   };
 
+  for await (const part of response) {
+    sendMessageChunk(part.message.content, mainWindow);
+    newMessage.content += part.message.content;
+  }
+
   try {
-    let buffer = "";
-    while (true) {
-      if (signal?.aborted) {
-        if (mainWindow) {
-          mainWindow.webContents.send("streamEnd");
-        }
-        return {
-          id: conversationId,
-          messages: [...messages, { ...newMessage }],
-          title: currentTitle,
-          content: newMessage.content,
-          aborted: true,
-        };
-      }
-
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      // Add new data to buffer and split by newlines
-      buffer += new TextDecoder().decode(value);
-      const lines = buffer.split("\n");
-
-      // Process all complete lines
-      for (let i = 0; i < lines.length - 1; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-
-        try {
-          const parsed = JSON.parse(line);
-          if (parsed.message?.content) {
-            newMessage.content += parsed.message.content;
-            sendMessageChunk(parsed.message.content, mainWindow);
-          }
-        } catch (e) {
-          console.warn("Failed to parse line:", line, e);
-        }
-      }
-
-      // Keep the last incomplete line in the buffer
-      buffer = lines[lines.length - 1];
-    }
-
-    // Process any remaining data in the buffer
-    if (buffer.trim()) {
-      try {
-        const parsed = JSON.parse(buffer);
-        if (parsed.message?.content) {
-          newMessage.content += parsed.message.content;
-          sendMessageChunk(parsed.message.content, mainWindow);
-        }
-      } catch (e) {
-        console.warn("Failed to parse final buffer:", buffer, e);
-      }
-    }
-
     if (mainWindow) {
       mainWindow.webContents.send("streamEnd");
     }
@@ -220,8 +153,6 @@ export async function OllamaProvider(
       };
     }
     throw error;
-  } finally {
-    reader.releaseLock();
   }
 }
 
@@ -276,95 +207,25 @@ async function chainOfThought(
 
   const truncatedMessages = truncateMessages(messages, maxOutputTokens);
   const newMessages = [sysPrompt, ...truncatedMessages];
-  console.log("newMessages", newMessages);
-  const response = await fetch("http://localhost:11434/api/chat", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: userSettings.model || "llama2",
-      messages: newMessages.map((msg) => ({
-        role: msg.role,
-        content: msg.content as string,
-      })),
-      stream: true,
-      keep_alive: -1,
-      max_tokens: maxOutputTokens,
-    }),
+
+  const response = await ollama.chat({
+    model: userSettings.model || "llama2",
+    messages: newMessages.map((msg) => ({
+      role: msg.role,
+      content: msg.content as string,
+    })),
+    stream: true,
   });
 
-  if (!response.ok) {
-    throw new Error(
-      `Ollama API error: ${response.status} ${response.statusText}`
-    );
-  }
-
-  const reader = response.body?.getReader();
-  if (!reader) {
-    throw new Error("Failed to get response reader");
-  }
-
   let reasoningContent = "";
-  try {
-    let buffer = "";
-    while (true) {
-      if (signal?.aborted) {
-        throw new Error("AbortError");
-      }
-
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      // Add new data to buffer and split by newlines
-      buffer += new TextDecoder().decode(value);
-      const lines = buffer.split("\n");
-
-      // Process all complete lines
-      for (let i = 0; i < lines.length - 1; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-
-        try {
-          const parsed = JSON.parse(line);
-          if (parsed.message?.content) {
-            reasoningContent += parsed.message.content;
-            sendMessageChunk(
-              "[REASONING]: " + parsed.message.content,
-              mainWindow
-            );
-          }
-        } catch (e) {
-          console.warn("Failed to parse line:", line, e);
-        }
-      }
-
-      // Keep the last incomplete line in the buffer
-      buffer = lines[lines.length - 1];
-    }
-
-    // Process any remaining data in the buffer
-    if (buffer.trim()) {
-      try {
-        const parsed = JSON.parse(buffer);
-        if (parsed.message?.content) {
-          reasoningContent += parsed.message.content;
-          sendMessageChunk(
-            "[REASONING]: " + parsed.message.content,
-            mainWindow
-          );
-        }
-      } catch (e) {
-        console.warn("Failed to parse final buffer:", buffer, e);
-      }
-    }
-
-    return {
-      reasoning: reasoningContent,
-      actions: agentActions,
-      results: agentsResults,
-    };
-  } finally {
-    reader.releaseLock();
+  for await (const part of response) {
+    sendMessageChunk("[REASONING]: " + part.message.content, mainWindow);
+    reasoningContent += part.message.content;
   }
+
+  return {
+    reasoning: reasoningContent,
+    actions: agentActions,
+    results: agentsResults,
+  };
 }

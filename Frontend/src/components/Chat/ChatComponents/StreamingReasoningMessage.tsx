@@ -150,7 +150,7 @@ export const StreamingReasoningMessage = () => {
             Chain of Thought
           </span>
           <span className="text-xs text-primary/60">
-            thinking
+            Thinking
             <span className="inline-flex">
               <span className="animate-[dot_1.4s_infinite] [animation-delay:0.0s]">
                 .
