@@ -69,6 +69,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         userId: activeUser.id,
         ollamaIntegration: 1,
       });
+      setOllamaInit(true);
       setOllamaModels(filteredModels);
     }
   };
