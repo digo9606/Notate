@@ -59,10 +59,15 @@ export async function webSearch(payload: { url: string }) {
       Array.from(styles).forEach((style) => style.remove());
       return document.body.innerText;
     });
-
+    console.log("Length of textContent", textContent.length);
+    let content = textContent;
+    if (textContent.length > 2000) {
+      content = textContent.slice(0, 2000);
+    }
+    console.log("Length of content", content.length);
     return {
       metadata,
-      textContent,
+      textContent: content,
     };
   } finally {
     await context.close();
