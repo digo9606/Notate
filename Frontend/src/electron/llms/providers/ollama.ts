@@ -83,7 +83,7 @@ export async function OllamaProvider(
 
   const truncatedMessages = truncateMessages(newMessages, maxOutputTokens);
   truncatedMessages.unshift(newSysPrompt);
-
+  console.log("truncatedMessages", truncatedMessages);
   const response = await fetch("http://localhost:11434/api/chat", {
     method: "POST",
     headers: {
@@ -276,7 +276,7 @@ async function chainOfThought(
 
   const truncatedMessages = truncateMessages(messages, maxOutputTokens);
   const newMessages = [sysPrompt, ...truncatedMessages];
-
+  console.log("newMessages", newMessages);
   const response = await fetch("http://localhost:11434/api/chat", {
     method: "POST",
     headers: {
