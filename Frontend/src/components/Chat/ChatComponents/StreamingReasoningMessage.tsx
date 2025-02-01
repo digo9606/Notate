@@ -9,10 +9,12 @@ import remarkRehype from "remark-rehype";
 import { unified } from "unified";
 import remarkGfm from "remark-gfm";
 import remarkFrontmatter from "remark-frontmatter";
+import { Button } from "@/components/ui/button";
 
 export const StreamingReasoningMessage = () => {
-  const { streamingMessageReasoning } = useUser();
+  const { streamingMessageReasoning, agentActions } = useUser();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [agentActionsExpanded, setAgentActionsExpanded] = useState(false);
   const [parsedContent, setParsedContent] = useState<(string | JSX.Element)[]>(
     []
   );
@@ -148,7 +150,7 @@ export const StreamingReasoningMessage = () => {
             Chain of Thought
           </span>
           <span className="text-xs text-primary/60">
-            thinking
+            Thinking
             <span className="inline-flex">
               <span className="animate-[dot_1.4s_infinite] [animation-delay:0.0s]">
                 .
@@ -182,6 +184,21 @@ export const StreamingReasoningMessage = () => {
               Reasoning Process
             </div>
           </div>
+
+          {agentActions &&
+            (agentActionsExpanded ? (
+              <div className="bg-secondary/10 backdrop-blur-sm">
+                <div className="px-4 py-3 text-sm break-words [overflow-wrap:anywhere] text-left overflow-hidden">
+                  {agentActions}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-secondary/10 backdrop-blur-sm">
+                <Button onClick={() => setAgentActionsExpanded(true)}>
+                  View Actions
+                </Button>
+              </div>
+            ))}
           <div className="bg-secondary/10 backdrop-blur-sm">
             <div className="px-4 py-3 text-sm break-words [overflow-wrap:anywhere] text-left overflow-hidden">
               {parsedContent}

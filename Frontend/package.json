@@ -5,7 +5,7 @@
   "license": "MIT",
   "homepage": "https://github.com/CNTRLAI/notate",
   "private": true,
-  "version": "1.0.9",
+  "version": "1.1.0",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -59,11 +59,10 @@
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.462.0",
     "next-mdx-remote": "^5.0.0",
+    "ollama": "^0.5.12",
     "openai": "^4.75.0",
     "os-utils": "^0.0.14",
-    "puppeteer": "^23.11.1",
-    "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "playwright": "^1.50.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-dropzone": "^14.3.5",
@@ -82,7 +81,8 @@
     "tailwindcss-animate": "^1.0.7",
     "unified": "^11.0.5",
     "use-clipboard-copy": "^0.2.0",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.24.1"
   },
   "devDependencies": {
     "@electron/rebuild": "^3.7.1",

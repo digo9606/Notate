@@ -6,6 +6,7 @@ import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
 import { returnReasoningPrompt } from "../llmHelpers/returnReasoningPrompt.js";
+import { anthropicAgent } from "../agentLayer/anthropicAgent.js";
 
 async function chainOfThought(
   anthropic: Anthropic,
@@ -91,6 +92,26 @@ export async function AnthropicProvider(
 
   const anthropic = new Anthropic({ apiKey });
 
+  const userTools = db.getUserTools(activeUser.id);
+
+  let agentActions = null;
+  let webSearchResult = null;
+  const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
+
+  // If the user has Web Search enabled, we need to do web search first
+  if (userTools.find((tool) => tool.tool_id === 1)?.enabled === 1) {
+    const { content: actions, webSearchResult: webResults } =
+      await anthropicAgent(
+        anthropic,
+        messages,
+        maxOutputTokens,
+        signal,
+        mainWindow
+      );
+    agentActions = actions;
+    webSearchResult = webResults;
+  }
+  console.log("agentActions", agentActions);
   const newMessage: Message = {
     role: "assistant",
     content: "",
@@ -107,7 +128,6 @@ export async function AnthropicProvider(
   if (collectionId) {
     dataCollectionInfo = db.getCollection(collectionId) as Collection;
   }
-  const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
 
   let reasoning: string | undefined;
 
@@ -134,12 +154,13 @@ export async function AnthropicProvider(
     prompt,
     dataCollectionInfo,
     reasoning || null,
+    webSearchResult || undefined,
     data
   );
   // Truncate messages to fit within token limits
   const truncatedMessages = truncateMessages(newMessages, maxOutputTokens);
 
-  const stream = (await anthropic.messages.stream(
+  const stream = await anthropic.messages.stream(
     {
       temperature: Number(userSettings.temperature),
       system: sysPrompt.content,
@@ -151,10 +172,7 @@ export async function AnthropicProvider(
       max_tokens: Number(maxOutputTokens),
     },
     { signal }
-  )) as unknown as {
-    type: string;
-    delta: { text: string };
-  }[];
+  );
 
   try {
     for await (const chunk of stream) {

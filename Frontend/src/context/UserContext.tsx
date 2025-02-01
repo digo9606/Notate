@@ -21,25 +21,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [prompts, setPrompts] = useState<UserPrompts[]>([]);
   const [devAPIKeys, setDevAPIKeys] = useState<Keys[]>([]);
 
-  const {
-    messages,
-    streamingMessage,
-    streamingMessageReasoning,
-    isLoading,
-    error,
-    handleChatRequest,
-    cancelRequest,
-    setMessages,
-    setStreamingMessage,
-    setStreamingMessageReasoning,
-    setError,
-    currentRequestId,
-    setCurrentRequestId,
-    setIsLoading,
-    input,
-    setInput,
-  } = useChatManagement(activeUser);
-
+  // Initialize conversation management first
   const {
     conversations,
     activeConversation,
@@ -52,6 +34,28 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     setConversations,
   } = useConversationManagement(activeUser);
 
+  // Then initialize chat management with the getUserConversations function
+  const {
+    messages,
+    streamingMessage,
+    streamingMessageReasoning,
+    isLoading,
+    error,
+    handleChatRequest: baseChatRequest,
+    cancelRequest,
+    setMessages,
+    setStreamingMessage,
+    setStreamingMessageReasoning,
+    setError,
+    currentRequestId,
+    setCurrentRequestId,
+    setIsLoading,
+    input,
+    setInput,
+    agentActions,
+    setAgentActions,
+  } = useChatManagement(activeUser, getUserConversations);
+
   const {
     openRouterModels,
     azureModels,
@@ -62,6 +66,16 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     setOpenRouterModels,
     setAzureModels,
     setCustomModels,
+    tools,
+    setTools,
+    dockTool,
+    fetchTools,
+    systemTools,
+    setSystemTools,
+    fetchSystemTools,
+    userTools,
+    setUserTools,
+    toggleTool,
   } = useModelManagement(activeUser);
 
   const {
@@ -141,10 +155,10 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       setInput,
       isLoading,
       setIsLoading,
-      handleChatRequest,
+      handleChatRequest: baseChatRequest,
       cancelRequest,
     }),
-    [input, setInput, isLoading, setIsLoading, handleChatRequest, cancelRequest]
+    [input, setInput, isLoading, setIsLoading, baseChatRequest, cancelRequest]
   );
 
   // Memoize the main context value
@@ -202,6 +216,18 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       fetchCustomModels,
       streamingMessageReasoning,
       setStreamingMessageReasoning,
+      agentActions,
+      setAgentActions,
+      tools,
+      setTools,
+      dockTool,
+      fetchTools,
+      systemTools,
+      setSystemTools,
+      fetchSystemTools,
+      userTools,
+      setUserTools,
+      toggleTool,
     }),
     [
       activeUser,
@@ -250,6 +276,18 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       setOpenRouterModels,
       setAzureModels,
       setCustomModels,
+      setAgentActions,
+      agentActions,
+      tools,
+      setTools,
+      dockTool,
+      fetchTools,
+      systemTools,
+      setSystemTools,
+      fetchSystemTools,
+      userTools,
+      setUserTools,
+      toggleTool,
     ]
   );
 

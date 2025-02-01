@@ -285,4 +285,79 @@ export function setupDbHandlers() {
       throw error;
     }
   });
+
+  // Tools Section
+
+  ipcMainDatabaseHandle("getUserTools", async (payload) => {
+    try {
+      return {
+        userId: payload.userId,
+        tools: await db.getUserTools(payload.userId),
+      };
+    } catch (error) {
+      console.error("Error getting tools:", error);
+      throw error;
+    }
+  });
+  ipcMainDatabaseHandle("addUserTool", async (payload) => {
+    try {
+      return {
+        userId: payload.userId,
+        toolId: payload.toolId,
+        enabled: payload.enabled,
+        docked: payload.docked,
+        result: await db.addUserTool(
+          payload.userId,
+          payload.toolId,
+          payload.enabled,
+          payload.docked
+        ),
+      };
+    } catch (error) {
+      console.error("Error adding user tool:", error);
+      throw error;
+    }
+  });
+  ipcMainDatabaseHandle("removeUserTool", async (payload) => {
+    try {
+      return {
+        userId: payload.userId,
+        toolId: payload.toolId,
+        result: await db.removeUserTool(payload.userId, payload.toolId),
+      };
+    } catch (error) {
+      console.error("Error removing user tool:", error);
+      throw error;
+    }
+  });
+  ipcMainDatabaseHandle("updateUserTool", async (payload) => {
+    console.log("payload", payload);
+    try {
+      return {
+        userId: payload.userId,
+        toolId: payload.toolId,
+        enabled: payload.enabled,
+        docked: payload.docked,
+        result: await db.updateUserTool(
+          payload.userId,
+          payload.toolId,
+          payload.enabled,
+          payload.docked
+        ),
+      };
+    } catch (error) {
+      console.error("Error updating user tool:", error);
+      throw error;
+    }
+  });
+  ipcMainHandle("getTools", async () => {
+    try {
+      return {
+        tools: await db.getTools(),
+      };
+    } catch (error) {
+      console.error("Error getting tools:", error);
+      throw error;
+    }
+  });
 }

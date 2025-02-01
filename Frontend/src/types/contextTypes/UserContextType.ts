@@ -39,6 +39,8 @@ export interface UserContextType {
   setError: React.Dispatch<React.SetStateAction<string | null>>;
   currentRequestId: number | null;
   setCurrentRequestId: React.Dispatch<React.SetStateAction<number | null>>;
+  agentActions: string;
+  setAgentActions: React.Dispatch<React.SetStateAction<string>>;
   fetchMessages: () => Promise<void>;
   openRouterModels: OpenRouterModel[];
   setOpenRouterModels: React.Dispatch<React.SetStateAction<OpenRouterModel[]>>;
@@ -53,4 +55,14 @@ export interface UserContextType {
   fetchCustomModels: () => Promise<void>;
   streamingMessageReasoning: string | null;
   setStreamingMessageReasoning: React.Dispatch<React.SetStateAction<string>>;
+  tools: Tool[];
+  setTools: React.Dispatch<React.SetStateAction<Tool[]>>;
+  dockTool: (tool: UserTool) => void;
+  fetchTools: () => Promise<void>;
+  systemTools: Tool[];
+  setSystemTools: React.Dispatch<React.SetStateAction<Tool[]>>;
+  fetchSystemTools: () => Promise<void>;
+  userTools: UserTool[];
+  setUserTools: React.Dispatch<React.SetStateAction<UserTool[]>>;
+  toggleTool: (tool: UserTool) => void;
 }

@@ -18,9 +18,12 @@ export function useChatLogic() {
   const { setActiveView } = useView();
   const {
     handleResetChat: originalHandleResetChat,
+    agentActions,
+    setAgentActions,
     streamingMessage,
     setStreamingMessage,
     setStreamingMessageReasoning,
+    streamingMessageReasoning,
     activeUser,
     messages,
     setMessages,
@@ -54,6 +57,8 @@ export function useChatLogic() {
   }, [
     messages,
     streamingMessage,
+    streamingMessageReasoning,
+    agentActions,
     isLoading,
     shouldAutoScroll,
     hasUserScrolled,
@@ -109,6 +114,8 @@ export function useChatLogic() {
       if (chunk.startsWith("[REASONING]:")) {
         newReasoning += chunk.replace("[REASONING]:", "");
         setStreamingMessageReasoning(newReasoning);
+      } else if (chunk.startsWith("[Agent]:")) {
+        setAgentActions(chunk.replace("[Agent]:", ""));
       } else {
         newMessage += chunk;
         setStreamingMessage(newMessage);
@@ -193,6 +200,7 @@ export function useChatLogic() {
     setMessages,
     setStreamingMessage,
     setStreamingMessageReasoning,
+    setAgentActions,
     setCurrentRequestId,
   ]);
 

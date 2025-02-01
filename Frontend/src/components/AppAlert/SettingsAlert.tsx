@@ -5,7 +5,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useUser } from "@/context/useUser";
-import LLMPanel from "@/components/SettingsModal/SettingsComponents/LLMModal";
+import LLMPanel from "@/components/SettingsModal/SettingsComponents/LLMPanel";
 
 export default function SettingsAlert() {
   const { alertForUser, setAlertForUser } = useUser();

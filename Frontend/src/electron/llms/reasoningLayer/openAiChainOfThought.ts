@@ -17,13 +17,24 @@ export async function openAiChainOfThought(
     }[];
   } | null,
   dataCollectionInfo: Collection | null,
+  agentActions?: string,
+  webSearchResult?: WebSearchResult | null,
   signal?: AbortSignal,
   mainWindow: BrowserWindow | null = null
 ) {
+  console.log("agentActions", agentActions);
+  console.log("webSearchResult", webSearchResult);
   const sysPrompt: ChatCompletionMessageParam = {
     role: "system",
     content:
-      "You are a reasoning engine. Your task is to analyze the question and outline your step-by-step reasoning process for how to answer it. Keep your reasoning concise and focused on the key logical steps. Only return the reasoning process, do not provide the final answer." +
+      `You are a reasoning engine. Your task is to analyze the question and outline your step-by-step reasoning process for how
+      to answer it. Only return the reasoning process including important information from the agent's actions and web search results, 
+      do not provide the final answer. The agent's actions are: ${agentActions}` +
+      (webSearchResult
+        ? `\n\nThe following is the web search results from the agent please include them in your reasoning process: ${JSON.stringify(
+            webSearchResult
+          )}`
+        : "") +
       (data
         ? "The following is the data that the user has provided via their custom data collection: " +
           `\n\n${JSON.stringify(data)}` +
@@ -33,7 +44,7 @@ export async function openAiChainOfThought(
           `\n\n*** THIS IS THE END OF THE DATA COLLECTION ***`
         : ""),
   };
-  
+  console.log(sysPrompt);
   const truncatedMessages = truncateMessages(messages, maxOutputTokens);
   const newMessages = [sysPrompt, ...truncatedMessages];
   const reasoning = await provider.chat.completions.create(
@@ -57,5 +68,7 @@ export async function openAiChainOfThought(
     sendMessageChunk("[REASONING]: " + content, mainWindow);
   }
 
-  return reasoningContent;
+  return webSearchResult
+    ? webSearchResult + reasoningContent
+    : reasoningContent;
 }

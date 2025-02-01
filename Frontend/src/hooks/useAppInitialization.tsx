@@ -25,6 +25,8 @@ export function useAppInitialization() {
     fetchOpenRouterModels,
     fetchAzureModels,
     fetchCustomModels,
+    fetchTools,
+    fetchSystemTools,
   } = useUser();
   const {
     setUserCollections,
@@ -90,6 +92,8 @@ export function useAppInitialization() {
       fetchCollections();
       fetchAzureModels();
       fetchCustomModels();
+      fetchTools();
+      fetchSystemTools();
     }
   }, [activeUser]);
 

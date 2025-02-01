@@ -66,9 +66,10 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         .filter((model) => !model.includes("granite"))
         .map((model) => ({ name: model, type: "ollama" }));
       await window.electron.updateUserSettings({
-        ...activeUser,
+        userId: activeUser.id,
         ollamaIntegration: 1,
       });
+      setOllamaInit(true);
       setOllamaModels(filteredModels);
     }
   };
@@ -162,7 +163,7 @@ const SysSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     setLocalModalLoading(true);
     setProgressLocalOutput([]);
     await window.electron.updateUserSettings({
-      ...activeUser,
+      userId: activeUser.id,
       ollamaModel: model,
     });
     try {

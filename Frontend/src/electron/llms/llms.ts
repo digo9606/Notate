@@ -55,7 +55,7 @@ export async function chatRequest(
       providersMap[
         userSettings?.provider?.toLowerCase() as keyof typeof providersMap
       ];
-
+    console.log("provider", provider);
     if (!provider) {
       throw new Error(
         "No AI provider selected. Please open Settings (top right) make sure you add an API key and select a provider under the 'AI Provider' tab."
@@ -114,13 +114,17 @@ export async function chatRequest(
     };
   } catch (error) {
     log.error("Error in chat request:", error);
-    
+
     let errorMessage = "An unexpected error occurred.";
-    
+
     if (error instanceof Error) {
       // Handle API key related errors
-      if (error.message.includes("API key") || error.message.includes("provider")) {
-        errorMessage = "Please add an API key and select an AI Model in Settings.";
+      if (
+        error.message.includes("API key") ||
+        error.message.includes("provider")
+      ) {
+        errorMessage =
+          "Please add an API key and select an AI Model in Settings.";
       }
       // Handle aborted requests
       else if (error.message.includes("aborted")) {

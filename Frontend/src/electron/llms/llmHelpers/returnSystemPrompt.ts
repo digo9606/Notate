@@ -4,6 +4,7 @@ export async function returnSystemPrompt(
   prompt: string,
   dataCollectionInfo?: Collection | null,
   reasoning?: string | null,
+  webSearchResult?: WebSearchResult | null,
   data?: {
     top_k: number;
     results: {
@@ -18,8 +19,13 @@ export async function returnSystemPrompt(
       "When asked about previous messages, only consider messages marked as '(most recent message)' as the last message. " +
       prompt +
       (reasoning
-        ? "\n\nUse this reasoning process to guide your response (Reasoning has already been provided, DO NOT RE-REASON): " +
+        ? "\n\nUse this reasoning process to answer the question (Reasoning has already been provided, DO NOT RE-REASON): " +
           reasoning +
+          "\n\n"
+        : "") +
+      (webSearchResult
+        ? "\n\n If you get asked to visit or go to a web url or web action you already have and this is the following web results from the agent web tool used in the reasoning: " +
+          JSON.stringify(webSearchResult) +
           "\n\n"
         : "") +
       (data
@@ -30,5 +36,6 @@ export async function returnSystemPrompt(
           `\n\nCollection/Store Description: ${dataCollectionInfo?.description}`
         : ""),
   };
+
   return sysPrompt;
 }

@@ -22,6 +22,7 @@ export default function Ollama() {
     localModalLoading,
     ollamaInit,
     setOllamaInit,
+    handleOllamaIntegration,
   } = useSysSettings();
   const { activeUser } = useUser();
   const [selectedModel, setSelectedModel] = useState("");
@@ -31,42 +32,27 @@ export default function Ollama() {
     return `${parts[0]}-${parts[1]}...`;
   };
 
-  const handleOllamaIntegration = async () => {
-    const startUpOllama = await window.electron.checkOllama();
-    if (activeUser && startUpOllama) {
-      const models = await window.electron.fetchOllamaModels();
-      const filteredModels = (models.models as unknown as string[])
-        .filter((model) => !model.includes("granite"))
-        .map((model) => ({ name: model, type: "ollama" }));
-      await window.electron.updateUserSettings({
-        ...activeUser,
-        ollamaIntegration: 1,
-      });
-      setOllamaModels(filteredModels);
-      setOllamaInit(true);
-    }
-  };
-
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <Button
-          variant={ollamaModels.length > 0 ? "default" : "outline"}
-          className="w-full"
+          variant={ollamaInit ? "default" : "outline"}
+          className="w-full"  
           onClick={async () => {
             if (activeUser) {
+              const newIntegrationValue = settings.ollamaIntegration === 1 ? 0 : 1;
               setSettings({
                 ...settings,
-                ollamaIntegration: settings.ollamaIntegration === 1 ? 0 : 1,
+                ollamaIntegration: newIntegrationValue,
               });
 
               await window.electron.updateUserSettings({
                 userId: activeUser.id,
-                ollamaIntegration: settings.ollamaIntegration === 1 ? 0 : 1,
+                ollamaIntegration: newIntegrationValue,
               });
 
-              if (settings.ollamaIntegration === 1) {
-                await handleOllamaIntegration();
+              if (newIntegrationValue === 1) {
+                await handleOllamaIntegration(activeUser);
                 setOllamaInit(true);
               } else {
                 setOllamaModels([]);

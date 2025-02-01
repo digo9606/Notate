@@ -9,6 +9,7 @@ import { useChatLogic } from "@/hooks/useChatLogic";
 export function ChatHeader() {
   const { localModalLoading } = useSysSettings();
   const { handleResetChat } = useChatLogic();
+
   return (
     <div className="p-2 bg-card border-b border-secondary flex items-center">
       <div className="flex items-center flex-1">
