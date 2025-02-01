@@ -5,6 +5,7 @@ import { truncateMessages } from "../llmHelpers/truncateMessages.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { returnSystemPrompt } from "../llmHelpers/returnSystemPrompt.js";
 import { prepMessages } from "../llmHelpers/prepMessages.js";
+import { ollamaAgent } from "../agentLayer/ollamaAgent.js";
 
 export async function OllamaProvider(
   params: ProviderInputParams
@@ -28,6 +29,22 @@ export async function OllamaProvider(
   // Truncate messages to fit within token limits
   const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
   const newMessages = await prepMessages(messages);
+
+  const userTools = await db.getUserTools(params.activeUser.id);
+  let agentActions = null;
+  let agentsResults = null;
+  if (userTools.length > 0) {
+    const { content, webSearchResult } = await ollamaAgent(
+      newMessages,
+      maxOutputTokens,
+      userSettings,
+      signal,
+      mainWindow
+    );
+    agentActions = content;
+    agentsResults = webSearchResult;
+  }
+
   let reasoning;
   if (userSettings.cot) {
     // Do reasoning first
@@ -39,7 +56,9 @@ export async function OllamaProvider(
       data ? data : null,
       dataCollectionInfo ? dataCollectionInfo : null,
       signal,
-      mainWindow
+      mainWindow,
+      agentActions,
+      agentsResults
     );
 
     // Send end of reasoning marker
@@ -214,12 +233,31 @@ async function chainOfThought(
   } | null,
   dataCollectionInfo: Collection | null,
   signal?: AbortSignal,
-  mainWindow: BrowserWindow | null = null
+  mainWindow: BrowserWindow | null = null,
+  agentActions: string | null = null,
+  agentsResults: {
+    metadata: {
+      title: string;
+      source: string;
+      description: string;
+      author: string;
+      keywords: string;
+      ogImage: string;
+    };
+    textContent: string;
+  } | null = null
 ) {
   const sysPrompt: ChatCompletionMessageParam = {
     role: "system",
     content:
       "You are a reasoning engine. Your task is to analyze the question and outline your step-by-step reasoning process for how to answer it. Keep your reasoning concise and focused on the key logical steps. Only return the reasoning process, do not provide the final answer." +
+      (agentActions
+        ? "The following is the agent actions that the user has provided: " +
+          `\n\n${agentActions}` +
+          `\n\nThe following is the web search results that the user has provided: ` +
+          `\n\n${JSON.stringify(agentsResults)}` +
+          `\n\n*** THIS IS THE END OF THE AGENT ACTIONS ***`
+        : "") +
       (data
         ? "The following is the data that the user has provided via their custom data collection: " +
           `\n\n${JSON.stringify(data)}` +

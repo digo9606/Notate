@@ -33,15 +33,24 @@ export async function DeepSeekProvider(
 
   const maxOutputTokens = (userSettings.maxTokens as number) || 4096;
   const newMessages = await prepMessages(messages);
-  const { content: agentActions, webSearchResult } = await openAiAgent(
-    openai,
-    messages,
-    maxOutputTokens,
-    userSettings,
-    signal,
-    mainWindow
-  );
-  console.log(agentActions);
+
+  const userTools = db.getUserTools(activeUser.id);
+
+  let agentActions = null;
+  let webSearchResult = null;
+  // If the user has Web Search enabled, we need to do web search first
+  if (userTools.find((tool) => tool.tool_id === 1)?.enabled === 1) {
+    const { content: actions, webSearchResult: webResults } = await openAiAgent(
+      openai,
+      messages,
+      maxOutputTokens,
+      userSettings,
+      signal
+    );
+    agentActions = actions;
+    webSearchResult = webResults;
+  }
+
   let dataCollectionInfo;
   if (collectionId) {
     dataCollectionInfo = db.getCollection(collectionId) as Collection;
