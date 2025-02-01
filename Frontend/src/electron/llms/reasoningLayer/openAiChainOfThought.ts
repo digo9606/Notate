@@ -18,17 +18,7 @@ export async function openAiChainOfThought(
   } | null,
   dataCollectionInfo: Collection | null,
   agentActions?: string,
-  webSearchResult?: {
-    metadata: {
-      title: string;
-      source: string;
-      description: string;
-      author: string;
-      keywords: string;
-      ogImage: string;
-    };
-    textContent: string;
-  },
+  webSearchResult?: WebSearchResult | null,
   signal?: AbortSignal,
   mainWindow: BrowserWindow | null = null
 ) {

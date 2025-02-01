@@ -4,17 +4,7 @@ export async function returnSystemPrompt(
   prompt: string,
   dataCollectionInfo?: Collection | null,
   reasoning?: string | null,
-  webSearchResult?: {
-    metadata: {
-      title: string;
-      source: string;
-      description: string;
-      author: string;
-      keywords: string;
-      ogImage: string;
-    };
-    textContent: string;
-  },
+  webSearchResult?: WebSearchResult | null,
   data?: {
     top_k: number;
     results: {
