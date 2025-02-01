@@ -1,6 +1,6 @@
 import { SearchIcon, Search } from "lucide-react";
 import { useUser } from "@/context/useUser";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useView } from "@/context/useView";
 
 type ConversationWithTimestamp = Conversation & {
@@ -22,54 +22,53 @@ export default function SearchComponent() {
   } = useUser();
 
   const { activeView, setActiveView } = useView();
-  const [sortedConversations, setSortedConversations] = useState<
-    ConversationWithTimestamp[]
-  >([]);
+  const [sortedConversations, setSortedConversations] = useState<ConversationWithTimestamp[]>([]);
 
+  const sortConversationsByLatestMessage = useCallback(async () => {
+    if (!activeUser?.id) return;
+
+    // Get messages for each conversation and find the latest timestamp
+    const conversationsWithTimestamp = await Promise.all(
+      conversations.map(async (conv) => {
+        // If we already have latestMessageTime, use it
+        if ("latestMessageTime" in conv) {
+          return conv as ConversationWithTimestamp;
+        }
+
+        const result = await window.electron.getConversationMessagesWithData(
+          activeUser.id,
+          conv.id,
+          undefined
+        );
+        const messages = result.messages || [];
+        const latestMessage = messages.reduce((latest, current) => {
+          if (!latest || !latest.timestamp) return current;
+          if (!current || !current.timestamp) return latest;
+          const currentTime = new Date(current.timestamp).getTime();
+          const latestTime = new Date(latest.timestamp).getTime();
+          return currentTime > latestTime ? current : latest;
+        }, messages[0]);
+
+        return {
+          ...conv,
+          latestMessageTime: latestMessage?.timestamp
+            ? new Date(latestMessage.timestamp).getTime()
+            : new Date(conv.created_at).getTime(),
+        };
+      })
+    );
+
+    // Sort conversations by latest message timestamp
+    const sorted = conversationsWithTimestamp.sort(
+      (a, b) => b.latestMessageTime - a.latestMessageTime
+    );
+    setSortedConversations(sorted);
+  }, [activeUser?.id, conversations]);
+
+  // Update sorted conversations whenever conversations change
   useEffect(() => {
-    const sortConversationsByLatestMessage = async () => {
-      if (!activeUser?.id) return;
-
-      // Get messages for each conversation and find the latest timestamp
-      const conversationsWithTimestamp = await Promise.all(
-        conversations.map(async (conv) => {
-          // If we already have latestMessageTime, use it
-          if ("latestMessageTime" in conv) {
-            return conv as ConversationWithTimestamp;
-          }
-
-          const result = await window.electron.getConversationMessagesWithData(
-            activeUser.id,
-            conv.id,
-            undefined
-          );
-          const messages = result.messages || [];
-          const latestMessage = messages.reduce((latest, current) => {
-            if (!latest || !latest.timestamp) return current;
-            if (!current || !current.timestamp) return latest;
-            const currentTime = new Date(current.timestamp).getTime();
-            const latestTime = new Date(latest.timestamp).getTime();
-            return currentTime > latestTime ? current : latest;
-          }, messages[0]);
-
-          return {
-            ...conv,
-            latestMessageTime: latestMessage?.timestamp
-              ? new Date(latestMessage.timestamp).getTime()
-              : new Date(conv.created_at).getTime(),
-          };
-        })
-      );
-
-      // Sort conversations by latest message timestamp
-      const sorted = conversationsWithTimestamp.sort(
-        (a, b) => b.latestMessageTime - a.latestMessageTime
-      );
-      setSortedConversations(sorted);
-    };
-
     sortConversationsByLatestMessage();
-  }, [conversations, activeUser?.id]);
+  }, [sortConversationsByLatestMessage]);
 
   const toggleSearch = () => {
     setIsSearchOpen(!isSearchOpen);
@@ -130,9 +129,7 @@ export default function SearchComponent() {
                   <div
                     key={conv.id}
                     className="px-2 py-1 hover:bg-secondary/50 cursor-pointer text-sm text-gray-300"
-                    onClick={() => {
-                      handleConversationClick(conv.id);
-                    }}
+                    onClick={() => handleConversationClick(conv.id)}
                   >
                     {conv.title}
                   </div>

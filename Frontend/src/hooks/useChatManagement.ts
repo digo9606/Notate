@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 
-export const useChatManagement = (activeUser: User | null) => {
+export const useChatManagement = (activeUser: User | null, onChatComplete?: () => void) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [streamingMessage, setStreamingMessage] = useState<string>("");
   const [streamingMessageReasoning, setStreamingMessageReasoning] =
@@ -44,6 +44,10 @@ export const useChatManagement = (activeUser: User | null) => {
         }
 
         setMessages(result.messages);
+        
+        // Notify parent of chat completion
+        onChatComplete?.();
+
       } catch (error) {
         if (error instanceof Error && error.name === "AbortError") {
           setError("Request was cancelled");
@@ -52,7 +56,7 @@ export const useChatManagement = (activeUser: User | null) => {
         }
       }
     },
-    [activeUser, messages, input]
+    [activeUser, messages, input, onChatComplete]
   );
 
   const cancelRequest = useCallback(() => {

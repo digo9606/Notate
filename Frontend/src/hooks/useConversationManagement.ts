@@ -9,12 +9,10 @@ export const useConversationManagement = (activeUser: User | null) => {
   const [newConversation, setNewConversation] = useState<boolean>(true);
 
   const getUserConversations = useCallback(async () => {
-    console.log("getUserConversations");
     if (!window.electron || !activeUser) return;
     const conversations = await window.electron.getUserConversations(
       activeUser.id
     );
-    console.log("conversations", conversations);
     if (conversations?.conversations) {
       setConversations(conversations.conversations);
     }

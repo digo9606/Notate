@@ -22,25 +22,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [prompts, setPrompts] = useState<UserPrompts[]>([]);
   const [devAPIKeys, setDevAPIKeys] = useState<Keys[]>([]);
 
-  const {
-    messages,
-    streamingMessage,
-    streamingMessageReasoning,
-    isLoading,
-    error,
-    handleChatRequest,
-    cancelRequest,
-    setMessages,
-    setStreamingMessage,
-    setStreamingMessageReasoning,
-    setError,
-    currentRequestId,
-    setCurrentRequestId,
-    setIsLoading,
-    input,
-    setInput,
-  } = useChatManagement(activeUser);
-
+  // Initialize conversation management first
   const {
     conversations,
     activeConversation,
@@ -52,6 +34,26 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     setNewConversation,
     setConversations,
   } = useConversationManagement(activeUser);
+
+  // Then initialize chat management with the getUserConversations function
+  const {
+    messages,
+    streamingMessage,
+    streamingMessageReasoning,
+    isLoading,
+    error,
+    handleChatRequest: baseChatRequest,
+    cancelRequest,
+    setMessages,
+    setStreamingMessage,
+    setStreamingMessageReasoning,
+    setError,
+    currentRequestId,
+    setCurrentRequestId,
+    setIsLoading,
+    input,
+    setInput,
+  } = useChatManagement(activeUser, getUserConversations);
 
   const {
     openRouterModels,
@@ -152,10 +154,10 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       setInput,
       isLoading,
       setIsLoading,
-      handleChatRequest,
+      handleChatRequest: baseChatRequest,
       cancelRequest,
     }),
-    [input, setInput, isLoading, setIsLoading, handleChatRequest, cancelRequest]
+    [input, setInput, isLoading, setIsLoading, baseChatRequest, cancelRequest]
   );
 
   // Memoize the main context value

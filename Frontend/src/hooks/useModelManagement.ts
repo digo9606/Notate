@@ -66,9 +66,6 @@ export const useModelManagement = (activeUser: User | null) => {
     if (!window.electron || !activeUser) return;
     const tools = await window.electron.getTools();
     setSystemTools(tools.tools);
-    if (process.env.NODE_ENV === "development") {
-      console.log("Fetched System Tools:", tools.tools);
-    }
   }, [activeUser]);
 
   const toggleTool = (tool: UserTool) => {

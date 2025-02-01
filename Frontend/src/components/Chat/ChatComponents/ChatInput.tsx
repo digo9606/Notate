@@ -23,7 +23,7 @@ import {
 import { WebAudioRecorder } from "@/utils/webAudioRecorder";
 import { useLibrary } from "@/context/useLibrary";
 export const ChatInput = memo(function ChatInput() {
-  const { activeUser, toggleTool, userTools, fetchMessages } = useUser();
+  const { activeUser, toggleTool, userTools } = useUser();
   const {
     handleChatRequest,
     cancelRequest,
@@ -112,10 +112,9 @@ export const ChatInput = memo(function ChatInput() {
       if (input.trim()) {
         console.log("handleSubmit");
         handleChatRequest(selectedCollection?.id || undefined);
-        fetchMessages();
       }
     },
-    [input, handleChatRequest, selectedCollection?.id, fetchMessages]
+    [input, handleChatRequest, selectedCollection?.id]
   );
 
   // Memoize the send button handler
@@ -126,7 +125,6 @@ export const ChatInput = memo(function ChatInput() {
     } else if (input.trim()) {
       console.log("handleSendClick");
       await handleChatRequest(selectedCollection?.id || undefined);
-      fetchMessages();
     }
   }, [
     isLoading,
@@ -135,7 +133,6 @@ export const ChatInput = memo(function ChatInput() {
     handleChatRequest,
     selectedCollection?.id,
     setIsLoading,
-    fetchMessages,
   ]);
 
   return (
