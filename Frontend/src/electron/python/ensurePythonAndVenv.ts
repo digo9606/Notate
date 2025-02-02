@@ -29,7 +29,8 @@ export async function ensurePythonAndVenv(backendPath: string) {
       const version = execSync(`${cmd} --version`).toString().trim();
       log.info(`Version output: ${version}`);
       updateLoadingStatus(`Version output: ${version}`, 2.0);
-      if (version.includes("3.12")) {
+      if ((process.platform === "win32" && version.includes("3.11")) || 
+          (process.platform !== "win32" && version.includes("3.12"))) {
         pythonCommand = cmd;
         pythonVersion = version;
         log.info(`Found valid Python command: ${cmd} with version ${version}`);
@@ -49,34 +50,44 @@ export async function ensurePythonAndVenv(backendPath: string) {
   }
 
   if (!pythonCommand) {
-    log.error("Python 3.12 is not installed or not in PATH");
-    updateLoadingStatus("Python 3.12 is not installed or not in PATH", 3.5);
+    log.error(process.platform === "win32" ? "Python 3.11 is not installed or not in PATH" : "Python 3.12 is not installed or not in PATH");
+    updateLoadingStatus(process.platform === "win32" ? "Python 3.11 is not installed or not in PATH" : "Python 3.12 is not installed or not in PATH", 3.5);
     const response = await dialog.showMessageBox({
       type: "question",
-      buttons: ["Install Python 3.12", "Cancel"],
+      buttons: ["Install Python", "Cancel"],
       defaultId: 0,
-      title: "Python 3.12 Required",
-      message: "Python 3.12 is required but not found on your system.",
+      title: process.platform === "win32" ? "Python 3.11 Required" : "Python 3.12 Required",
+      message: process.platform === "win32" ? "Python 3.11 is required but not found on your system." : "Python 3.12 is required but not found on your system.",
       detail:
-        "Would you like to open the Python download page to install Python 3.12?",
+        process.platform === "win32" 
+          ? "Would you like to open the Python download page to install Python 3.11?"
+          : "Would you like to open the Python download page to install Python 3.12?",
     });
 
     if (response.response === 0) {
       updateLoadingStatus("Opening Python download page...", 4.5);
       await shell.openExternal(
-        "https://www.python.org/downloads/release/python-3128/"
+        process.platform === "win32"
+          ? "https://www.python.org/downloads/release/python-3118/"
+          : "https://www.python.org/downloads/release/python-3128/"
       );
       updateLoadingStatus(
-        "Please restart the application after installing Python 3.12",
+        process.platform === "win32"
+          ? "Please restart the application after installing Python 3.11"
+          : "Please restart the application after installing Python 3.12",
         8.5
       );
       throw new Error(
-        "Please restart the application after installing Python 3.12"
+        process.platform === "win32"
+          ? "Please restart the application after installing Python 3.11"
+          : "Please restart the application after installing Python 3.12"
       );
     } else {
       updateLoadingStatus("Installation cancelled", 4.5);
       throw new Error(
-        "Python 3.12 is required to run this application. Installation was cancelled."
+        process.platform === "win32"
+          ? "Python 3.11 is required to run this application. Installation was cancelled."
+          : "Python 3.12 is required to run this application. Installation was cancelled."
       );
     }
   }
