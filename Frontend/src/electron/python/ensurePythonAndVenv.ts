@@ -101,9 +101,13 @@ export async function ensurePythonAndVenv(backendPath: string) {
 
   // Create virtual environment if it doesn't exist
   if (!fs.existsSync(venvPath)) {
-    log.info("Creating virtual environment with Python 3.12...");
+    log.info(process.platform === "win32" 
+      ? "Creating virtual environment with Python 3.11..."
+      : "Creating virtual environment with Python 3.12...");
     updateLoadingStatus(
-      "Creating virtual environment with Python 3.12...",
+      process.platform === "win32"
+        ? "Creating virtual environment with Python 3.11..."
+        : "Creating virtual environment with Python 3.12...",
       10.5
     );
     if (process.platform === "linux") {
