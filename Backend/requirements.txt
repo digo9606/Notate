@@ -170,4 +170,4 @@ diskcache==5.6.3
 hqq==0.2.2
 termcolor==2.5.0
 langchain-huggingface==0.1.2
-hnswlib==0.7.0
+hnswlib==0.8.0
