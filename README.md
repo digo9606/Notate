@@ -161,7 +161,7 @@ _MacOS_
 ## Coming Soon
 
 - [ ] Chrome Extension For Ingesting Webpages/Files
-- [ ] Advanced Agent Actions
+- [ ] Additional Agent Tools
 - [ ] Advanced Ingestion Settings
 - [ ] Additional Document Types
 - [ ] Output to Speech
