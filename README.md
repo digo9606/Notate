@@ -49,13 +49,16 @@ Donations are used to cover the costs of running the project, including server c
 ## Screenshots
 
 **Chat UI**
-![Notate Chat Screenshot](https://www.hairetsu.com/notate-0.png)
+![Notate Chat Screenshot](https://www.hairetsu.com/notate-12.png)
 
 **LLM Intergrations**
-![Notate LLM Intergrations Screenshot](https://www.hairetsu.com/notate-07.png)
+![Notate LLM Intergrations Screenshot](https://www.hairetsu.com/notate-10.png)
 
 **Chat Settings**
 ![Notate Collections Screenshot](https://www.hairetsu.com/notate-06.png)
+
+**Tool Settings**
+![Notate Collections Screenshot](https://www.hairetsu.com/notate-11.png)  
 
 **Ingestion from File or URL into ChromaDB**
 ![Notate Data Intake Screenshot](https://www.hairetsu.com/notate-3.png)

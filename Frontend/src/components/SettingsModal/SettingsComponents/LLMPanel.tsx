@@ -153,7 +153,7 @@ export default function LLMPanel() {
         return null;
     }
   };
-  console.log(selectedProvider);
+
   return (
     <div className="space-y-8">
       <div className="w-full">
