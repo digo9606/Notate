@@ -138,7 +138,7 @@ langchain_community==0.3.13
 tiktoken==0.8.0
 regex==2024.11.6
 langchain-openai==0.2.14
-langchain-chroma==0.1.4
+langchain-chroma==0.2.1
 psutil==6.1.1
 ollama==0.4.4
 docx2txt==0.8

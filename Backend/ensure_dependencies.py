@@ -17,14 +17,18 @@ logger = logging.getLogger(__name__)
 
 def find_python310():
     python_commands = ["python3.12", "python3"] if sys.platform != "win32" else [
-        "python3.12", "py -3.12", "python"]
+        "python3.11", "py -3.11", "python"]
 
     for cmd in python_commands:
         try:
             result = subprocess.run(
                 [cmd, "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            if "Python 3.12" in result.stdout:
-                return cmd
+            if sys.platform == "win32":
+                if "Python 3.11" in result.stdout:
+                    return cmd
+            else:
+                if "Python 3.12" in result.stdout:
+                    return cmd
         except:
             continue
     return None
@@ -37,8 +41,12 @@ def create_venv(venv_path=None):
         print("Creating virtual environment...")
         python310 = find_python310()
         if not python310:
-            raise RuntimeError(
-                "Python 3.12 is required but not found. Please install Python 3.12.")
+            if sys.platform == "win32":
+                raise RuntimeError(
+                    "Python 3.11 is required but not found. Please install Python 3.11.")
+            else:
+                raise RuntimeError(
+                    "Python 3.12 is required but not found. Please install Python 3.12.")
 
         subprocess.check_call([python310, "-m", "venv", venv_path])
         print(f"Created virtual environment with {python310}")

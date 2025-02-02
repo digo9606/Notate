@@ -13,7 +13,7 @@ export async function ensurePythonAndVenv(backendPath: string) {
   const venvPath = path.join(backendPath, "venv");
   const pythonCommands =
     process.platform === "win32"
-      ? ["python3.12", "py -3.12", "python"]
+      ? ["python3.11", "py -3.11", "python"]
       : process.platform === "darwin"
       ? ["/opt/homebrew/bin/python3.12", "python3.12", "python3"]
       : ["python3.12", "python3"];
