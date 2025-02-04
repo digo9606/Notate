@@ -145,7 +145,10 @@ export async function GeminiProvider(
   const userTools = db.getUserTools(activeUser.id);
   if (
     userTools.length > 0 &&
-    userTools.some((tool) => tool.tool_id === 1 && tool.enabled === 1)
+    userTools.some(
+      (tool: { tool_id: number; enabled: number }) =>
+        tool.tool_id === 1 && tool.enabled === 1
+    )
   ) {
     const { content, webSearchResult: webSearchResultFromAgent } =
       await geminiAgent(
@@ -185,7 +188,7 @@ export async function GeminiProvider(
       truncatedMessages,
       maxOutputTokens,
       userSettings,
-      prompt,
+      prompt || "You are a helpful assistant.",
       data ? data : null,
       dataCollectionInfo ? dataCollectionInfo : null,
       signal,
@@ -197,7 +200,7 @@ export async function GeminiProvider(
       mainWindow.webContents.send("reasoningEnd");
     }
   }
-  
+
   const newSysPrompt = await returnSystemPrompt(
     prompt,
     dataCollectionInfo,

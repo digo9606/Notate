@@ -12,11 +12,20 @@ async function chatCompletionTitle(
   model: string
 ) {
   const openai = await providerInitialize(provider, user);
-  const llmTitleRequest = await openai.chat.completions.create({
-    model: model,
-    messages: titleMessages(input),
-    max_tokens: 20,
-  });
+  let llmTitleRequest;
+  if (model === "o3-mini-2025-01-31") {
+    llmTitleRequest = await openai.chat.completions.create({
+      model: model,
+      messages: titleMessages(input),
+      max_completion_tokens: 20,
+    });
+  } else {
+    llmTitleRequest = await openai.chat.completions.create({
+      model: model,
+      messages: titleMessages(input),
+      max_tokens: 20,
+    });
+  }
   return llmTitleRequest.choices[0]?.message?.content?.trim();
 }
 

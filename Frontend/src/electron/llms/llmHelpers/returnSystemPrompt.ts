@@ -1,7 +1,7 @@
 import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 export async function returnSystemPrompt(
-  prompt: string,
+  prompt: string | undefined,
   dataCollectionInfo?: Collection | null,
   reasoning?: string | null,
   webSearchResult?: WebSearchResult | null,
@@ -34,7 +34,8 @@ export async function returnSystemPrompt(
           `\n\nCollection/Store Name: ${dataCollectionInfo?.name}` +
           `\n\nCollection/Store Files: ${dataCollectionInfo?.files}` +
           `\n\nCollection/Store Description: ${dataCollectionInfo?.description}`
-        : ""),
+        : "") +
+      `\n\n Please provide a visually pleasing and easy to read response. the output can display markdown and code blocks.`,
   };
 
   return sysPrompt;

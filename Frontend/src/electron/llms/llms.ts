@@ -49,6 +49,8 @@ export async function chatRequest(
     let prompt;
     if (!prompt) {
       prompt = await getUserPrompt(activeUser, userSettings, prompt);
+    } else {
+      prompt = "You are a helpful assistant.";
     }
 
     const provider =

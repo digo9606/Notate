@@ -59,9 +59,11 @@ class DatabaseService {
           selectedCustomId INTEGER,
           cot INTEGER DEFAULT 0,
           webSearch INTEGER DEFAULT 0,
+          reasoningEffort TEXT,
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
 
+   
         CREATE TABLE IF NOT EXISTS openrouter_models (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user_id INTEGER,
@@ -176,6 +178,44 @@ class DatabaseService {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
+
+        CREATE TABLE IF NOT EXISTS account (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          type TEXT NOT NULL,
+          provider TEXT NOT NULL,
+          providerAccountId TEXT NOT NULL,
+          refresh_token TEXT,
+          access_token TEXT,
+          expires_at INTEGER,
+          token_type TEXT,
+          scope TEXT,
+          id_token TEXT,
+          session_state TEXT,
+          refresh_token_expires_in INTEGER,
+          user_id INTEGER,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS verificationToken (
+          identifier TEXT PRIMARY KEY,
+          token TEXT NOT NULL,
+          expires DATETIME NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS web_user (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          email TEXT NOT NULL,
+          password TEXT NOT NULL,
+          username TEXT NOT NULL,
+          picture TEXT,
+          user_id INTEGER,
+          image TEXT,
+
+          created_at BIGINT DEFAULT (strftime('%s', 'now')),
+          updatedAt BIGINT DEFAULT (strftime('%s', 'now')),
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+        
       `);
       console.log("Database initialized successfully");
       this.migrateSettingsTable();
@@ -183,6 +223,7 @@ class DatabaseService {
       console.error("Error initializing database:", error);
     }
   };
+
   migrateSettingsTable = () => {
     try {
       // Define expected schema
@@ -205,8 +246,8 @@ class DatabaseService {
         { name: "selectedCustomId", type: "INTEGER" },
         { name: "cot", type: "INTEGER" },
         { name: "webSearch", type: "INTEGER" },
+        { name: "reasoningEffort", type: "TEXT" },
       ];
-
       // Get current table info
       const tableInfo = this.db
         .prepare("PRAGMA table_info(settings)")
@@ -247,6 +288,7 @@ class DatabaseService {
             selectedCustomId INTEGER,
             cot INTEGER DEFAULT 0,
             webSearch INTEGER DEFAULT 0,
+            reasoningEffort TEXT,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
           );
         `);
@@ -270,6 +312,7 @@ class DatabaseService {
           selectedCustomId: number;
           cot: number;
           webSearch: number;
+          reasoningEffort: string;
         }[]) {
           try {
             // Check if user exists before restoring their settings
@@ -284,8 +327,8 @@ class DatabaseService {
               INSERT INTO settings (
                 user_id, model, promptId, temperature, provider, maxTokens,
                 vectorstore, modelDirectory, modelType, modelLocation,
-                ollamaIntegration, ollamaModel, baseUrl, selectedAzureId, selectedCustomId, webSearch
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ollamaIntegration, ollamaModel, baseUrl, selectedAzureId, selectedCustomId, webSearch, reasoningEffort
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `
               )
               .run(
@@ -304,7 +347,8 @@ class DatabaseService {
                 row.baseUrl,
                 row.selectedAzureId,
                 row.selectedCustomId,
-                row.webSearch
+                row.webSearch,
+                row.reasoningEffort
               );
           } catch (error) {
             console.error("Error restoring settings row:", error);
@@ -341,6 +385,33 @@ class DatabaseService {
           "endpoint",
           "api_key",
         ],
+        account: [
+          "id",
+          "user_id",
+          "type",
+          "provider",
+          "providerAccountId",
+          "refresh_token",
+          "access_token",
+          "expires_at",
+          "token_type",
+          "scope",
+          "id_token",
+          "session_state",
+          "refresh_token_expires_in",
+        ],
+        verificationToken: ["identifier", "token", "expires"],
+        web_user: [
+          "id",
+          "email",
+          "password",
+          "username",
+          "user_id",
+          "picture",
+          "image",
+          "created_at",
+          "updatedAt",
+        ],
         custom_api: ["id", "user_id", "name", "endpoint", "api_key", "model"],
         users: ["id", "name", "created_at"],
         settings: [
@@ -362,6 +433,7 @@ class DatabaseService {
           "selectedCustomId",
           "cot",
           "webSearch",
+          "reasoningEffort",
         ],
         api_keys: ["id", "user_id", "key", "provider", "created_at"],
         prompts: ["id", "user_id", "name", "prompt", "created_at"],
@@ -510,11 +582,13 @@ class DatabaseService {
       selectedCustomId:
         settings.selectedCustomId ?? currentSettings?.selectedCustomId,
       webSearch: settings.webSearch ?? currentSettings?.webSearch,
+      reasoningEffort:
+        settings.reasoningEffort ?? currentSettings?.reasoningEffort,
     };
 
     return this.db
       .prepare(
-        "UPDATE settings SET model = ?, promptId = ?, temperature = ?, provider = ?, maxTokens = ?, vectorstore = ?, modelDirectory = ?, modelType = ?, modelLocation = ?, ollamaIntegration = ?, ollamaModel = ?, baseUrl = ?, selectedAzureId = ?, selectedCustomId = ?, cot = ?, webSearch = ? WHERE user_id = ?"
+        "UPDATE settings SET model = ?, promptId = ?, temperature = ?, provider = ?, maxTokens = ?, vectorstore = ?, modelDirectory = ?, modelType = ?, modelLocation = ?, ollamaIntegration = ?, ollamaModel = ?, baseUrl = ?, selectedAzureId = ?, selectedCustomId = ?, cot = ?, webSearch = ?, reasoningEffort = ? WHERE user_id = ?"
       )
       .run(
         updatedSettings.model,
@@ -533,6 +607,7 @@ class DatabaseService {
         updatedSettings.selectedCustomId,
         updatedSettings.cot,
         updatedSettings.webSearch,
+        updatedSettings.reasoningEffort,
         settings.userId
       );
   }

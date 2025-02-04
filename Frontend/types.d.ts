@@ -46,6 +46,8 @@ type Message = {
   data_content?: string;
 };
 
+type ReasoningEffort = "low" | "medium" | "high";
+
 interface UserSettings {
   userId?: number;
   id?: number;
@@ -69,6 +71,7 @@ interface UserSettings {
   topP?: number;
   promptId?: number;
   webSearch?: number;
+  reasoningEffort?: ReasoningEffort;
 }
 
 type Collection = {
@@ -988,7 +991,7 @@ interface ProviderInputParams {
   messages: Message[];
   activeUser: User;
   userSettings: UserSettings;
-  prompt: string;
+  prompt: string | undefined;
   conversationId: bigint | number;
   mainWindow: BrowserWindow | null;
   currentTitle: string;
