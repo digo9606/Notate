@@ -49,12 +49,7 @@ export async function openAiChainOfThought(
   const newMessages = [sysPrompt, ...truncatedMessages];
   let reasoning;
 
-  if (
-    userSettings.model === "o1-preview" ||
-    userSettings.model === "o1-mini" ||
-    userSettings.model === "o1" ||
-    userSettings.model === "o3-mini-2025-01-31"
-  ) {
+  if (userSettings.model === "o3-mini-2025-01-31") {
     reasoning = await provider.chat.completions.create(
       {
         model: userSettings.model as string,
