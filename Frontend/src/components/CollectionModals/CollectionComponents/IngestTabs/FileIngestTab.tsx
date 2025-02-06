@@ -46,7 +46,22 @@ export function FileTab() {
       )}
       <IngestProgress />
       <Button
-        onClick={handleUpload}
+        onClick={() => {
+          if (selectedFile) {
+            const reader = new FileReader();
+            reader.onload = async (e: ProgressEvent<FileReader>) => {
+              const content = e.target?.result;
+              if (content instanceof ArrayBuffer) {
+                const uint8Array = new Uint8Array(content);
+                const binaryString = uint8Array.reduce((data, byte) => 
+                  data + String.fromCharCode(byte), '');
+                const base64Content = btoa(binaryString);
+                handleUpload(base64Content);
+              }
+            };
+            reader.readAsArrayBuffer(selectedFile);
+          }
+        }}
         disabled={!selectedFile || ingesting}
         className="w-full"
       >

@@ -53,26 +53,44 @@ export function setupCollectionHandlers() {
     }
   });
 
-  ipcMainDatabaseHandle("addFileToCollection", async (payload) => {
+  ipcMainDatabaseHandle("addFileToCollection", async (payload: {
+    userId: number;
+    userName: string;
+    collectionId: number;
+    collectionName: string;
+    fileName: string;
+    fileContent: string;
+  }) => {
     try {
-      return {
-        userId: payload.userId,
-        userName: payload.userName,
-        collectionId: payload.collectionId,
-        collectionName: payload.collectionName,
-        fileName: payload.fileName,
-        fileContent: payload.fileContent,
-        result: await addFileToCollection(
-          payload.userId,
-          payload.userName,
-          payload.collectionId,
-          payload.collectionName,
-          payload.fileName,
-          payload.fileContent
-        ),
-      };
+      const result = await addFileToCollection(
+        payload.userId,
+        payload.userName,
+        payload.collectionId,
+        payload.collectionName,
+        payload.fileName,
+        payload.fileContent
+      );
+
+      if (result.success) {
+        return {
+          userId: payload.userId,
+          userName: payload.userName,
+          collectionId: payload.collectionId,
+          collectionName: payload.collectionName,
+          fileName: payload.fileName,
+          fileContent: payload.fileContent,
+          result
+        };
+      } else {
+        throw new Error(result.error || 'Unknown error occurred');
+      }
     } catch (error) {
       console.error("Error adding file to collection:", error);
+      
+      if (error instanceof Error && (error.message.includes('terminated') || error.message.includes('socket'))) {
+        throw new Error('Connection to processing server was lost. Please try again.');
+      }
+      
       throw error;
     }
   });

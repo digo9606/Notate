@@ -99,7 +99,8 @@ export async function addFileToCollection(
     }
 
     const filePath = path.join(collectionPath, fileName);
-    fs.writeFileSync(filePath, fileContent);
+    // Write the file content as binary data from base64
+    fs.writeFileSync(filePath, Buffer.from(fileContent, 'base64'));
     let apiKey = null;
     try {
       apiKey = db.getApiKey(userId, "openai");

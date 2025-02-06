@@ -42,5 +42,5 @@ export interface LibraryContextType {
   setProgressMessage: React.Dispatch<React.SetStateAction<string>>;
   setProgress: React.Dispatch<React.SetStateAction<number>>;
   setShowProgress: React.Dispatch<React.SetStateAction<boolean>>;
-  handleUpload: () => Promise<void>;
+  handleUpload: (base64Content: string) => Promise<void>;
 }

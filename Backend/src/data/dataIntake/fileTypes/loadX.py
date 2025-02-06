@@ -5,10 +5,53 @@ from bs4 import BeautifulSoup
 from pptx import Presentation
 from langchain_community.document_loaders import Docx2txtLoader
 from langchain_community.document_loaders.csv_loader import CSVLoader
+from pypdf import PdfReader
+from langchain_core.documents import Document
 import logging
+import os
+import asyncio
 
 
-def load_py(file):
+async def load_pdf(file_path):
+    try:
+        logging.info(f"Starting to load PDF: {file_path}")
+        
+        # Verify file exists and is readable
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"PDF file not found: {file_path}")
+
+        def read_pdf():
+            reader = PdfReader(file_path)
+            pages = []
+            for i, page in enumerate(reader.pages):
+                text = page.extract_text()
+                if text.strip():  # Only include pages with content
+                    pages.append(
+                        Document(
+                            page_content=text,
+                            metadata={"source": file_path, "page": i}
+                        )
+                    )
+            return pages
+
+        # Run PDF reading in a thread pool to avoid blocking
+        pages = await asyncio.get_event_loop().run_in_executor(None, read_pdf)
+            
+        if not pages:
+            logging.error(f"No valid pages found in {file_path}")
+            return None
+            
+        logging.info(f"Successfully loaded {len(pages)} pages from {file_path}")
+        logging.info(f"First page metadata: {pages[0].metadata}")
+        logging.info(f"First page content sample: {pages[0].page_content[:200]}...")
+        
+        return pages
+    except Exception as e:
+        logging.error(f"Error loading PDF {file_path}: {str(e)}", exc_info=True)
+        return None
+
+
+async def load_py(file):
     try:
         with open(file, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -18,23 +61,7 @@ def load_py(file):
         return None
 
 
-def load_pdf(file):
-    try:
-        """   loader = MathpixPDFLoader(file)
-          docs = loader.load()
-          print(docs)
-          print(f"Successfully loaded PDF file: {file}")
-          print(f"Number of pages: {len(docs)}")
-          print(f"PDF metadata: {docs[0].metadata}")
-          print(docs[0].page_content)
-          return docs[0].page_content """
-        return None
-    except Exception as e:
-        print(f"Error loading PDF: {str(e)}")
-        return None
-
-
-def load_docx(file):
+async def load_docx(file):
     try:
         loader = Docx2txtLoader(file)
         data = loader.load()
@@ -45,7 +72,7 @@ def load_docx(file):
         return None
 
 
-def load_txt(file):
+async def load_txt(file):
     try:
         with open(file, 'r', encoding='utf-8') as f:
             return f.read().strip()
@@ -54,7 +81,7 @@ def load_txt(file):
         return None
 
 
-def load_md(file):
+async def load_md(file):
     try:
         with open(file, 'r', encoding='utf-8') as f:
             md_text = f.read()
@@ -66,7 +93,7 @@ def load_md(file):
         return None
 
 
-def load_html(file_path: str) -> str:
+async def load_html(file_path: str) -> str:
     """Load and process HTML file content"""
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -98,7 +125,7 @@ def load_html(file_path: str) -> str:
         return None
 
 
-def load_csv(file):
+async def load_csv(file):
     try:
         loader = CSVLoader(file)
         data = loader.load()
@@ -108,7 +135,7 @@ def load_csv(file):
         return None
 
 
-def load_json(file):
+async def load_json(file):
     try:
         with open(file, 'r', encoding='utf-8') as f:
             data = json.load(f)
