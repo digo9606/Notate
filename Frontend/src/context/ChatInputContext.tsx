@@ -5,8 +5,14 @@ export interface ChatInputContextType {
   setInput: React.Dispatch<React.SetStateAction<string>>;
   isLoading: boolean;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
-  handleChatRequest: (collectionId: number | undefined, suggestion?: string) => Promise<void>;
+  handleChatRequest: (
+    collectionId: number | undefined,
+    suggestion?: string,
+    conversationId?: number
+  ) => Promise<void>;
   cancelRequest: () => Promise<void>;
 }
 
-export const ChatInputContext = createContext<ChatInputContextType | undefined>(undefined); 
+export const ChatInputContext = createContext<ChatInputContextType | undefined>(
+  undefined
+);

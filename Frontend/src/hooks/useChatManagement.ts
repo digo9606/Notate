@@ -1,6 +1,9 @@
 import { useCallback, useState } from "react";
 
-export const useChatManagement = (activeUser: User | null, onChatComplete?: () => void) => {
+export const useChatManagement = (
+  activeUser: User | null,
+  onChatComplete?: () => void
+) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [streamingMessage, setStreamingMessage] = useState<string>("");
   const [streamingMessageReasoning, setStreamingMessageReasoning] =
@@ -12,7 +15,11 @@ export const useChatManagement = (activeUser: User | null, onChatComplete?: () =
   const [input, setInput] = useState<string>("");
 
   const handleChatRequest = useCallback(
-    async (collectionId: number | undefined, suggestion?: string) => {
+    async (
+      collectionId: number | undefined,
+      suggestion?: string,
+      conversationId?: number
+    ) => {
       if (!activeUser) return;
       setIsLoading(true);
       const requestId = Date.now();
@@ -31,7 +38,7 @@ export const useChatManagement = (activeUser: User | null, onChatComplete?: () =
         const result = await window.electron.chatRequest(
           [...messages, newUserMessage],
           activeUser,
-          undefined,
+          conversationId,
           collectionId,
           undefined,
           requestId
@@ -44,10 +51,9 @@ export const useChatManagement = (activeUser: User | null, onChatComplete?: () =
         }
 
         setMessages(result.messages);
-        
+
         // Notify parent of chat completion
         onChatComplete?.();
-
       } catch (error) {
         if (error instanceof Error && error.name === "AbortError") {
           setError("Request was cancelled");

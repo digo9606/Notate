@@ -23,7 +23,7 @@ import {
 import { WebAudioRecorder } from "@/utils/webAudioRecorder";
 import { useLibrary } from "@/context/useLibrary";
 export const ChatInput = memo(function ChatInput() {
-  const { activeUser, toggleTool, userTools } = useUser();
+  const { activeUser, toggleTool, userTools, activeConversation } = useUser();
   const {
     handleChatRequest,
     cancelRequest,
@@ -225,7 +225,11 @@ export const ChatInput = memo(function ChatInput() {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               if (input.trim()) {
-                handleChatRequest(selectedCollection?.id || undefined);
+                handleChatRequest(
+                  selectedCollection?.id || undefined,
+                  undefined,
+                  activeConversation || undefined
+                );
               }
             }
           }}
