@@ -36,7 +36,7 @@ export function NewConvoWelcome() {
   };
 
   return (
-    <div className="!h-full flex-1 flex flex-col items-center justify-center px-4 py-6 md:p-8 text-center">
+    <div className="!h-full flex-1 flex flex-col items-center justify-center px-4  text-center">
       <div className="space-y-4 md:space-y-6 w-full max-w-[600px]">
         <div className="space-y-3 md:space-y-4">
           <div className="flex items-center justify-center mx-auto my-3 md:my-4">
