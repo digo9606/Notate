@@ -26,7 +26,7 @@ export function createLoadingWindow(icon?: Electron.NativeImage) {
     roundedCorners: true,
     center: true,
     title: app.getName(),
-    icon: icon || path.join(__dirname, "../../src/assets/icon.png"),
+    icon: icon || path.join(__dirname, "../assets/icon.png"),
   };
 
   loadingWindow = new BrowserWindow(windowOptions);

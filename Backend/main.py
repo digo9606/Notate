@@ -11,7 +11,7 @@ from src.endpoint.devApiCall import rag_call, llm_call, vector_call
 from src.endpoint.transcribe import transcribe_audio
 from src.endpoint.webcrawl import webcrawl
 from src.models.manager import model_manager
-from fastapi import FastAPI, Depends, File, UploadFile
+from fastapi import FastAPI, Depends, File, UploadFile, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 import asyncio
@@ -23,6 +23,7 @@ import threading
 import uvicorn
 import json
 from src.endpoint.api import chat_completion_stream
+
 app = FastAPI()
 embedding_task = None
 embedding_event = None
@@ -37,7 +38,25 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    max_age=3600,  # Cache preflight requests for 1 hour
+    expose_headers=["*"]
 )
+
+# Configure FastAPI app settings for long-running requests
+
+
+@app.middleware("http")
+async def timeout_middleware(request: Request, call_next):
+    try:
+        # Set a long timeout for the request
+        # 1 hour timeout
+        response = await asyncio.wait_for(call_next(request), timeout=3600)
+        return response
+    except asyncio.TimeoutError:
+        return JSONResponse(
+            status_code=504,
+            content={"detail": "Request timeout"}
+        )
 
 logger = logging.getLogger(__name__)
 
@@ -196,7 +215,7 @@ async def add_embedding(data: EmbeddingRequest, user_id: str = Depends(verify_to
     async def event_generator():
         global embedding_task, embedding_event
         try:
-            for result in embed(data):
+            async for result in embed(data):
                 if embedding_event.is_set():
                     yield f"data: {{'type': 'cancelled', 'message': 'Embedding process cancelled'}}\n\n"
                     break
@@ -206,17 +225,27 @@ async def add_embedding(data: EmbeddingRequest, user_id: str = Depends(verify_to
                     yield f"data: {{'type': 'progress', 'chunk': {progress_data['chunk']}, 'totalChunks': {progress_data['total_chunks']}, 'percent_complete': '{progress_data['percent_complete']}', 'est_remaining_time': '{progress_data['est_remaining_time']}'}}\n\n"
                 else:
                     yield f"data: {{'type': '{result['status']}', 'message': '{result['message']}'}}\n\n"
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(0.1)  # Prevent overwhelming the connection
         except Exception as e:
+            logger.error(f"Error in embedding process: {str(e)}")
             yield f"data: {{'type': 'error', 'message': '{str(e)}'}}\n\n"
         finally:
             embedding_task = None
             embedding_event = None
+            logger.info("Embedding task cleanup completed")
 
     response = StreamingResponse(
-        event_generator(), media_type="text/event-stream")
-    embedding_task = asyncio.create_task(event_generator().__anext__())
+        event_generator(),
+        media_type="text/event-stream"
+    )
 
+    # Set response headers for better connection handling
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["Connection"] = "keep-alive"
+    response.headers["X-Accel-Buffering"] = "no"
+    response.headers["Transfer-Encoding"] = "chunked"
+
+    embedding_task = asyncio.create_task(event_generator().__anext__())
     return response
 
 
@@ -349,9 +378,16 @@ async def cancel_crawl(user_id: str = Depends(verify_token)):
         crawl_event.set()
         return {"status": "success", "message": "Crawl process cancelled"}
     return {"status": "error", "message": "No crawl process running"}
-# Add the chat completion endpoint
 
 
 if __name__ == "__main__":
     print("Starting server...")
-    uvicorn.run(app, host="127.0.0.1", port=47372)
+    uvicorn.run(
+        app,
+        host="127.0.0.1",
+        port=47372,
+        timeout_keep_alive=3600,
+        timeout_graceful_shutdown=300,
+        limit_concurrency=10,
+        backlog=2048
+    )

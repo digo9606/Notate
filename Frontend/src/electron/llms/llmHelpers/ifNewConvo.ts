@@ -8,7 +8,7 @@ export async function ifNewConversation(messages: Message[], activeUser: User) {
       messages[messages.length - 1].content,
       activeUser
     );
-
+    
     const addConversation = await db.addUserConversation(
       activeUser.id,
       newTitle

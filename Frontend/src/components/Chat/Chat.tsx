@@ -1,12 +1,13 @@
-import { ArrowDown } from "lucide-react";
+import { ArrowDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/context/useUser";
 import { useChatInput } from "@/context/useChatInput";
 import { useChatLogic } from "@/hooks/useChatLogic";
-import { ChatHeader } from "./ChatComponents/ChatHeader";
 import { ChatMessagesArea } from "./ChatComponents/ChatMessagesArea";
 import { ChatInput } from "./ChatComponents/ChatInput";
 import { LoadingIndicator } from "./ChatComponents/LoadingIndicator";
+import { useSysSettings } from "@/context/useSysSettings";
+import { IngestProgress } from "../CollectionModals/CollectionComponents/IngestProgress";
 
 export default function Chat() {
   const {
@@ -16,7 +17,7 @@ export default function Chat() {
     showScrollButton,
     scrollToBottom,
   } = useChatLogic();
-
+  const { localModalLoading } = useSysSettings();
   const { streamingMessage, streamingMessageReasoning, messages, error } =
     useUser();
 
@@ -24,7 +25,6 @@ export default function Chat() {
 
   return (
     <div className="pt-5 h-[calc(100vh-1rem)] flex flex-col">
-      <ChatHeader />
       <div className={`flex flex-col h-full overflow-hidden relative`}>
         <ChatMessagesArea
           scrollAreaRef={scrollAreaRef}
@@ -46,7 +46,15 @@ export default function Chat() {
             <ArrowDown className="h-4 w-4" />
           </Button>
         )}
-
+        <div className="flex-1 flex justify-center">
+          {localModalLoading && (
+            <div className="flex items-center gap-2">
+              <Loader2 className="animate-spin h-4 w-4" />
+              <span>Loading local model...</span>
+            </div>
+          )}
+          <IngestProgress truncate={true} />
+        </div>
         {isLoading && (
           <div className="flex justify-center">
             <LoadingIndicator />

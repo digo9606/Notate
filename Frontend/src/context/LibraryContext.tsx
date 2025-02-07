@@ -155,42 +155,36 @@ const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [activeUser, selectedCollection]);
 
-  const handleUpload = useCallback(async () => {
+  const handleUpload = useCallback(async (base64Content: string) => {
     if (!activeUser?.id || !selectedCollection?.id || !selectedFile) return;
 
     try {
       setIngesting(true);
       setShowProgress(true);
-      const reader = new FileReader();
-      reader.onload = async (e: ProgressEvent<FileReader>) => {
-        const content = e.target?.result;
-        if (typeof content !== "string") return;
 
-        const result = await window.electron.addFileToCollection(
-          activeUser.id,
-          activeUser.name,
-          selectedCollection.id,
-          selectedCollection.name,
-          selectedFile.name,
-          content
-        );
+      const result = await window.electron.addFileToCollection(
+        activeUser.id,
+        activeUser.name,
+        selectedCollection.id,
+        selectedCollection.name,
+        selectedFile.name,
+        base64Content
+      );
 
-        if (result.result.success) {
-          setSelectedFile(null);
-          setProgressMessage("");
-          setProgress(0);
-          setShowProgress(false);
-          loadFiles();
-          setIngesting(false);
-        } else {
-          toast({
-            title: "Error",
-            description: "Check your OPENAI API keys and try again",
-            variant: "destructive",
-          });
-        }
-      };
-      reader.readAsText(selectedFile);
+      if (result.result.success) {
+        setSelectedFile(null);
+        setProgressMessage("");
+        setProgress(0);
+        setShowProgress(false);
+        loadFiles();
+        setIngesting(false);
+      } else {
+        toast({
+          title: "Error",
+          description: "Check your OPENAI API keys and try again",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       setShowProgress(false);
       setProgressMessage("");

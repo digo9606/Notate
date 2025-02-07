@@ -7,9 +7,13 @@ import WindowControls from "./HeaderComponents/MainWindowControl";
 import WinLinuxControls from "./HeaderComponents/WinLinuxControls";
 import { useChatInput } from "@/context/useChatInput";
 import ToolsDialog from "./HeaderComponents/ToolsDialog";
+import { Button } from "../ui/button";
+import { PlusCircle } from "lucide-react";
+import { useChatLogic } from "@/hooks/useChatLogic";
 export function Header() {
   const { isSearchOpen, searchTerm, conversations, setFilteredConversations } =
     useUser();
+  const { handleResetChat } = useChatLogic();
 
   const { platform, isMaximized, setIsMaximized } = useSysSettings();
   const { input } = useChatInput();
@@ -53,13 +57,23 @@ export function Header() {
       }`}
     >
       {/* Left column */}
-      <div className="flex items-center">
+      <div className="flex items-center justify-between">
         {platform === "darwin" ? renderWindowControls : <WinLinuxControls />}
       </div>
       {/* Center column */}
       <SearchComponent />
       {/* Right column */}
       <div className="flex items-center justify-end">
+        <Button
+          variant="ghost"
+          className="clickable-header-section text-xs rounded-none sm:w-auto h-9 w-9 sm:px-2"
+          onClick={() => {
+            handleResetChat();
+          }}
+        >
+          <PlusCircle className="sm:mr-2" />
+          <span className="hidden sm:block text-xs">New Chat</span>
+        </Button>
         <ToolsDialog />
         <SettingsDialog />
       </div>
