@@ -43,11 +43,14 @@ app.add_middleware(
 )
 
 # Configure FastAPI app settings for long-running requests
+
+
 @app.middleware("http")
 async def timeout_middleware(request: Request, call_next):
     try:
         # Set a long timeout for the request
-        response = await asyncio.wait_for(call_next(request), timeout=3600)  # 1 hour timeout
+        # 1 hour timeout
+        response = await asyncio.wait_for(call_next(request), timeout=3600)
         return response
     except asyncio.TimeoutError:
         return JSONResponse(
@@ -235,13 +238,13 @@ async def add_embedding(data: EmbeddingRequest, user_id: str = Depends(verify_to
         event_generator(),
         media_type="text/event-stream"
     )
-    
+
     # Set response headers for better connection handling
     response.headers["Cache-Control"] = "no-cache"
     response.headers["Connection"] = "keep-alive"
     response.headers["X-Accel-Buffering"] = "no"
     response.headers["Transfer-Encoding"] = "chunked"
-    
+
     embedding_task = asyncio.create_task(event_generator().__anext__())
     return response
 
@@ -375,7 +378,6 @@ async def cancel_crawl(user_id: str = Depends(verify_token)):
         crawl_event.set()
         return {"status": "success", "message": "Crawl process cancelled"}
     return {"status": "error", "message": "No crawl process running"}
-# Add the chat completion endpoint
 
 
 if __name__ == "__main__":
@@ -384,8 +386,8 @@ if __name__ == "__main__":
         app,
         host="127.0.0.1",
         port=47372,
-        timeout_keep_alive=3600,  # 1 hour keep-alive timeout
-        timeout_graceful_shutdown=300,  # 5 minutes graceful shutdown
-        limit_concurrency=10,  # Limit concurrent connections
-        backlog=2048  # Increase connection queue size
+        timeout_keep_alive=3600,
+        timeout_graceful_shutdown=300,
+        limit_concurrency=10,
+        backlog=2048
     )

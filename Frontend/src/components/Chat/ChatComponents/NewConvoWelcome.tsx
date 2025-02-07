@@ -5,6 +5,12 @@ import { useChatInput } from "@/context/useChatInput";
 import { useLibrary } from "@/context/useLibrary";
 import { docSuggestions, suggestions } from "./suggestions";
 import { useMemo } from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function NewConvoWelcome() {
   const { handleChatRequest } = useChatInput();
@@ -22,65 +28,83 @@ export function NewConvoWelcome() {
   }, []);
 
   const handleSuggestionClick = (suggestion: string) => {
-    handleChatRequest(selectedCollection?.id || undefined, suggestion);
+    handleChatRequest(
+      selectedCollection?.id || undefined,
+      suggestion,
+      undefined
+    );
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-      <div className="space-y-6 max-w-[600px]">
-        <div className="space-y-2">
-          <div className=" flex items-center justify-center mx-auto my-4">
-            <img src={notateLogo} alt="Notate Logo" className="w-12 h-12" />
+    <div className="!h-full flex-1 flex flex-col items-center justify-center px-4 py-6 md:p-8 text-center">
+      <div className="space-y-4 md:space-y-6 w-full max-w-[600px]">
+        <div className="space-y-3 md:space-y-4">
+          <div className="flex items-center justify-center mx-auto my-3 md:my-4">
+            <img
+              src={notateLogo}
+              alt="Notate Logo"
+              className="w-10 h-10 md:w-12 md:h-12"
+            />
           </div>
-          <h2 className="text-2xl font-bold">Welcome to Notate</h2>
-          <p className="text-muted-foreground">
-            Your AI-powered knowledge assistant. Ask questions about your
-            documents, videos, and web content.
+          <h2 className="text-xl md:text-2xl font-bold">
+            Welcome to Notate! 👋
+          </h2>
+          <p className="text-sm md:text-base text-muted-foreground px-2">
+            Your friendly AI assistant. Ask me anything about your documents,
+            videos, and web content.
           </p>
         </div>
 
-        <div className="grid gap-4">
-          <div className="grid gap-2">
+        <div className="grid gap-3 md:gap-4 w-full">
+          <div className="grid gap-2 w-full">
             {selectedCollection && (
-              <p className="text-muted-foreground ">
-                Your selected collection is
-                <span className="pl-2 font-bold text-[#ffffff]">
+              <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+                Currently viewing:
+                <span className="font-semibold text-[#ffffff] max-w-[200px] truncate">
                   {selectedCollection.name}
-                </span>{" "}
+                </span>
                 <button
-                  className="text-red-500 hover:text-red-600"
+                  className="text-red-500 hover:text-red-600 flex items-center"
                   onClick={() => {
                     setSelectedCollection(null);
                     setShowUpload(false);
                   }}
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </p>
             )}
-            <div className="grid gap-2">
+            <div className="grid gap-2 w-full">
               {selectedCollection
                 ? randomDocSuggestions.map((suggestion, i) => (
                     <Button
                       key={i}
                       variant="outline"
-                      className="justify-start text-left h-auto p-4 hover:bg-accent"
+                      className="justify-start text-left h-auto py-3 px-4 hover:bg-accent text-xs md:text-sm transition-colors w-full overflow-hidden"
                       onClick={() => handleSuggestionClick(suggestion)}
                     >
-                      <MessageSquare className="w-4 h-4 mr-2 flex-shrink-0" />
-                      {suggestion}
+                      <MessageSquare className="w-3.5 h-3.5 md:w-4 md:h-4 mr-2 flex-shrink-0" />
+                      <span className="truncate">{suggestion}</span>
                     </Button>
                   ))
                 : randomSuggestions.map((suggestion, i) => (
-                    <Button
-                      key={i}
-                      variant="outline"
-                      className="justify-start text-left h-auto p-4 hover:bg-accent"
-                      onClick={() => handleSuggestionClick(suggestion)}
-                    >
-                      <MessageSquare className="w-4 h-4 mr-2 flex-shrink-0" />
-                      {suggestion}
-                    </Button>
+                    <TooltipProvider key={i}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="justify-start text-left h-auto py-3 px-4 hover:bg-accent text-xs md:text-sm transition-colors w-full overflow-hidden"
+                            onClick={() => handleSuggestionClick(suggestion)}
+                          >
+                            <MessageSquare className="w-3.5 h-3.5 md:w-4 md:h-4 mr-2 flex-shrink-0" />
+                            <span className="truncate">{suggestion}</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{suggestion}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   ))}
             </div>
           </div>
