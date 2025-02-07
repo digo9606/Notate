@@ -13,7 +13,7 @@ from src.data.dataIntake.fileTypes.loadX import (
     load_txt,
     load_xlsx,
     load_py,
-    load_pdf
+    load_pdf,
 )
 
 file_handlers = {
@@ -39,6 +39,7 @@ async def load_document(file: str):
         logger.info(f"File size: {file_size / (1024*1024):.2f}MB")
 
         handler = file_handlers.get(file_type)
+        print(handler)
         if not handler:
             logger.error(f"Unsupported file type: {file_type}")
             return None

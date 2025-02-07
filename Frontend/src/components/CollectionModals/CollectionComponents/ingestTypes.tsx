@@ -5,15 +5,11 @@ export const implementedFileTypes = [
   ".py",
   ".txt",
   ".csv",
+  ".pdf",
+  ".docx",
 ] as const;
 
-export const comingSoonFileTypes = [
-  ".pdf",
-  ".doc",
-  ".docx",
-  ".pptx",
-  ".xlsx",
-] as const;
+export const comingSoonFileTypes = [".pptx", ".xlsx"] as const;
 
 export const implementedLinkTypes = [
   {

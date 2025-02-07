@@ -15,7 +15,7 @@ import asyncio
 async def load_pdf(file_path):
     try:
         logging.info(f"Starting to load PDF: {file_path}")
-        
+
         # Verify file exists and is readable
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"PDF file not found: {file_path}")
@@ -36,18 +36,21 @@ async def load_pdf(file_path):
 
         # Run PDF reading in a thread pool to avoid blocking
         pages = await asyncio.get_event_loop().run_in_executor(None, read_pdf)
-            
+
         if not pages:
             logging.error(f"No valid pages found in {file_path}")
             return None
-            
-        logging.info(f"Successfully loaded {len(pages)} pages from {file_path}")
+
+        logging.info(
+            f"Successfully loaded {len(pages)} pages from {file_path}")
         logging.info(f"First page metadata: {pages[0].metadata}")
-        logging.info(f"First page content sample: {pages[0].page_content[:200]}...")
-        
+        logging.info(
+            f"First page content sample: {pages[0].page_content[:200]}...")
+
         return pages
     except Exception as e:
-        logging.error(f"Error loading PDF {file_path}: {str(e)}", exc_info=True)
+        logging.error(
+            f"Error loading PDF {file_path}: {str(e)}", exc_info=True)
         return None
 
 
@@ -165,4 +168,22 @@ def load_xlsx(file):
         return df.to_string().strip()
     except Exception as e:
         print(f"Error loading XLSX: {str(e)}")
+        return None
+
+
+async def load_docx(file):
+    try:
+        # Run the synchronous loader in a thread pool to avoid blocking
+        def load_docx_sync():
+            loader = Docx2txtLoader(file)
+            data = loader.load()
+            return data[0].page_content if data else None
+
+        content = await asyncio.get_event_loop().run_in_executor(None, load_docx_sync)
+        if content:
+            logging.info(f"Successfully loaded DOCX file: {file}")
+            return content
+        return None
+    except Exception as e:
+        logging.error(f"Error loading DOCX: {str(e)}")
         return None
